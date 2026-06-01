@@ -125,6 +125,24 @@ const EXPECTED_TABLES = {
         },
         pk: 'id',
         unique: ['asset_type', 'asset_id', 'service_id']
+    },
+    backup_artifacts: {
+        columns: {
+            id: 'serial', storage_provider: "varchar DEFAULT 'local'", object_key: 'text',
+            local_path: 'text', file_name: 'varchar', format: 'varchar',
+            size_bytes: 'bigint', includes_media: 'boolean DEFAULT FALSE',
+            created_at: 'timestamp DEFAULT CURRENT_TIMESTAMP'
+        },
+        pk: 'id'
+    },
+    backup_job_runs: {
+        columns: {
+            id: 'serial', idempotency_key: 'varchar', trigger_source: 'varchar',
+            status: 'varchar', artifact_id: 'bigint', error_message: 'text',
+            requested_at: 'timestamp DEFAULT CURRENT_TIMESTAMP',
+            finished_at: 'timestamp'
+        },
+        pk: 'id'
     }
 };
 

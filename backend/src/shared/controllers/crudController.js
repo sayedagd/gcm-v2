@@ -176,8 +176,7 @@ const upsert = (table) => async (req, res) => {
         }
 
         // --- 2. التحقق من صحة البيانات (Joi Validation) ---
-        const skipValidation = req.headers['x-skip-validation'] === 'true';
-        if (validators[table] && !skipValidation) {
+        if (validators[table]) {
             const { error } = validators[table].validate(data, { abortEarly: false });
             if (error) {
                 log(`[Validation Error] ${table}: ${error.details.map(d => d.message).join(', ')}`);

@@ -8,6 +8,7 @@
  *   publish('trip:created', tripRow);
  */
 const { log } = require('../utils/logger');
+const { recordSseDisconnect } = require('./metricsService');
 
 /** @type {Set<{res, user, lastEventId}>} */
 const clients = new Set();
@@ -120,6 +121,7 @@ const sseHandler = (req, res) => {
     const cleanup = () => {
         clearInterval(heartbeat);
         clients.delete(client);
+        recordSseDisconnect();
         log(`[SSE] -client user=${req.user.id} (total=${clients.size})`);
     };
     req.on('close', cleanup);

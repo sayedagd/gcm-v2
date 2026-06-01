@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Reverse-engineered technical document: 01. BRD & SRS (Reverse-Built)">
+  <title>01. BRD & SRS (Reverse-Built) | GCM v2 Docs</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="page-shell section-page">
+    <header class="section-hero">
+      <div>
+        <p class="eyebrow">Reverse-Engineered Documentation</p>
+        <h1>01. BRD & SRS (Reverse-Built)</h1>
+        <p class="lead">This page is the HTML-preserved migration of the original markdown source file.</p>
+      </div>
+      <nav class="subnav" aria-label="Section navigation">
+        <a href="index.html">Home</a>
+        <a href="docs.html">Docs Archive</a>
+        <a href="reverse-engineered.html">Reverse Hub</a>
+        <a href="print.html">Print export</a>
+      </nav>
+    </header>
+
+    <main class="content-grid single-column">
+      <section class="card wide">
+        <div class="section-head">
+          <p class="eyebrow">Source Preservation</p>
+          <h2>Original markdown content (no loss)</h2>
+        </div>
+        <pre class="markdown-archive">
+# 01. BRD &amp; SRS (Reverse-Built)
+
+## 1. Business Requirements Document (BRD)
+
+### 1.1 Product Purpose
+
+GCM v2 exists to digitize and control environmental operations (waste handling, water services, facility routing, and compliance evidence) across multiple organizations and roles.
+
+### 1.2 Business Problems Solved
+
+- Fragmented operations tracking across projects, drivers, vehicles, and facilities
+- Weak traceability of service execution and compliance artifacts
+- Limited visibility into supplier contribution and project cost performance
+- Slow manual coordination between internal teams, clients, and subcontractors
+- Operational risk from weak backup discipline and low observability
+
+### 1.3 Core Business Goals
+
+- Deliver a single operational source of truth for environmental service execution
+- Enforce standardized workflows for trip and evidence lifecycle
+- Improve client trust with transparent trip, document, and status tracking
+- Enable multi-tenant style branding/control via SaaS configuration
+- Reduce downtime and data-loss risk using scheduled backups and restore pathways
+
+### 1.4 Target Personas
+
+- `ADMIN`: platform governance, settings, health, backup, metrics
+- `REPORTS_MANAGER`: reporting and operational insight
+- `LOGISTICS`: fleet/driver/inventory/trip orchestration
+- `DATA_ENTRY`: CRUD-heavy operations and record maintenance
+- `ACCOUNTANT`: supplier/project cost-rate visibility
+- `DRIVER`: trip execution, assignment-specific visibility
+- `CLIENT` / `COMPANY_USER` / `PROJECT_USER`: client-side monitoring/approval and scoped visibility
+- `SUBCONTRACTOR`: supplier-scoped operations
+- Public users: landing, contact form, equipment catalog/inquiries
+
+### 1.5 Business Capabilities Implemented
+
+- Master data: companies, projects, services, facilities, suppliers
+- Operations: trips, asset requests, notifications, permission requests
+- Logistics: vehicles, drivers, inventory assets and size taxonomy
+- Commercial/public: configurable landing/store pages + inquiries
+- AI layer: assistant sessions/messages + OCR/analytics route surface
+- Governance: activity logs, metrics, schema health, backup/restore
+
+---
+
+## 2. System Requirements Specification (SRS)
+
+## 2.1 Functional Requirements
+
+### FR-Auth-01: Login/Logout
+
+- System shall authenticate users by email/password via `POST /api/v1/auth/login`.
+- System shall issue JWT access token with identity and scope claims (`id`, `role`, `company_id`, `project_id`, `supplier_id`).
+- System shall set HttpOnly auth cookie (`gcm_jwt` by default) and support logout cookie clear.
+
+### FR-Auth-02: Session Gatekeeping
+
+- Protected API routes shall require bearer token or auth cookie.
+- SSE query token mode shall be accepted only for `/api/events` and only when JWT `purpose=sse`.
+
+### FR-Auth-03: Role Authorization
+
+- Sensitive admin endpoints shall enforce `authorizeRoles('ADMIN')`.
+- Frontend route boundaries shall enforce role-path policy via middleware.
+
+### FR-Core-01: Generic CRUD Engine
+
+- System shall support list/upsert/delete patterns across domain tables.
+- Upsert shall run Joi validation when validator exists.
+- Upsert shall enforce duplicate checks using table-specific uniqueness rules.
+
+### FR-Core-02: Data Sanitization
+
+- Write payloads shall reject invalid body shape.
+- String payloads shall be sanitized against script/HTML injection (except configured URL/file fields).
+
+### FR-Core-03: Auditability
+
+- Mutating operations shall log activity events in `activity_logs`.
+- System shall emit canonical error envelope including trace id when available.
+
+### FR-Ops-01: Trip Business Rules
+
+- Trips shall require project and service.
+- Quantity must be greater than zero when provided.
+- Service must belong to project (`project_services` mapping).
+- Active statuses require assigned driver and vehicle.
+- Services marked `requires_recycle_receipt` require receipt number and file.
+- Facility acceptance constraints shall be enforced when facility has accepted service list.
+
+### FR-Ops-02: Real-Time Delivery
+
+- System shall expose SSE stream `/api/events`.
+- Event visibility shall be role/scoping-aware (driver, subcontractor, company, project).
+
+### FR-Infra-01: Health &amp; Diagnostics
+
+- System shall provide ping/health diagnostics.
+- System shall expose schema-health and force-migrate admin endpoints.
+- System shall expose runtime metrics snapshot endpoint for admins.
+
+### FR-Infra-02: Backup &amp; Restore
+
+- System shall support backup trigger/status/download/restore endpoints.
+- Backup artifacts shall be persisted in local storage or S3 object storage.
+- Scheduler can run in-process when enabled by env flag.
+
+### FR-Public-01: Public Surfaces
+
+- Public landing content shall be configurable from `saas_config`.
+- Public contact submissions shall be accepted and managed.
+- Public equipment catalog shall support inquiry workflows and admin maintenance.
+
+### FR-API-01: Versioned API Compatibility
+
+- API v1 namespace shall be available (`/api/v1/*`).
+- Legacy `/api/*` routes shall remain available with deprecation/sunset headers.
+- Vercel rewrites shall bridge v1 and legacy route targets.
+
+## 2.2 Non-Functional Requirements
+
+### NFR-Sec-01: Transport &amp; Headers
+
+- System uses `helmet` with CSP tuning and secure headers.
+- CORS is allowlist-based (`CORS_ORIGIN` + `CORS_ALLOWED_ORIGINS`).
+
+### NFR-Sec-02: Abuse Protection
+
+- Rate limits defined for global/auth/public writes/SSE token/AI/admin operations.
+
+### NFR-Sec-03: Error Governance
+
+- Canonical error envelope includes bilingual fields and trace/correlation compatibility.
+
+### NFR-Perf-01: Database Throughput
+
+- PostgreSQL pool configured with max 50 connections, timeout controls, and slow-query logging.
+
+### NFR-Perf-02: Query Health
+
+- Startup includes DB readiness retry loop and migration checks.
+- Indexes exist for operational hotspots (trips status/date/project/driver/vehicle, users role, etc.).
+
+### NFR-Reliability-01: Degraded Startup Tolerance
+
+- Safe module loading prevents full server crash on optional module failure.
+- Server can start even when startup jobs fail.
+
+### NFR-Scalability-01: Deployment Mode Awareness
+
+- Runtime supports long-lived node mode and serverless module mode.
+- Heavy startup services are optional in module mode.
+
+### NFR-Observability-01: Metrics and Correlation
+
+- Per-request correlation IDs propagated via headers.
+- In-memory operational metrics and alert thresholds are maintained and exposed.
+
+### NFR-Maintainability-01: Modular Domain Structure
+
+- Backend uses modular route/controller/service structure under `src/modules/*`.
+- Frontend follows feature-based architecture boundaries.
+
+---
+
+## 3. Requirements Gaps (Important)
+
+These are currently observable implementation gaps relevant for roadmap planning:
+
+- Frontend migration login currently sets role cookies directly (no backend credential check).
+- Login path currently uses plain-text password comparison in controller.
+- `GET /api/profile` currently returns placeholder response (`Profile Fetch Logic TBD`).
+- OpenAPI contract exists but does not yet enumerate all route modules present in code.
+        </pre>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

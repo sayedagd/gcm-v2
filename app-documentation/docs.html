@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="GCM v2 documentation archive and source map.">
+  <title>GCM v2 Docs Archive</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="page-shell section-page">
+    <header class="section-hero">
+      <div>
+        <p class="eyebrow">Docs Archive</p>
+        <h1>Markdown knowledge moved into the app documentation site</h1>
+        <p class="lead">This page consolidates the useful, real project knowledge that used to live in root markdown files and the old docs folder. The source markdown files can now be removed without losing the handover content.</p>
+      </div>
+      <nav class="subnav" aria-label="Section navigation">
+        <a href="index.html">Home</a>
+        <a href="architecture.html">Architecture</a>
+        <a href="overview.html">Overview</a>
+        <a href="backend.html">Backend</a>
+        <a href="schema.html">Schema</a>
+        <a href="print.html">Print export</a>
+        <a href="environment.html">Environment</a>
+        <a href="milestones.html">Milestones</a>
+      </nav>
+    </header>
+
+    <main class="content-grid single-column">
+      <section class="card wide">
+        <div class="section-head">
+          <p class="eyebrow">Source Map</p>
+          <h2>What moved here</h2>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Source file</th><th>Status</th><th>What it contained</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>README.md</td><td>Project intro</td><td>General app introduction and developer entry point.</td></tr>
+              <tr><td>DEPLOYMENT.md</td><td>Current reference</td><td>cPanel-style deployment and build/upload workflow.</td></tr>
+              <tr><td>HANDOFF.md</td><td>Current reference</td><td>Handover guidance for the refactored frontend and backend split.</td></tr>
+              <tr><td>TECHNICAL.md</td><td>Current reference</td><td>Technical architecture summary and deployment notes.</td></tr>
+              <tr><td>TECHNICAL_DOCUMENTATION.md</td><td>Current reference</td><td>System architecture, endpoints, schema, and release workflow.</td></tr>
+              <tr><td>SYSTEM_KNOWLEDGE.md</td><td>Current source of truth</td><td>Monorepo structure, data flow, business rules, and architecture contract.</td></tr>
+              <tr><td>USER_ROLES_JOURNEY.md</td><td>Domain reference</td><td>Role-based journeys for admin, supervisor, driver, client, supplier, and reporting roles.</td></tr>
+              <tr><td>TRIPS_MODULE.md</td><td>Domain reference</td><td>Trip lifecycle, validations, documents, and file storage rules.</td></tr>
+              <tr><td>BRAIN.md</td><td>Strategic archive</td><td>Product philosophy and long-term system direction.</td></tr>
+              <tr><td>memory.md</td><td>Audit archive</td><td>Audit findings and remediation roadmap for the stabilization pass.</td></tr>
+              <tr><td>fix-plan.md</td><td>Execution archive</td><td>Implementation order, statuses, and operational rules for the remediation plan.</td></tr>
+              <tr><td>enhnce-pln.md</td><td>Migrated to app docs</td><td>Program-wide enhancement and migration plan with phase-by-phase status and acceptance criteria.</td></tr>
+              <tr><td>session.md</td><td>Migrated to app docs</td><td>Session startup memory, architectural constraints, and operations continuity prompt.</td></tr>
+              <tr><td>docs/REPORTS_STANDARDS.md</td><td>Current reference</td><td>Print/report layout rules for manifests, dossiers, and trip documents.</td></tr>
+              <tr><td>docs/driver-lifecycle.md</td><td>Domain reference</td><td>Driver portal, documents, permits, and mission registration rules.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="card wide">
+        <div class="section-head">
+          <p class="eyebrow">Current References</p>
+          <h2>What still matters operationally</h2>
+        </div>
+        <div class="link-grid">
+          <a href="architecture.html"><strong>Architecture</strong><span>Service boundaries, request flow, and split runtime model.</span></a>
+          <a href="deployment.html"><strong>Deployment</strong><span>Build and release workflow for the split deployment model.</span></a>
+          <a href="system-knowledge.html"><strong>System Knowledge</strong><span>Architecture, data flow, and business rules.</span></a>
+          <a href="reverse-engineered.html"><strong>Reverse-Engineered Suite</strong><span>Static HTML pages migrated from reverse-engineered markdown files.</span></a>
+          <a href="trips-module.html"><strong>Trips Module</strong><span>Trip lifecycle, validations, documents, and storage.</span></a>
+          <a href="driver-lifecycle.html"><strong>Driver Lifecycle</strong><span>Driver portal, profile docs, permits, and mission flow.</span></a>
+          <a href="reports-standards.html"><strong>Reports Standards</strong><span>Print and PDF layout rules for generated documents.</span></a>
+          <a href="enhancement-plan.html"><strong>Enhancement Plan</strong><span>Complete migration plan from setup and hardening through cutover.</span></a>
+          <a href="session-handover.html"><strong>Session Handover</strong><span>Archived startup memory and constraints snapshot for continuity.</span></a>
+          <a href="user-roles.html"><strong>User Roles</strong><span>Multi-portal journeys and access patterns.</span></a>
+          <a href="milestones.html"><strong>Milestones</strong><span>Full source mirror of milestone markdown files.</span></a>
+        </div>
+      </section>
+
+      <section class="card wide">
+        <div class="section-head">
+          <p class="eyebrow">Archive Note</p>
+          <h2>Why these markdown files can go</h2>
+        </div>
+        <p>The markdown files were useful during the stabilization and audit pass, but their practical knowledge is now represented in the static site. Keeping both versions creates duplicate sources of truth, so the markdown files should be removed once the site pages are validated.</p>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

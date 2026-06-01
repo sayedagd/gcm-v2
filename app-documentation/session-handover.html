@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="GCM v2 final session handover snapshot.">
+  <title>GCM v2 Session Handover</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="page-shell section-page">
+    <header class="section-hero">
+      <div>
+        <p class="eyebrow">Session Handover</p>
+        <h1>Final session memory snapshot</h1>
+        <p class="lead">This page preserves the final startup memory that was previously stored in session.md, including architecture state, maintenance script policy, and next-step constraints.</p>
+      </div>
+      <nav class="subnav" aria-label="Section navigation">
+        <a href="index.html">Home</a>
+        <a href="overview.html">Overview</a>
+        <a href="backend.html">Backend</a>
+        <a href="backend-governance.html">Governance</a>
+        <a href="runbooks.html">Runbooks</a>
+        <a href="docs.html">Docs archive</a>
+        <a href="enhancement-plan.html">Plan</a>
+        <a href="print.html">Print export</a>
+      </nav>
+    </header>
+
+    <main class="content-grid single-column">
+      <section class="card wide">
+        <div class="section-head">
+          <p class="eyebrow">Session Date</p>
+          <h2>June 1, 2026 summary</h2>
+        </div>
+        <p>This document captures the operational state that was used to continue implementation without losing context across AI sessions.</p>
+      </section>
+
+      <section class="card wide">
+        <div class="section-head">
+          <p class="eyebrow">High-Level Outcomes</p>
+          <h2>Repository and architecture status</h2>
+        </div>
+        <ul class="list">
+          <li>Repository shape was reduced and governed around backend, frontend, and handover-doc structure at that time.</li>
+          <li>Architecture was finalized as split deployment: frontend and backend are separate Vercel projects.</li>
+          <li>Handover docs were designated local-only static documentation.</li>
+          <li>Legacy root clutter and duplicated documentation were cleaned and migrated.</li>
+        </ul>
+      </section>
+
+      <section class="card wide">
+        <div class="section-head">
+          <p class="eyebrow">Frontend Status</p>
+          <h2>Historical note from session snapshot</h2>
+        </div>
+        <ul class="list">
+          <li>Snapshot text referenced a Vite-based frontend and split API architecture environment alignment.</li>
+          <li>Current production state has since moved to Next.js frontend runtime and retired the legacy Vite frontend.</li>
+          <li>This entry is retained as a historical transition record.</li>
+        </ul>
+      </section>
+
+      <section class="card wide">
+        <div class="section-head">
+          <p class="eyebrow">Backend Runtime</p>
+          <h2>Session-captured backend baseline</h2>
+        </div>
+        <ul class="list">
+          <li>Backend is API-only and does not serve SPA shell.</li>
+          <li>Core runtime root files: app.js, database.js, fileService.js, and jest.config.js.</li>
+          <li>Serverless entrypoint path: backend/api/[...path].js.</li>
+          <li>Rewrites and serverless routing are controlled in backend/vercel.json.</li>
+          <li>Database initialization follows DATABASE_URL-first flow with local fallback and no Docker-specific branching.</li>
+        </ul>
+      </section>
+
+      <section class="card wide">
+        <div class="section-head">
+          <p class="eyebrow">Environment And CORS</p>
+          <h2>Session-captured policy</h2>
+        </div>
+        <ul class="list">
+          <li>Runtime env loading was narrowed to backend-local env patterns.</li>
+          <li>CORS controls were tied to CORS_ORIGIN with optional CORS_ALLOW_VERCEL_PREVIEWS behavior.</li>
+          <li>Environment template updates were recorded in backend/.env.example.</li>
+        </ul>
+      </section>
+
+      <section class="card wide">
+        <div class="section-head">
+          <p class="eyebrow">Documentation Migration</p>
+          <h2>Handover and cross-linking state</h2>
+        </div>
+        <ul class="list">
+          <li>Markdown content had been moved into static HTML handover pages.</li>
+          <li>Cross-linking across index, deployment, docs, architecture, and print was added.</li>
+          <li>Backend docs included maintenance script structure for active and archived operations scripts.</li>
+        </ul>
+      </section>
+
+      <section class="card wide">
+        <div class="section-head">
+          <p class="eyebrow">Backend Scripts Reorganization</p>
+          <h2>Latest operations script decisions from session</h2>
+        </div>
+        <ul class="list">
+          <li>Ad-hoc backend scripts were moved into structured maintenance and temporary debug folders during transition.</li>
+          <li>Broken relative imports caused by moves were fixed.</li>
+          <li>Debug probe scripts were removed and related npm aliases were removed from backend/package.json.</li>
+          <li>Legacy one-off migration scripts were archived conservatively rather than deleted immediately.</li>
+          <li>Active maintenance aliases retained at session time:</li>
+        </ul>
+        <pre>maintenance:create-test-accounts
+maintenance:inject-services
+maintenance:reset-admin
+maintenance:reset-testing
+maintenance:wipe-data</pre>
+      </section>
+
+      <section class="card wide">
+        <div class="section-head">
+          <p class="eyebrow">Validation Performed</p>
+          <h2>Checks recorded in session</h2>
+        </div>
+        <ul class="list">
+          <li>Node syntax checks over scripts passed.</li>
+          <li>backend/package.json JSON parsing passed.</li>
+          <li>git diff --check hygiene passed.</li>
+          <li>Frontend build checks had passed earlier in session.</li>
+          <li>Handover-site stale reference scan reported no debug-reference leftovers.</li>
+        </ul>
+      </section>
+
+      <section class="card wide">
+        <div class="section-head">
+          <p class="eyebrow">Working Tree Snapshot</p>
+          <h2>Conceptual changes recorded</h2>
+        </div>
+        <ul class="list">
+          <li>Modified at that time: backend/package.json and handover-site/backend.html.</li>
+          <li>Added expectations at that time: backend/scripts/maintenance/archive/*, app-documentation/backend-governance.html, and session memory file.</li>
+          <li>Maintenance directory model: active operational tools plus archive for one-off legacy scripts.</li>
+        </ul>
+      </section>
+
+      <section class="card wide">
+        <div class="section-head">
+          <p class="eyebrow">Recommended Next Steps</p>
+          <h2>Actions that were queued from session</h2>
+        </div>
+        <ol class="ordered">
+          <li>Normalize maintenance script filenames to consistent kebab-case if desired.</li>
+          <li>Add maintenance command usage and warnings in runbooks documentation.</li>
+          <li>Classify archived scripts for safe keep/delete decisions after schema validation.</li>
+          <li>Commit in logical chunks by architecture area.</li>
+        </ol>
+      </section>
+
+      <section class="card wide">
+        <div class="section-head">
+          <p class="eyebrow">Constraints</p>
+          <h2>Must-preserve decisions from session</h2>
+        </div>
+        <ul class="list">
+          <li>Preserve split frontend/backend Vercel deployment model.</li>
+          <li>Keep handover-style docs local-only.</li>
+          <li>Avoid reintroducing Docker-local assumptions.</li>
+          <li>Prefer conservative archive over hard delete for ambiguous maintenance scripts.</li>
+        </ul>
+      </section>
+
+      <section class="card wide">
+        <div class="section-head">
+          <p class="eyebrow">Bootstrap Prompt</p>
+          <h2>Historical prompt used to resume work</h2>
+        </div>
+        <pre>Continue from session memory and verify status of:
+- backend/package.json
+- backend/scripts/maintenance/
+- backend/scripts/maintenance/archive/
+- handover-site/backend.html
+
+Then execute in order:
+1. Confirm root architecture shape.
+2. Verify active maintenance commands without debug aliases.
+3. Add operations section to runbooks with command usage and warnings.
+4. Propose archived script keep/delete matrix based on schema relevance.
+5. Run syntax and diff-hygiene checks and summarize.</pre>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

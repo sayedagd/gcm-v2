@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="GCM v2 backend documentation.">
+  <title>GCM v2 Backend</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="page-shell section-page">
+    <header class="section-hero">
+      <div>
+        <p class="eyebrow">Backend Architecture</p>
+        <h1>API-only Node service</h1>
+        <p class="lead">The backend is an API-only Express service with versioned API contracts, standardized errors, object-storage-backed files, and scheduler-safe job execution.</p>
+      </div>
+      <nav class="subnav" aria-label="Section navigation">
+        <a href="index.html">Home</a>
+        <a href="overview.html">Overview</a>
+        <a href="frontend.html">Frontend</a>
+        <a href="backend-governance.html">Governance</a>
+        <a href="schema.html">Schema</a>
+        <a href="runbooks.html">Runbooks</a>
+        <a href="print.html">Print export</a>
+      </nav>
+    </header>
+    <main class="content-grid single-column">
+      <section class="card wide">
+        <ul class="list">
+          <li>Entry point: <code>backend/app.js</code></li>
+          <li>Database access: <code>backend/database.js</code></li>
+          <li>Primary pattern: route modules mounted by domain under <code>/api/v1</code> with legacy alias compatibility.</li>
+          <li>Auth: JWT protect middleware with role guard support</li>
+          <li>Auth lifecycle hardening: configurable token TTL + HttpOnly cookie issuance + explicit logout cookie clear.</li>
+          <li>Error contract: canonical payload via <code>backend/src/shared/utils/apiError.js</code>.</li>
+          <li>Validation baseline: global write-request body-shape guard + recursive payload sanitization middleware.</li>
+          <li>API contract: OpenAPI source at <code>backend/openapi/openapi.v1.json</code>.</li>
+          <li>Rate limiting: endpoint-tier policy for auth/public-write/AI/admin-sensitive operations.</li>
+          <li>Observability: request correlation middleware, structured JSON request logs, and metrics/alert snapshots at <code>/api/v1/system/metrics</code>.</li>
+          <li>Backup/upload storage: S3-compatible object storage with signed URL delivery.</li>
+          <li>Scheduling: in-process cron disabled by default; managed scheduler endpoints protected with idempotency keys + advisory locks.</li>
+          <li>Security and governance policies are consolidated in <a href="backend-governance.html">backend-governance.html</a>.</li>
+          <li>Observability artifacts: <code>backend/src/shared/services/metricsService.js</code> and incident guide in <a href="milestones.html">milestones.html</a>.</li>
+          <li>Operational maintenance tools: <code>backend/scripts/maintenance</code> (legacy one-off scripts are archived under <code>backend/scripts/maintenance/archive</code>)</li>
+          <li>Runtime services: migrations, backups, event stream, lazy-loaded WhatsApp/OCR/AI</li>
+        </ul>
+      </section>
+      <section class="card wide">
+        <div class="callout warning">The backend should be hosted independently from the frontend build and must remain API-only in production.</div>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

@@ -1,0 +1,844 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "GCM Backend API",
+    "version": "1.0.0",
+    "description": "Versioned public API contract for GCM v2. All new clients should use /api/v1/* endpoints."
+  },
+  "servers": [
+    {
+      "url": "/",
+      "description": "Same-origin backend"
+    }
+  ],
+  "tags": [
+    { "name": "Auth" },
+    { "name": "Users" },
+    { "name": "Companies" },
+    { "name": "Projects" },
+    { "name": "Trips" },
+    { "name": "Services" },
+    { "name": "Facilities" },
+    { "name": "Backup" },
+    { "name": "Config" }
+  ],
+  "paths": {
+    "/api/v1/auth/login": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Authenticate user",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/LoginRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Authenticated",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AuthResponse" }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/UnauthorizedError" }
+        }
+      }
+    },
+    "/api/v1/auth/logout": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Clear auth cookie session",
+        "responses": {
+          "200": {
+            "description": "Logged out",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/OperationSuccess" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/sse-token": {
+      "get": {
+        "tags": ["Auth"],
+        "summary": "Issue short-lived SSE token",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "SSE token issued",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SseTokenResponse" }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/UnauthorizedError" }
+        }
+      }
+    },
+    "/api/v1/users": {
+      "get": {
+        "tags": ["Users"],
+        "summary": "List users",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Users list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/User" }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/UnauthorizedError" }
+        }
+      },
+      "post": {
+        "tags": ["Users"],
+        "summary": "Create or update user",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/UserUpsert" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Upsert success",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/UpsertSuccess" }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/UnauthorizedError" },
+          "422": { "$ref": "#/components/responses/ValidationError" }
+        }
+      }
+    },
+    "/api/v1/users/{id}": {
+      "delete": {
+        "tags": ["Users"],
+        "summary": "Delete user",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/IdPath" }],
+        "responses": {
+          "200": {
+            "description": "Delete success",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DeleteSuccess" }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/UnauthorizedError" }
+        }
+      }
+    },
+    "/api/v1/companies": {
+      "get": {
+        "tags": ["Companies"],
+        "summary": "List companies",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Companies list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/Company" }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Companies"],
+        "summary": "Create or update company",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CompanyUpsert" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Upsert success",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/UpsertSuccess" }
+              }
+            }
+          },
+          "422": { "$ref": "#/components/responses/ValidationError" }
+        }
+      }
+    },
+    "/api/v1/companies/{id}": {
+      "delete": {
+        "tags": ["Companies"],
+        "summary": "Delete company",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/IdPath" }],
+        "responses": {
+          "200": {
+            "description": "Delete success",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DeleteSuccess" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/projects": {
+      "get": {
+        "tags": ["Projects"],
+        "summary": "List projects",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Projects list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/Project" }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Projects"],
+        "summary": "Create or update project",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ProjectUpsert" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Upsert success",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/UpsertSuccess" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/projects/{id}": {
+      "delete": {
+        "tags": ["Projects"],
+        "summary": "Delete project",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/IdPath" }],
+        "responses": {
+          "200": {
+            "description": "Delete success",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DeleteSuccess" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/trips": {
+      "get": {
+        "tags": ["Trips"],
+        "summary": "List trips",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Trips list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/Trip" }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Trips"],
+        "summary": "Create or update trip",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/TripUpsert" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Upsert success",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/UpsertSuccess" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/trips/{id}": {
+      "delete": {
+        "tags": ["Trips"],
+        "summary": "Delete trip",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/IdPath" }],
+        "responses": {
+          "200": {
+            "description": "Delete success",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DeleteSuccess" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/services": {
+      "get": {
+        "tags": ["Services"],
+        "summary": "List services",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Services list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/Service" }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Services"],
+        "summary": "Create or update service",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ServiceUpsert" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Upsert success",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/UpsertSuccess" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/services/{id}": {
+      "delete": {
+        "tags": ["Services"],
+        "summary": "Delete service",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/IdPath" }],
+        "responses": {
+          "200": {
+            "description": "Delete success",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DeleteSuccess" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/facilities": {
+      "get": {
+        "tags": ["Facilities"],
+        "summary": "List facilities",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Facilities list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/Facility" }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Facilities"],
+        "summary": "Create or update facility",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/FacilityUpsert" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Upsert success",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/UpsertSuccess" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/facilities/{id}": {
+      "delete": {
+        "tags": ["Facilities"],
+        "summary": "Delete facility",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/IdPath" }],
+        "responses": {
+          "200": {
+            "description": "Delete success",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DeleteSuccess" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/system/backup/status": {
+      "get": {
+        "tags": ["Backup"],
+        "summary": "Get backup status",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Backup status",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/BackupStatus" }
+              }
+            }
+          },
+          "403": { "$ref": "#/components/responses/ForbiddenError" }
+        }
+      }
+    },
+    "/api/v1/system/metrics": {
+      "get": {
+        "tags": ["Config"],
+        "summary": "Get runtime metrics snapshot",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Metrics snapshot",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/UnauthorizedError" },
+          "403": { "$ref": "#/components/responses/ForbiddenError" }
+        }
+      }
+    },
+    "/api/v1/system/backup/download": {
+      "get": {
+        "tags": ["Backup"],
+        "summary": "Download latest backup",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Backup file stream",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "403": { "$ref": "#/components/responses/ForbiddenError" }
+        }
+      }
+    },
+    "/api/v1/system/backup/restore": {
+      "post": {
+        "tags": ["Backup"],
+        "summary": "Restore backup from uploaded file",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": ["backup_file"],
+                "properties": {
+                  "backup_file": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Restore completed",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/OperationSuccess" }
+              }
+            }
+          },
+          "403": { "$ref": "#/components/responses/ForbiddenError" }
+        }
+      }
+    },
+    "/api/v1/system/backup/trigger": {
+      "post": {
+        "tags": ["Backup"],
+        "summary": "Trigger backup",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Backup triggered",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/OperationSuccess" }
+              }
+            }
+          },
+          "403": { "$ref": "#/components/responses/ForbiddenError" }
+        }
+      }
+    },
+    "/api/v1/config": {
+      "get": {
+        "tags": ["Config"],
+        "summary": "Read system config",
+        "responses": {
+          "200": {
+            "description": "Current config",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Config"],
+        "summary": "Create or update system config",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Config saved",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/OperationSuccess" }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "parameters": {
+      "IdPath": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "schema": { "type": "string" }
+      }
+    },
+    "responses": {
+      "UnauthorizedError": {
+        "description": "Unauthorized",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+          }
+        }
+      },
+      "ForbiddenError": {
+        "description": "Forbidden",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+          }
+        }
+      },
+      "ValidationError": {
+        "description": "Validation failed",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "LoginRequest": {
+        "type": "object",
+        "required": ["email", "password"],
+        "properties": {
+          "email": { "type": "string", "format": "email" },
+          "password": { "type": "string" }
+        }
+      },
+      "AuthResponse": {
+        "type": "object",
+        "properties": {
+          "token": { "type": "string" },
+          "user": { "$ref": "#/components/schemas/User" }
+        },
+        "additionalProperties": true
+      },
+      "SseTokenResponse": {
+        "type": "object",
+        "required": ["token", "expiresInSeconds"],
+        "properties": {
+          "token": { "type": "string" },
+          "expiresInSeconds": { "type": "integer" }
+        },
+        "additionalProperties": true
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "required": ["status", "error", "code", "errorInfo"],
+        "properties": {
+          "status": { "type": "string", "example": "error" },
+          "errorInfo": {
+            "type": "object",
+            "properties": {
+              "code": { "type": "string" },
+              "message": { "type": "string" },
+              "errorEn": { "type": "string" },
+              "errorAr": { "type": "string" },
+              "traceId": { "type": "string" },
+              "field": { "type": "string" },
+              "details": { "type": "object", "additionalProperties": true }
+            },
+            "additionalProperties": true
+          },
+          "code": { "type": "string" },
+          "error": { "type": "string", "description": "Legacy compatibility message" },
+          "errorEn": { "type": "string" },
+          "errorAr": { "type": "string" },
+          "traceId": { "type": "string" },
+          "field": { "type": "string" },
+          "details": { "type": "object", "additionalProperties": true }
+        },
+        "additionalProperties": true
+      },
+      "UpsertSuccess": {
+        "type": "object",
+        "properties": {
+          "status": { "type": "string", "example": "success" },
+          "id": { "type": "string" }
+        },
+        "additionalProperties": true
+      },
+      "DeleteSuccess": {
+        "type": "object",
+        "properties": {
+          "status": { "type": "string" }
+        },
+        "additionalProperties": true
+      },
+      "OperationSuccess": {
+        "type": "object",
+        "properties": {
+          "status": { "type": "string" },
+          "message": { "type": "string" }
+        },
+        "additionalProperties": true
+      },
+      "BackupStatus": {
+        "type": "object",
+        "properties": {
+          "status": { "type": "string" },
+          "lastBackupAt": { "type": "string", "format": "date-time" },
+          "nextBackupAt": { "type": "string", "format": "date-time" }
+        },
+        "additionalProperties": true
+      },
+      "User": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "email": { "type": "string" },
+          "role": { "type": "string" }
+        },
+        "additionalProperties": true
+      },
+      "UserUpsert": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "email": { "type": "string" },
+          "role": { "type": "string" }
+        },
+        "additionalProperties": true
+      },
+      "Company": {
+        "type": "object",
+        "properties": {
+          "company_id": { "type": "string" },
+          "company_name": { "type": "string" }
+        },
+        "additionalProperties": true
+      },
+      "CompanyUpsert": {
+        "type": "object",
+        "properties": {
+          "company_id": { "type": "string" },
+          "company_name": { "type": "string" }
+        },
+        "additionalProperties": true
+      },
+      "Project": {
+        "type": "object",
+        "properties": {
+          "project_id": { "type": "string" },
+          "project_name": { "type": "string" }
+        },
+        "additionalProperties": true
+      },
+      "ProjectUpsert": {
+        "type": "object",
+        "properties": {
+          "project_id": { "type": "string" },
+          "project_name": { "type": "string" }
+        },
+        "additionalProperties": true
+      },
+      "Trip": {
+        "type": "object",
+        "properties": {
+          "trip_id": { "type": "string" },
+          "date": { "type": "string", "format": "date" }
+        },
+        "additionalProperties": true
+      },
+      "TripUpsert": {
+        "type": "object",
+        "properties": {
+          "trip_id": { "type": "string" }
+        },
+        "additionalProperties": true
+      },
+      "Service": {
+        "type": "object",
+        "properties": {
+          "service_id": { "type": "string" },
+          "service_name": { "type": "string" }
+        },
+        "additionalProperties": true
+      },
+      "ServiceUpsert": {
+        "type": "object",
+        "properties": {
+          "service_id": { "type": "string" },
+          "service_name": { "type": "string" }
+        },
+        "additionalProperties": true
+      },
+      "Facility": {
+        "type": "object",
+        "properties": {
+          "facility_id": { "type": "string" },
+          "facility_name": { "type": "string" }
+        },
+        "additionalProperties": true
+      },
+      "FacilityUpsert": {
+        "type": "object",
+        "properties": {
+          "facility_id": { "type": "string" },
+          "facility_name": { "type": "string" }
+        },
+        "additionalProperties": true
+      }
+    }
+  }
+}

@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Reverse-engineered technical document: GCM v2 Technical Archaeology Documentation Hub">
+  <title>GCM v2 Technical Archaeology Documentation Hub | GCM v2 Docs</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="page-shell section-page">
+    <header class="section-hero">
+      <div>
+        <p class="eyebrow">Reverse-Engineered Documentation</p>
+        <h1>GCM v2 Technical Archaeology Documentation Hub</h1>
+        <p class="lead">This page is the HTML-preserved migration of the original markdown source file.</p>
+      </div>
+      <nav class="subnav" aria-label="Section navigation">
+        <a href="index.html">Home</a>
+        <a href="docs.html">Docs Archive</a>
+        <a href="reverse-engineered.html">Reverse Hub</a>
+        <a href="print.html">Print export</a>
+      </nav>
+    </header>
+
+    <main class="content-grid single-column">
+      <section class="card wide">
+        <div class="section-head">
+          <p class="eyebrow">Source Preservation</p>
+          <h2>Original markdown content (no loss)</h2>
+        </div>
+        <pre class="markdown-archive">
+# GCM v2 Technical Archaeology Documentation Hub
+
+This documentation set is reverse-engineered from the current codebase and runtime configuration in:
+
+- `backend/`
+- `frontend-next/`
+- `scripts/`
+- `backend/full_schema.sql`
+- `backend/openapi/openapi.v1.json`
+
+## Executive Summary
+
+GCM v2 is a waste-management and environmental services platform used to run end-to-end operations for projects, clients, logistics teams, subcontractors, and administrators. It combines:
+
+- Operational planning (projects, services, facilities, supplier rates)
+- Execution tracking (trip lifecycle, driver/vehicle assignment, evidence files)
+- Governance and visibility (audit logs, notifications, metrics, role-based boundaries)
+- Public and commercial surfaces (landing/contact, environmental equipment store)
+- Reliability and compliance controls (backup/restore, schema health, rate limits, CORS, JWT)
+
+The current architecture is a split deployment:
+
+- Backend: Express + PostgreSQL, deployed as a Vercel serverless function wrapper via `backend/api/[...path].js`
+- Frontend: Next.js App Router (`frontend-next/`) with middleware-enforced role boundaries and migration-mode session cookies
+
+## Source of Truth Sections
+
+- [01-brd-srs.md](./01-brd-srs.md)
+- [02-architecture-overview.md](./02-architecture-overview.md)
+- [03-database-schema-erd.md](./03-database-schema-erd.md)
+- [04-openapi-specification.md](./04-openapi-specification.md)
+
+## Operational Manual
+
+- [05-auth-security-protocols.md](./05-auth-security-protocols.md)
+- [06-vercel-deployment-cicd-guide.md](./06-vercel-deployment-cicd-guide.md)
+- [07-frontend-integration-blueprint.md](./07-frontend-integration-blueprint.md)
+
+## Notes on Reverse-Engineered Scope
+
+- This documentation reflects the **implemented state** as of 2026-06-01.
+- When implementation and intent differ, implementation wins.
+- Existing API contract file: `backend/openapi/openapi.v1.json`.
+- A complete route inventory is included in Section 4 with auth expectations per endpoint group.
+        </pre>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

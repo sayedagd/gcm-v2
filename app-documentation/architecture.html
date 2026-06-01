@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="GCM v2 architecture reference for split frontend/backend deployment.">
+  <title>GCM v2 Architecture</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="page-shell section-page">
+    <header class="section-hero">
+      <div>
+        <p class="eyebrow">Architecture</p>
+        <h1>Split system architecture</h1>
+        <p class="lead">GCM v2 runs as two independently deployed applications: a Next.js 16 frontend and an API-only backend. They operate as one product through a versioned HTTP contract and explicit environment-based integration.</p>
+      </div>
+      <nav class="subnav" aria-label="Section navigation">
+        <a href="index.html">Home</a>
+        <a href="deployment.html">Deployment</a>
+        <a href="frontend.html">Frontend</a>
+        <a href="backend.html">Backend</a>
+        <a href="environment.html">Environment</a>
+        <a href="print.html">Print export</a>
+      </nav>
+    </header>
+
+    <main class="content-grid single-column">
+      <section class="card wide">
+        <div class="section-head">
+          <p class="eyebrow">Top Level</p>
+          <h2>Runtime boundaries</h2>
+        </div>
+        <ul class="list">
+          <li><strong>Frontend project:</strong> <code>frontend-next/</code> on Vercel, Next.js 16 App Router.</li>
+          <li><strong>Backend project:</strong> <code>backend/</code> on Vercel, Express API routed through <code>api/[...path].js</code>.</li>
+          <li><strong>Legacy frontend:</strong> <code>frontend/</code> is decommissioned and blocked by default scripts.</li>
+          <li><strong>App documentation site:</strong> <code>app-documentation/</code> for local developer docs only.</li>
+          <li><strong>Database:</strong> remote PostgreSQL accessed by backend via <code>DATABASE_URL</code>.</li>
+        </ul>
+      </section>
+
+      <section class="card wide">
+        <div class="section-head">
+          <p class="eyebrow">Request Flow</p>
+          <h2>How frontend and backend act as one app</h2>
+        </div>
+        <ol class="list ordered">
+          <li>Browser loads frontend routes from the Next.js App Router deployment.</li>
+          <li>Frontend data calls use <code>NEXT_PUBLIC_API_BASE_URL</code> (or server-side <code>API_BASE_URL</code>).</li>
+          <li>Backend handles versioned business modules via <code>/api/v1/*</code> and keeps <code>/api/*</code> legacy aliases with deprecation headers.</li>
+          <li>Backend validates JWT and role access, then performs PostgreSQL queries.</li>
+          <li>Responses return to frontend for rendering and state updates.</li>
+        </ol>
+      </section>
+
+      <section class="card wide">
+        <div class="section-head">
+          <p class="eyebrow">Deployment Model</p>
+          <h2>Vercel project mapping</h2>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Project</th>
+                <th>Root directory</th>
+                <th>Critical config</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Frontend</td>
+                <td><code>frontend-next/</code></td>
+                <td><code>NEXT_PUBLIC_API_BASE_URL</code> and <code>API_BASE_URL</code> point to backend URL.</td>
+              </tr>
+              <tr>
+                <td>Backend</td>
+                <td><code>backend/</code></td>
+                <td><code>DATABASE_URL</code>, <code>JWT_SECRET</code>, <code>CORS_ORIGIN</code>, object storage, AI keys.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="card wide">
+        <div class="section-head">
+          <p class="eyebrow">Hardening Status</p>
+          <h2>Completed runtime safeguards</h2>
+        </div>
+        <ul class="list">
+          <li>Uploads and backups use S3-compatible object storage with signed-read URLs in production paths.</li>
+          <li>In-process cron is disabled by default; managed scheduler endpoints are idempotent and advisory-lock protected.</li>
+          <li>Heavy backend capabilities are lazy-loaded to keep API hot paths fast on serverless runtimes.</li>
+        </ul>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

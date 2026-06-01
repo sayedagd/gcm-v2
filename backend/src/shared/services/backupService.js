@@ -8,6 +8,12 @@ const archiver = require('archiver');
 const { query } = require('../../../database');
 const { log } = require('../utils/logger');
 const { SCHEMA } = require('../config/constants');
+const {
+    isObjectStorageEnabled,
+    assertObjectStorageReadyForProduction,
+    uploadBuffer,
+    getSignedDownloadUrl
+} = require('./objectStorageService');
 
 const BACKUPS_DIR = path.join(__dirname, '..', '..', '..', 'backups');
 
@@ -15,6 +21,104 @@ const BACKUPS_DIR = path.join(__dirname, '..', '..', '..', 'backups');
 if (!fs.existsSync(BACKUPS_DIR)) {
     fs.mkdirSync(BACKUPS_DIR, { recursive: true });
 }
+
+const isProduction = process.env.NODE_ENV === 'production';
+
+const contentTypeForFormat = (format) => {
+    if (format === 'json') return 'application/json';
+    if (format === 'full') return 'application/zip';
+    return 'application/sql';
+};
+
+const extensionForFormat = (format) => (format === 'full' ? 'zip' : format === 'json' ? 'json' : 'sql');
+
+const persistBackupArtifact = async ({
+    storageProvider,
+    objectKey,
+    localPath,
+    fileName,
+    format,
+    sizeBytes,
+    includesMedia
+}) => {
+    const insert = await query(
+        `INSERT INTO backup_artifacts
+            (storage_provider, object_key, local_path, file_name, format, size_bytes, includes_media)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)
+         RETURNING id, created_at`,
+        [storageProvider, objectKey || null, localPath || null, fileName, format, sizeBytes, includesMedia]
+    );
+
+    return insert.rows[0];
+};
+
+const getLatestBackupArtifact = async () => {
+    const result = await query(
+        `SELECT id, storage_provider, object_key, local_path, file_name, format, size_bytes, includes_media, created_at
+         FROM backup_artifacts
+         ORDER BY created_at DESC
+         LIMIT 1`
+    );
+
+    return result.rows[0] || null;
+};
+
+const uploadArchiveWithMetadata = async ({ format, fileName, buffer, includesMedia, localPathForFallback }) => {
+    const useObjectStorage = isObjectStorageEnabled();
+
+    if (isProduction) {
+        assertObjectStorageReadyForProduction();
+    }
+
+    if (useObjectStorage) {
+        const objectKey = `backups/${fileName}`;
+        await uploadBuffer({ key: objectKey, body: buffer, contentType: contentTypeForFormat(format) });
+
+        const artifact = await persistBackupArtifact({
+            storageProvider: 's3',
+            objectKey,
+            localPath: null,
+            fileName,
+            format,
+            sizeBytes: buffer.length,
+            includesMedia
+        });
+
+        return {
+            storageProvider: 's3',
+            objectKey,
+            fileName,
+            artifactId: artifact.id,
+            createdAt: artifact.created_at
+        };
+    }
+
+    const targetPath = path.join(BACKUPS_DIR, fileName);
+    fs.writeFileSync(targetPath, buffer);
+
+    // Keep latest backup alias for local/dev workflows.
+    if (localPathForFallback) {
+        fs.writeFileSync(localPathForFallback, buffer);
+    }
+
+    const artifact = await persistBackupArtifact({
+        storageProvider: 'local',
+        objectKey: null,
+        localPath: targetPath,
+        fileName,
+        format,
+        sizeBytes: buffer.length,
+        includesMedia
+    });
+
+    return {
+        storageProvider: 'local',
+        localPath: targetPath,
+        fileName,
+        artifactId: artifact.id,
+        createdAt: artifact.created_at
+    };
+};
 
 const performSystemBackup = async (format = 'sql') => {
     log(`[AUTO-BACKUP] Starting Backup Cycle | Format: ${format}`);
@@ -48,18 +152,42 @@ const performSystemBackup = async (format = 'sql') => {
             }
         }
 
-        const latestPath = path.join(BACKUPS_DIR, `latest_backup.${format === 'full' ? 'zip' : 'sql'}`);
-        const timestampedPath = path.join(BACKUPS_DIR, `GCM_BACKUP_${timestamp}.${format === 'full' ? 'zip' : 'sql'}`);
+        const extension = extensionForFormat(format);
+        const latestPath = path.join(BACKUPS_DIR, `latest_backup.${extension}`);
+        const fileName = `GCM_BACKUP_${timestamp}.${extension}`;
 
         if (format === 'full') {
             return new Promise((resolve, reject) => {
-                const output = fs.createWriteStream(latestPath);
+                const tempZipPath = path.join(BACKUPS_DIR, `tmp_${fileName}`);
+                const output = fs.createWriteStream(tempZipPath);
                 const archive = archiver('zip', { zlib: { level: 9 } });
 
-                output.on('close', () => {
-                    fs.copyFileSync(latestPath, timestampedPath);
-                    log(`[AUTO-BACKUP] SUCCESS (FULL): Saved to ${latestPath} (${archive.pointer()} total bytes)`);
-                    resolve({ status: 'success', path: latestPath });
+                output.on('close', async () => {
+                    try {
+                        const content = fs.readFileSync(tempZipPath);
+                        const stored = await uploadArchiveWithMetadata({
+                            format,
+                            fileName,
+                            buffer: content,
+                            includesMedia: true,
+                            localPathForFallback: latestPath
+                        });
+
+                        if (fs.existsSync(tempZipPath)) fs.unlinkSync(tempZipPath);
+                        log(`[AUTO-BACKUP] SUCCESS (FULL): Stored backup ${fileName} (${archive.pointer()} total bytes)`);
+                        resolve({
+                            status: 'success',
+                            format,
+                            fileName,
+                            storageProvider: stored.storageProvider,
+                            path: stored.localPath || null,
+                            objectKey: stored.objectKey || null,
+                            artifactId: stored.artifactId,
+                            createdAt: stored.createdAt
+                        });
+                    } catch (storageErr) {
+                        reject(storageErr);
+                    }
                 });
 
                 archive.on('error', (err) => {
@@ -85,10 +213,26 @@ const performSystemBackup = async (format = 'sql') => {
         } else {
             // Only SQL or JSON (fallback to JSON if requested)
             const contentToSave = format === 'json' ? JSON.stringify(fullData, null, 2) : sqlContent;
-            fs.writeFileSync(latestPath, contentToSave);
-            fs.writeFileSync(timestampedPath, contentToSave);
-            log(`[AUTO-BACKUP] SUCCESS: Saved to ${latestPath}`);
-            return { status: 'success', path: latestPath };
+            const contentBuffer = Buffer.from(contentToSave, 'utf8');
+            const stored = await uploadArchiveWithMetadata({
+                format,
+                fileName,
+                buffer: contentBuffer,
+                includesMedia: false,
+                localPathForFallback: latestPath
+            });
+
+            log(`[AUTO-BACKUP] SUCCESS: Stored backup ${fileName}`);
+            return {
+                status: 'success',
+                format,
+                fileName,
+                storageProvider: stored.storageProvider,
+                path: stored.localPath || null,
+                objectKey: stored.objectKey || null,
+                artifactId: stored.artifactId,
+                createdAt: stored.createdAt
+            };
         }
     } catch (e) {
         log(`[AUTO-BACKUP ERROR] ${e.message}`);
@@ -96,24 +240,16 @@ const performSystemBackup = async (format = 'sql') => {
     }
 };
 
-const getBackupStatus = () => {
+const getBackupStatus = async () => {
     try {
-        if (!fs.existsSync(BACKUPS_DIR)) return { lastBackupDate: null, isMediaIncluded: false };
-        
-        const files = fs.readdirSync(BACKUPS_DIR)
-            .filter(f => f.startsWith('GCM_BACKUP_'))
-            .map(f => {
-                const fullPath = path.join(BACKUPS_DIR, f);
-                const stat = fs.statSync(fullPath);
-                return { name: f, time: stat.mtime.getTime(), isFull: f.endsWith('.zip') };
-            })
-            .sort((a, b) => b.time - a.time); // newest first
-
-        if (files.length === 0) return { lastBackupDate: null, isMediaIncluded: false };
-
+        const latest = await getLatestBackupArtifact();
+        if (!latest) return { lastBackupDate: null, isMediaIncluded: false };
         return {
-            lastBackupDate: new Date(files[0].time).toISOString(),
-            isMediaIncluded: files[0].isFull
+            lastBackupDate: new Date(latest.created_at).toISOString(),
+            isMediaIncluded: !!latest.includes_media,
+            storageProvider: latest.storage_provider,
+            lastBackupFileName: latest.file_name,
+            lastBackupFormat: latest.format
         };
     } catch (e) {
         log(`[AUTO-BACKUP STATUS ERROR] ${e.message}`);
@@ -121,8 +257,32 @@ const getBackupStatus = () => {
     }
 };
 
+const resolveBackupDownload = async (artifact) => {
+    if (!artifact) return null;
+
+    if (artifact.storage_provider === 's3') {
+        const signedUrl = await getSignedDownloadUrl({
+            key: artifact.object_key,
+            fileName: artifact.file_name,
+            expiresInSeconds: 300
+        });
+        return { type: 'signed_url', url: signedUrl };
+    }
+
+    if (artifact.local_path && fs.existsSync(artifact.local_path)) {
+        return { type: 'file', path: artifact.local_path, fileName: artifact.file_name };
+    }
+
+    return null;
+};
+
 // Schedule: Weekly on Sunday @ Midnight (00:00)
 const initBackupScheduler = () => {
+    if (process.env.ENABLE_IN_PROCESS_CRON !== 'true') {
+        log('[CRON] In-process scheduler disabled. Use managed platform scheduler to call /api/v1/system/backup/trigger.');
+        return;
+    }
+
     cron.schedule('0 0 * * 0', () => {
         log("[CRON] Triggering Weekly Midnight Full Backup...");
         // Use full format to zip media
@@ -134,5 +294,7 @@ module.exports = {
     performSystemBackup,
     initBackupScheduler,
     getBackupStatus,
+    getLatestBackupArtifact,
+    resolveBackupDownload,
     BACKUPS_DIR
 };

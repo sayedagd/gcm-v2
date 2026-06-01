@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="GCM v2 app documentation site for frontend, backend, schema, APIs, and operations.">
+  <title>GCM v2 App Documentation</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="page-shell">
+    <header class="hero">
+      <div class="hero-copy">
+        <p class="eyebrow">GCM v2 App Documentation</p>
+        <h1>Independent frontend, API-only backend, and a documented schema contract.</h1>
+        <p class="lead">
+          This is the operational handover portal for the GCM waste-management platform. Use the
+          section pages for focused reading and the print export for an offline-friendly briefing.
+        </p>
+        <div class="hero-badges">
+          <span>Frontend: Next.js 16 App Router</span>
+          <span>Backend: Node + Express</span>
+          <span>Contract: /api/v1 + OpenAPI</span>
+          <span>Security: Token lifecycle + tiered rate limits</span>
+          <span>Performance: Route cache matrix + bundle budgets</span>
+          <span>Quality: Unit + contract + smoke gates</span>
+          <span>Observability: Correlation IDs + metrics alerts</span>
+          <span>DB: PostgreSQL</span>
+          <span>Docs: Static HTML/CSS</span>
+        </div>
+      </div>
+      <aside class="hero-panel">
+        <h2>Portal map</h2>
+        <ul>
+          <li><a href="overview.html">Overview</a> and deployment boundaries.</li>
+          <li><a href="frontend.html">Frontend</a> and <a href="backend.html">backend</a> architecture.</li>
+          <li><a href="schema.html">Schema</a>, <a href="api.html">API</a>, and <a href="flows.html">flows</a>.</li>
+          <li><a href="enhancement-plan.html">Enhancement plan</a> and <a href="session-handover.html">session handover</a> archives.</li>
+          <li><a href="runbooks.html">Runbooks</a>, <a href="environment.html">environment</a>, and <a href="print.html">print export</a>.</li>
+        </ul>
+      </aside>
+    </header>
+
+    <nav class="nav-grid" aria-label="Documentation sections">
+      <a href="overview.html">Overview</a>
+      <a href="architecture.html">Architecture</a>
+      <a href="frontend.html">Frontend</a>
+      <a href="backend.html">Backend</a>
+      <a href="backend-governance.html">Backend Governance</a>
+      <a href="enhancement-plan.html">Enhancement Plan</a>
+      <a href="session-handover.html">Session Handover</a>
+      <a href="reverse-engineered.html">Reverse-Engineered Suite</a>
+      <a href="schema.html">Database Schema</a>
+      <a href="api.html">API Reference</a>
+      <a href="flows.html">User Flows</a>
+      <a href="runbooks.html">Runbooks</a>
+      <a href="environment.html">Environment</a>
+      <a href="milestones.html">Milestones</a>
+    </nav>
+
+    <main class="content-grid">
+      <section class="card wide">
+        <div class="section-head">
+          <p class="eyebrow">Release Status</p>
+          <h2>Phase 10 Complete</h2>
+        </div>
+        <ul class="list">
+          <li>Production frontend domain: <a href="https://gcm.twision.agency">https://gcm.twision.agency</a></li>
+          <li>Production backend domain: <a href="https://gcm-back.twision.agency">https://gcm-back.twision.agency</a></li>
+          <li>Vercel fallback frontend redirects to custom domain with HTTP <code>308</code>.</li>
+          <li>Cutover smoke, parity, checklist, and watch gates are green.</li>
+        </ul>
+      </section>
+
+      <section class="card wide">
+        <div class="section-head">
+          <p class="eyebrow">Documentation</p>
+          <h2>Choose a section</h2>
+        </div>
+        <div class="link-grid">
+          <a href="overview.html"><strong>Overview</strong><span>What the platform does and how it is deployed.</span></a>
+          <a href="frontend.html"><strong>Frontend</strong><span>Next.js App Router, middleware guards, and route groups.</span></a>
+          <a href="backend.html"><strong>Backend</strong><span>API-only runtime, object storage, scheduler-safe jobs.</span></a>
+          <a href="backend-governance.html"><strong>Backend Governance</strong><span>API versioning, token policy, validation, rate-limit tiers, and maintenance scripts.</span></a>
+          <a href="enhancement-plan.html"><strong>Enhancement Plan</strong><span>Full phase-by-phase migration program with completion status and definition of done.</span></a>
+          <a href="session-handover.html"><strong>Session Handover</strong><span>Final startup-memory snapshot, constraints, and historical operations context.</span></a>
+          <a href="reverse-engineered.html"><strong>Reverse-Engineered Suite</strong><span>All migrated reverse-engineered docs as pure HTML pages.</span></a>
+          <a href="schema.html"><strong>Schema</strong><span>Database contract plus backup artifact/job run metadata.</span></a>
+          <a href="api.html"><strong>API Reference</strong><span>Versioned API v1, OpenAPI contract, and error envelope.</span></a>
+          <a href="milestones.html"><strong>Milestones</strong><span>Full markdown mirror of all milestone documentation files.</span></a>
+          <a href="flows.html"><strong>User Flows</strong><span>Role-based journeys across the platform.</span></a>
+          <a href="runbooks.html"><strong>Runbooks</strong><span>Backup, restore, release, incident response, and rollback.</span></a>
+          <a href="environment.html"><strong>Environment</strong><span>Runtime variables and secret-handling guidance.</span></a>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="section-head">
+          <p class="eyebrow">Print Export</p>
+          <h2>Offline-friendly handover view</h2>
+        </div>
+        <p>
+          The print export condenses the full handover into a single page with print-optimized
+          typography and page breaks.
+        </p>
+        <div class="callout">
+          Open <a href="print.html">print.html</a> for a complete export view or print any page directly from the browser.
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="section-head">
+          <p class="eyebrow">Scope</p>
+          <h2>Why this matters</h2>
+        </div>
+        <ul class="list">
+          <li>Frontend and backend are hosted as separate Vercel projects.</li>
+          <li>The backend is API-only and no longer serves the SPA shell.</li>
+          <li>API governance is versioned under <code>/api/v1</code> with OpenAPI-driven typing.</li>
+          <li>Write endpoints pass through global body-shape validation + sanitization middleware.</li>
+          <li>Schema drift is tracked through migration service + OpenAPI schema generation checks.</li>
+          <li>Release confidence includes frontend unit tests, backend OpenAPI contract tests, and split-deployment smoke checks.</li>
+          <li>Runtime observability includes request correlation IDs, structured logs, and threshold-based metrics alerts.</li>
+          <li>Admin-only system routes are centrally protected in backend middleware.</li>
+        </ul>
+      </section>
+
+      <section class="card wide">
+        <div class="section-head">
+          <p class="eyebrow">Quick Links</p>
+          <h2>Operational entry points</h2>
+        </div>
+        <div class="quick-grid">
+          <a href="architecture.html">System architecture</a>
+          <a href="frontend.html">Frontend deployment notes</a>
+          <a href="backend.html">Backend runtime and services</a>
+          <a href="backend-governance.html">Backend governance policies</a>
+          <a href="enhancement-plan.html">Enhancement migration plan</a>
+          <a href="session-handover.html">Session handover snapshot</a>
+          <a href="schema.html">Schema contract summary</a>
+          <a href="runbooks.html">Operational runbooks</a>
+          <a href="docs.html">Docs archive</a>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <p>GCM v2 app documentation. Built as a static site for independent hosting.</p>
+    </footer>
+  </div>
+</body>
+</html>

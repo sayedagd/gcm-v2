@@ -23,7 +23,8 @@ describe('protect()', () => {
     };
     mockRes = {
       status: jest.fn(() => mockRes),
-      json: jest.fn()
+      json: jest.fn(),
+      setHeader: jest.fn()
     };
     mockNext = jest.fn();
 
@@ -39,9 +40,10 @@ describe('protect()', () => {
     await protect(mockReq, mockRes, mockNext);
 
     expect(mockRes.status).toHaveBeenCalledWith(401);
-    expect(mockRes.json).toHaveBeenCalledWith({
+    expect(mockRes.json).toHaveBeenCalledWith(expect.objectContaining({
+      code: 'AUTH_NO_TOKEN',
       error: 'Not authorized, no token'
-    });
+    }));
     expect(mockNext).not.toHaveBeenCalled();
   });
 
@@ -66,15 +68,21 @@ describe('protect()', () => {
   test('returns 401 if token is expired', async () => {
     mockReq.headers.authorization = 'Bearer expired-token';
     jwt.verify.mockImplementation(() => {
-      throw new Error('Token expired');
+      const err = new Error('Token expired');
+      err.name = 'TokenExpiredError';
+      throw err;
     });
 
     await protect(mockReq, mockRes, mockNext);
 
     expect(mockRes.status).toHaveBeenCalledWith(401);
-    expect(mockRes.json).toHaveBeenCalledWith({
-      error: 'Not authorized, token failed'
-    });
+    expect(mockRes.setHeader).toHaveBeenCalledWith(
+      'WWW-Authenticate',
+      'Bearer error="invalid_token", error_description="The access token expired"'
+    );
+    expect(mockRes.json).toHaveBeenCalledWith(expect.objectContaining({
+      code: 'AUTH_TOKEN_EXPIRED'
+    }));
     expect(mockNext).not.toHaveBeenCalled();
   });
 
@@ -97,9 +105,10 @@ describe('protect()', () => {
     await protect(mockReq, mockRes, mockNext);
 
     expect(mockRes.status).toHaveBeenCalledWith(500);
-    expect(mockRes.json).toHaveBeenCalledWith({
+    expect(mockRes.json).toHaveBeenCalledWith(expect.objectContaining({
+      code: 'SERVER_CONFIG_ERROR',
       error: 'Server configuration error'
-    });
+    }));
   });
 
   test('attaches req.user on valid token', async () => {
@@ -153,7 +162,7 @@ describe('protect()', () => {
   });
 
   test('extracts token from query param for SSE endpoint', async () => {
-    const mockDecoded = { id: 'user-123', role: 'CLIENT' };
+    const mockDecoded = { id: 'user-123', role: 'CLIENT', purpose: 'sse' };
 
     mockReq.query = { token: 'query-token' };
     mockReq.path = '/api/events';
@@ -186,5 +195,18 @@ describe('protect()', () => {
     await protect(mockReq, mockRes, mockNext);
 
     expect(jwt.verify).toHaveBeenCalledWith('header-token', 'test_secret', { algorithms: ['HS256'] });
+  });
+
+  test('extracts token from raw Cookie header when req.cookies is absent', async () => {
+    const mockDecoded = { id: 'user-987', role: 'CLIENT' };
+
+    mockReq.cookies = undefined;
+    mockReq.headers.cookie = 'foo=bar; gcm_jwt=header-cookie-token';
+    jwt.verify.mockReturnValue(mockDecoded);
+
+    await protect(mockReq, mockRes, mockNext);
+
+    expect(jwt.verify).toHaveBeenCalledWith('header-cookie-token', 'test_secret', { algorithms: ['HS256'] });
+    expect(mockNext).toHaveBeenCalled();
   });
 });

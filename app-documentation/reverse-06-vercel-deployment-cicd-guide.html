@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Reverse-engineered technical document: 06. Vercel Deployment & CI/CD Guide">
+  <title>06. Vercel Deployment & CI/CD Guide | GCM v2 Docs</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="page-shell section-page">
+    <header class="section-hero">
+      <div>
+        <p class="eyebrow">Reverse-Engineered Documentation</p>
+        <h1>06. Vercel Deployment & CI/CD Guide</h1>
+        <p class="lead">This page is the HTML-preserved migration of the original markdown source file.</p>
+      </div>
+      <nav class="subnav" aria-label="Section navigation">
+        <a href="index.html">Home</a>
+        <a href="docs.html">Docs Archive</a>
+        <a href="reverse-engineered.html">Reverse Hub</a>
+        <a href="print.html">Print export</a>
+      </nav>
+    </header>
+
+    <main class="content-grid single-column">
+      <section class="card wide">
+        <div class="section-head">
+          <p class="eyebrow">Source Preservation</p>
+          <h2>Original markdown content (no loss)</h2>
+        </div>
+        <pre class="markdown-archive">
+# 06. Vercel Deployment &amp; CI/CD Guide
+
+## 1. Deployment Topology
+
+Current stack is split deployment:
+
+- Frontend project: `frontend-next/` (Next.js)
+- Backend project: `backend/` (Express app wrapped by `api/[...path].js`)
+
+Backend Vercel runtime behavior:
+
+- Function entrypoint: `backend/api/[...path].js` -&gt; `module.exports = require('../app')`
+- Rewrites in `backend/vercel.json` map v1 paths to existing route handlers
+- Runtime writable directory is `/tmp` on Vercel for uploads fallback
+
+## 2. Backend Vercel Configuration
+
+`backend/vercel.json` includes:
+
+- Function include files for backend modules and pg dependencies
+- Rewrite bridge examples:
+  - `/api/v1/auth/login` -&gt; `/api/login`
+  - `/api/v1/system/backup/:path*` -&gt; `/api/opsbackup/:path*`
+  - `/api/v1/:path*` -&gt; `/api/:path*`
+
+## 3. Required Environment Variables
+
+## 3.1 Core Runtime
+
+- `NODE_ENV`
+- `PORT` (local/non-vercel runtime)
+- `LEGACY_API_SUNSET`
+
+## 3.2 Database
+
+Preferred:
+
+- `DATABASE_URL`
+
+Fallback discrete vars:
+
+- `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_HOST`, `POSTGRES_PORT`, `POSTGRES_DB`
+- or `PROD_DB_USER`, `PROD_DB_PASS`, `PROD_DB_HOST`, `PROD_DB_PORT`, `PROD_DB_NAME`
+
+## 3.3 Auth
+
+- `JWT_SECRET` (required)
+- `JWT_EXPIRES_IN`
+- `AUTH_COOKIE_NAME`
+- `AUTH_COOKIE_SAMESITE`
+- `AUTH_COOKIE_SECURE`
+
+## 3.4 Network and Security
+
+- `CORS_ORIGIN`
+- `CORS_ALLOWED_ORIGINS`
+- Rate limit env set: `RL_*`
+
+## 3.5 Backup and Storage
+
+Backup storage:
+
+- `BACKUP_STORAGE_PROVIDER` (`s3` for production-grade object storage)
+- `S3_BACKUP_BUCKET`, `S3_BACKUP_REGION`, `S3_BACKUP_ACCESS_KEY_ID`, `S3_BACKUP_SECRET_ACCESS_KEY`
+- optional `S3_BACKUP_ENDPOINT`, `S3_BACKUP_FORCE_PATH_STYLE`
+
+Uploads storage:
+
+- `UPLOADS_STORAGE_PROVIDER` (`s3`)
+- `S3_UPLOADS_BUCKET`, `S3_UPLOADS_REGION`, `S3_UPLOADS_ACCESS_KEY_ID`, `S3_UPLOADS_SECRET_ACCESS_KEY`
+- optional `S3_UPLOADS_ENDPOINT`, `S3_UPLOADS_FORCE_PATH_STYLE`, `UPLOADS_PUBLIC_BASE_URL`
+
+## 3.6 Integrations
+
+- `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`
+- `CLIMATIQ_API_KEY`
+- `GEMINI_API_KEY` / `GROQ_API_KEY` (AI features as configured)
+
+## 3.7 Frontend Variables
+
+- `API_BASE_URL` or `NEXT_PUBLIC_API_BASE_URL`
+- `NEXT_PUBLIC_CANONICAL_HOST`
+- `ENABLE_CANONICAL_HOST_REDIRECT`
+
+## 4. Build and Deploy Commands
+
+## 4.1 Frontend
+
+- Build: `npm run build` in `frontend-next/`
+- Start (self-hosted): `npm run start`
+
+## 4.2 Backend
+
+- Start local: `npm run dev` or `npm start` in `backend/`
+- Vercel: deploy as serverless function using existing `vercel.json`
+
+## 5. CI/CD and Release Validation (Current Scripted Flow)
+
+No GitHub Actions workflows are present in repo; quality gates are script-driven.
+
+## 5.1 Frontend checks
+
+- `npm run lint`
+- `npm run test:run`
+- `npm run ci:perf`
+
+## 5.2 Split deployment smoke/parity
+
+- Smoke: `node scripts/smoke/split-deployment-smoke.mjs`
+- Parity: `node scripts/parity/parallel-parity-check.mjs`
+- Cutover checklist: `node scripts/release/cutover-checklist.mjs`
+- Cutover watch: `node scripts/release/cutover-watch.mjs`
+
+## 6. Recommended Production Release Sequence
+
+1. Deploy backend to Vercel preview.
+2. Run backend reachability checks (`/api/v1/ping`, auth negative checks, protected route checks).
+3. Deploy frontend to Vercel preview with `API_BASE_URL` pointing to preview backend.
+4. Run parity and smoke scripts.
+5. Promote both projects to production.
+6. Run cutover checklist.
+7. Run cutover watch with multiple samples.
+8. Monitor `/api/v1/system/metrics` and backup status endpoints.
+
+## 7. Edge-Config Status
+
+- No explicit Vercel Edge Config integration is currently implemented in code.
+- Canonical-host behavior is handled through middleware + environment variables.
+
+## 8. Deployment Risks and Mitigations
+
+- Risk: serverless cold start with startup jobs.
+  - Mitigation: keep `ENABLE_SERVERLESS_STARTUP_JOBS=false` unless required.
+- Risk: local-only backup storage in production.
+  - Mitigation: enforce `BACKUP_STORAGE_PROVIDER=s3` in prod.
+- Risk: cross-origin failures.
+  - Mitigation: maintain strict CORS allowlist per environment.
+        </pre>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Reverse-engineered technical document: 03. Database Schema & Entity Relationships">
+  <title>03. Database Schema & Entity Relationships | GCM v2 Docs</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="page-shell section-page">
+    <header class="section-hero">
+      <div>
+        <p class="eyebrow">Reverse-Engineered Documentation</p>
+        <h1>03. Database Schema & Entity Relationships</h1>
+        <p class="lead">This page is the HTML-preserved migration of the original markdown source file.</p>
+      </div>
+      <nav class="subnav" aria-label="Section navigation">
+        <a href="index.html">Home</a>
+        <a href="docs.html">Docs Archive</a>
+        <a href="reverse-engineered.html">Reverse Hub</a>
+        <a href="print.html">Print export</a>
+      </nav>
+    </header>
+
+    <main class="content-grid single-column">
+      <section class="card wide">
+        <div class="section-head">
+          <p class="eyebrow">Source Preservation</p>
+          <h2>Original markdown content (no loss)</h2>
+        </div>
+        <pre class="markdown-archive">
+# 03. Database Schema &amp; Entity Relationships
+
+Primary source: `backend/full_schema.sql`
+
+## 1. ERD (Mermaid)
+
+```mermaid
+erDiagram
+    USERS ||--o{ COMPANIES : manages
+    USERS ||--o{ PROJECTS : manages
+    USERS ||--o{ SUPPLIERS : manages
+    USERS ||--o{ DRIVERS : linked_user
+    USERS ||--o{ NOTIFICATIONS : receives
+    USERS ||--o{ ACTIVITY_LOGS : actor
+    USERS ||--o{ AI_SESSIONS : owns
+
+    COMPANIES ||--o{ PROJECTS : owns
+
+    SERVICES ||--o{ SERVICES : parent_child
+    PROJECTS ||--o{ PROJECT_SERVICES : has
+    SERVICES ||--o{ PROJECT_SERVICES : scoped
+
+    PROJECTS ||--o{ TRIPS : executes
+    SERVICES ||--o{ TRIPS : service_type
+    VEHICLES ||--o{ TRIPS : assigned_vehicle
+    DRIVERS ||--o{ TRIPS : assigned_driver
+    FACILITIES ||--o{ TRIPS : destination
+
+    PROJECTS ||--o{ CONTAINERS : uses
+    PROJECTS ||--o{ TANKS : uses
+    PROJECTS ||--o{ SCALES : uses
+    INVENTORY_SIZES ||--o{ CONTAINERS : size
+    INVENTORY_SIZES ||--o{ TANKS : size
+    INVENTORY_SIZES ||--o{ SCALES : size
+
+    SUPPLIERS ||--o{ PROJECT_SUPPLIER_RATES : rates
+    PROJECTS ||--o{ PROJECT_SUPPLIER_RATES : rates
+    SERVICES ||--o{ PROJECT_SUPPLIER_RATES : rates
+
+    ENVIRONMENTAL_EQUIPMENTS ||--o{ EQUIPMENT_INQUIRIES : inquiries
+
+    AI_SESSIONS ||--o{ AI_MESSAGES : messages
+```
+
+## 2. Table Inventory
+
+### Identity, Access, and Tenant Context
+
+- `users`
+  - PK: `id VARCHAR(100)`
+  - Key fields: `email UNIQUE`, `password`, `role`, `company_id`, `project_id`, `supplier_id`, `status`
+
+- `companies`
+  - PK: `company_id VARCHAR(100)`
+  - FK: `user_id -&gt; users.id`
+  - Key fields: registration, VAT, contact, branding/support files
+
+- `saas_config`
+  - PK: `id VARCHAR(50)` (singleton)
+  - Key fields: multilingual app identity, landing/store/template/ai config blobs
+
+### Core Planning and Service Model
+
+- `projects`
+  - PK: `project_id VARCHAR(100)`
+  - FK: `company_id -&gt; companies.company_id`, `user_id -&gt; users.id`
+  - Key fields: dates, budget, quantities, asset counts, status
+
+- `services`
+  - PK: `service_id VARCHAR(100)`
+  - FK: `parent_id -&gt; services.service_id`
+  - Key fields: `major_category`, `requires_recycle_receipt`
+
+- `project_services`
+  - PK: `id VARCHAR(100)`
+  - FK: `project_id -&gt; projects.project_id`, `service_id -&gt; services.service_id`
+  - Key fields: quantity/price/cost/progress, supplier and warning thresholds
+
+### Supplier, Facility, Fleet, and Workforce
+
+- `suppliers`
+  - PK: `supplier_id VARCHAR(100)`
+  - FK: `user_id -&gt; users.id`
+  - Key fields: license/vat/bank/contract/status/project-service assignments
+
+- `facilities`
+  - PK: `facility_id VARCHAR(100)`
+  - Key fields: type, contract, accepted services, location, status
+
+- `drivers`
+  - PK: `driver_id VARCHAR(100)`
+  - FK: `user_id -&gt; users.id`
+  - Key fields: license/iqama/insurance card data, ownership, supplier/vehicle refs
+
+- `vehicles`
+  - PK: `vehicle_id VARCHAR(100)`
+  - Unique: `plate_no`
+  - Key fields: type, ownership, supplier, permit metadata
+
+### Operations and Governance
+
+- `trips`
+  - PK: `trip_id VARCHAR(100)`
+  - FK: `project_id`, `service_id`, `vehicle_id`, `driver_id`, `facility_id`
+  - Key fields: quantity, status, lifecycle timestamps, compliance numbers/files, approvals
+
+- `notifications`
+  - PK: `id VARCHAR(100)`
+  - FK: `user_id -&gt; users.id`
+
+- `activity_logs`
+  - PK: `id VARCHAR(100)`
+  - FK: `user_id -&gt; users.id`
+
+- `permission_requests`
+  - PK: `id VARCHAR(100)`
+
+- `contact_submissions`
+  - PK: `id VARCHAR(100)`
+
+### Inventory and Assets
+
+- `inventory_sizes`
+  - PK: `size_id VARCHAR(100)`
+
+- `containers`
+  - PK: `container_id VARCHAR(100)`
+  - FK: `size_id`, `project_id`, `supplier_id`
+
+- `tanks`
+  - PK: `tank_id VARCHAR(100)`
+  - FK: `size_id`, `project_id`, `supplier_id`
+
+- `scales`
+  - PK: `scale_id VARCHAR(100)`
+  - FK: `size_id`, `project_id`, `supplier_id`
+
+### Store and Inquiry Domain
+
+- `environmental_equipments`
+  - PK: `equipment_id VARCHAR(100)`
+  - Key fields: multilingual descriptions, media links, specs, share count, availability
+
+- `equipment_inquiries`
+  - PK: `id VARCHAR(100)`
+  - FK: `equipment_id -&gt; environmental_equipments.equipment_id`
+  - Key fields: customer contact, admin reply, status, timestamps
+
+### Financial and AI Domain
+
+- `project_supplier_rates`
+  - PK: `id SERIAL`
+  - FK: `project_id`, `supplier_id`, `service_id`
+  - Key fields: `cost_price`, `currency`
+
+- `ai_sessions`
+  - PK: `id VARCHAR(100)`
+  - FK: `user_id -&gt; users.id`
+  - Key fields: session lifecycle, role/language/action, confidence/rating/flags
+
+- `ai_messages`
+  - PK: `id VARCHAR(100)`
+  - FK: `session_id -&gt; ai_sessions.id`
+
+## 3. Relationship and Integrity Notes
+
+- Cascading deletes are used in planning/rate junction tables.
+- Some foreign keys are `ON DELETE SET NULL` to preserve historical rows.
+- Domain JSON payloads are stored as mixed `TEXT`/`JSONB` by table.
+- Additional runtime tables are referenced by services (`backup_artifacts`, `backup_job_runs`) and should be treated as infrastructure metadata.
+
+## 4. Indexing and Performance
+
+Notable indexes from schema/init scripts:
+
+- `idx_trips_status`
+- `idx_trips_date`
+- `idx_trips_project_id`
+- `idx_trips_vehicle_id`
+- `idx_trips_driver_id`
+- `idx_projects_company_id`
+- `idx_activity_logs_entity`
+- `idx_users_role`
+- AI indexes on sessions/messages in clean init script
+        </pre>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

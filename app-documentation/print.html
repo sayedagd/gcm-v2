@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="GCM v2 print-friendly app documentation export.">
+  <title>GCM v2 Print Export</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="print-export">
+  <div class="page-shell print-shell">
+    <header class="print-header">
+      <p class="eyebrow">Print Export</p>
+      <h1>GCM v2 app documentation</h1>
+      <p>Use this page for a condensed offline documentation packet. It contains the same operational facts as the portal pages but is styled for printing and PDF export.</p>
+    </header>
+
+    <section class="print-section">
+      <h2>Overview</h2>
+      <p>GCM v2 is an environmental operations platform for companies that collect projects, recyclables, and waste. The core system manages companies, projects, services, trips, drivers, vehicles, suppliers, facilities, inventory, reports, AI sessions, and public landing/store flows.</p>
+    </section>
+
+    <section class="print-section">
+      <h2>Frontend</h2>
+      <p>The active frontend is <code>frontend-next/</code> (Next.js 16 App Router + React 19). It uses route groups, middleware role guards, server-aware data strategy, React action patterns, and route-level loading boundaries. Feature modules now follow a strict <code>ui/hooks/api/model/tests</code> contract enforced by lint-time checks. Legacy <code>frontend/</code> (Vite) is decommissioned. Performance governance now includes an explicit route render/cache matrix, bundle budget scripts, critical dependency guardrails, and Next image optimization with lazy media delivery.</p>
+    </section>
+
+    <section class="print-section">
+      <h2>Backend</h2>
+      <p>The backend is an API-only Express service. It owns auth, route modules, migrations, backups, event stream handling, WhatsApp, OCR, and AI services. Public API contract is versioned under <code>/api/v1</code> with OpenAPI source in <code>backend/openapi/openapi.v1.json</code>. Security hardening includes global write-request sanitization/body-shape checks, token-expiry re-auth contract, HttpOnly cookie auth lifecycle controls, and endpoint-tier rate limiting. Observability includes request correlation IDs, structured request logs, and threshold-based metrics exposed via admin system endpoints.</p>
+    </section>
+
+    <section class="print-section">
+      <h2>Schema</h2>
+      <p>The database contract centers on users, companies, projects, services, trips, logistics tables, system config, and reporting/AI history. Schema alignment was normalized by removing duplicate DDL and aligning runtime contract names.</p>
+    </section>
+
+    <section class="print-section">
+      <h2>API</h2>
+      <p>Core route groups include auth, trips, projects, companies, services, vehicles, drivers, facilities, suppliers, and system backup/config endpoints under <code>/api/v1</code>. Frontend endpoint constants and typed operation wrappers are centralized in core feature modules to reduce contract drift risk. Legacy <code>/api/*</code> aliases remain temporarily with deprecation headers.</p>
+    </section>
+
+    <section class="print-section">
+      <h2>User flows</h2>
+      <p>Admin, operations staff, client, subcontractor, and driver journeys are separated by role so each persona sees an appropriate slice of the platform.</p>
+    </section>
+
+    <section class="print-section">
+      <h2>Runbooks</h2>
+      <p>Backup, restore, release, incident response, and rollback steps are documented for split deployment. Backup artifacts are object-storage-backed; in-process cron is disabled by default and scheduler calls are idempotent/lock-protected. Release quality gates include frontend unit tests, backend OpenAPI contract checks, and split-deployment smoke validation.</p>
+    </section>
+
+    <section class="print-section">
+      <h2>Environment</h2>
+      <pre>DATABASE_URL=postgresql://...
+JWT_SECRET=...
+JWT_EXPIRES_IN=12h
+AUTH_COOKIE_NAME=gcm_jwt
+AUTH_COOKIE_SAMESITE=lax
+AUTH_COOKIE_SECURE=false
+RL_AUTH_MAX=20
+RL_PUBLIC_WRITE_MAX=40
+RL_SSE_MAX=30
+RL_AI_MAX=120
+RL_ADMIN_MAX=30
+METRIC_ALERT_ERROR_RATE_PERCENT_15M=5
+METRIC_ALERT_AVG_LATENCY_MS_15M=1200
+METRIC_ALERT_AUTH_FAILURES_15M=30
+METRIC_ALERT_SSE_DISCONNECTS_15M=60
+METRIC_ALERT_BACKUP_FAILURES_24H=1
+PORT=8080
+CORS_ORIGIN=https://your-frontend-domain
+ENABLE_IN_PROCESS_CRON=false
+
+BACKUP_STORAGE_DRIVER=s3
+UPLOADS_STORAGE_DRIVER=s3
+S3_ENDPOINT=https://...
+S3_REGION=...
+S3_BUCKET=...
+S3_ACCESS_KEY_ID=...
+S3_SECRET_ACCESS_KEY=...
+
+NEXT_PUBLIC_API_BASE_URL=https://your-backend-domain
+API_BASE_URL=https://your-backend-domain
+GROQ_API_KEY=...
+CLIMATIQ_API_KEY=...</pre>
+    </section>
+  </div>
+</body>
+</html>

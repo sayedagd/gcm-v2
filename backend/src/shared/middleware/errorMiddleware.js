@@ -3,6 +3,7 @@
  * [AR] الوسيط المركزي لمعالجة الأخطاء — رسائل ثنائية اللغة
  */
 const { translatePgError, serverError } = require('../utils/bilingualErrors');
+const { sendError } = require('../utils/apiError');
 
 // eslint-disable-next-line no-unused-vars
 const errorHandler = (err, req, res, next) => {
@@ -18,26 +19,35 @@ const errorHandler = (err, req, res, next) => {
         const table = req.baseUrl.split('/').pop() || 'unknown';
         const pgErr = translatePgError(err, table);
         const pgStatus = err.code === '23505' ? 409 : 400;
-        return res.status(pgStatus).json(pgErr);
+        return sendError(res, pgStatus, {
+            code: pgErr.code || 'DB_ERROR',
+            error: pgErr.error || pgErr.errorEn || 'Database error',
+            errorEn: pgErr.errorEn || pgErr.error || 'Database error',
+            errorAr: pgErr.errorAr || 'خطأ في قاعدة البيانات',
+            field: pgErr.field,
+            details: pgErr.details
+        });
     }
 
     // --- خطأ عام ---
     const isDev = process.env.NODE_ENV === 'development';
     const errResp = serverError(isDev ? err.message : '');
-    res.status(statusCode).json({
-        ...errResp,
+    return sendError(res, statusCode, {
+        code: errResp.code || 'SERVER_ERROR',
         error: isDev ? err.message : 'Internal server error',
-        stack: isDev ? err.stack : undefined,
+        errorEn: errResp.errorEn || (isDev ? err.message : 'Internal server error'),
+        errorAr: errResp.errorAr || 'حدث خطأ في الخادم',
+        details: isDev ? { stack: err.stack } : undefined
     });
 };
 
 // eslint-disable-next-line no-unused-vars
 const notFound = (req, res, next) => {
-    res.status(404).json({
+    return sendError(res, 404, {
+        code: 'NOT_FOUND',
         error: `Not Found - ${req.originalUrl}`,
         errorAr: `الصفحة غير موجودة: ${req.originalUrl}`,
-        errorEn: `Page not found: ${req.originalUrl}`,
-        code: 'NOT_FOUND',
+        errorEn: `Page not found: ${req.originalUrl}`
     });
 };
 

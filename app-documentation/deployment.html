@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="GCM v2 deployment guide.">
+  <title>GCM v2 Deployment</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="page-shell section-page">
+    <header class="section-hero">
+      <div>
+        <p class="eyebrow">Deployment</p>
+        <h1>Build and release workflow</h1>
+        <p class="lead">The deployment model is split: deploy the Next.js frontend app and API backend independently, with versioned API contracts and externalized environment configuration.</p>
+      </div>
+      <nav class="subnav" aria-label="Section navigation">
+        <a href="index.html">Home</a>
+        <a href="architecture.html">Architecture</a>
+        <a href="docs.html">Docs archive</a>
+        <a href="system-knowledge.html">System knowledge</a>
+        <a href="trips-module.html">Trips</a>
+        <a href="reports-standards.html">Reports</a>
+        <a href="environment.html">Environment</a>
+      </nav>
+    </header>
+    <main class="content-grid single-column">
+      <section class="card wide">
+        <ul class="list">
+          <li>Create two Vercel projects only: one rooted at <code>frontend-next/</code> and one rooted at <code>backend/</code>.</li>
+          <li>Use the architecture reference page to verify service boundaries before first deploy.</li>
+          <li>Set <code>NEXT_PUBLIC_API_BASE_URL</code> in the frontend project to the backend custom domain (<code>https://gcm-back.twision.agency</code>).</li>
+          <li>Set backend env vars in Vercel: <code>DATABASE_URL</code>, <code>JWT_SECRET</code>, <code>CORS_ORIGIN</code>, storage keys, and required AI/integration keys.</li>
+          <li>Keep <code>ENABLE_IN_PROCESS_CRON=false</code> in backend runtime and run scheduled jobs from a managed scheduler hitting authenticated API endpoints.</li>
+          <li>Use <code>/api/v1</code> URLs for all new clients and automations.</li>
+          <li>Keep <code>app-documentation/</code> local-only for developer reference; do not deploy it to Vercel.</li>
+        </ul>
+      </section>
+      <section class="card wide">
+        <h2>Current Production Endpoints (Phase 10 complete)</h2>
+        <ul class="list">
+          <li>Frontend (public custom domain): <a href="https://gcm.twision.agency">https://gcm.twision.agency</a></li>
+          <li>Backend (public custom domain): <a href="https://gcm-back.twision.agency">https://gcm-back.twision.agency</a></li>
+          <li>Frontend (Vercel fallback): <a href="https://frontend-next-chi-eight.vercel.app">https://frontend-next-chi-eight.vercel.app</a></li>
+          <li>Backend (Vercel fallback): <a href="https://backend-tau-three-72.vercel.app">https://backend-tau-three-72.vercel.app</a></li>
+        </ul>
+        <p class="note">Deployment is live for all targets. Phase 10 cutover and stabilization gates are complete.</p>
+      </section>
+      <section class="card wide">
+        <h2>Cutover Controls</h2>
+        <ul class="list">
+          <li>Frontend Vercel fallback URL redirects to custom domain (<code>308</code>).</li>
+          <li>Run release checklist: <code>node scripts/release/cutover-checklist.mjs</code>.</li>
+          <li>Run cutover watch monitor: <code>node scripts/release/cutover-watch.mjs</code>.</li>
+          <li>No active blockers for Phase 10 exit criteria.</li>
+        </ul>
+      </section>
+      <section class="card wide">
+        <div class="callout warning">Legacy <code>frontend/</code> (Vite) is decommissioned. Default scripts are blocked to prevent accidental deployment drift.</div>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

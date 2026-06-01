@@ -1,0 +1,743 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="GCM v2 milestone documentation frozen snapshot in the app documentation site.">
+  <title>GCM v2 Milestones</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="page-shell section-page">
+    <header class="section-hero">
+      <div>
+        <p class="eyebrow">Milestones</p>
+        <h1>Milestones Frozen Snapshot</h1>
+        <p class="lead">This page contains the full milestone documentation snapshot so operational docs remain self-contained inside the app documentation site.</p>
+      </div>
+      <nav class="subnav" aria-label="Section navigation">
+        <a href="index.html">Home</a>
+        <a href="docs.html">Docs archive</a>
+        <a href="deployment.html">Deployment</a>
+        <a href="runbooks.html">Runbooks</a>
+        <a href="environment.html">Environment</a>
+      </nav>
+    </header>
+    <main class="content-grid single-column">
+      <section class="card wide">
+        <div class="section-head">
+          <p class="eyebrow">Milestone Source</p>
+          <h2>backend.md</h2>
+        </div>
+        <pre># Backend Reliability Milestone Plan
+
+## Scope
+Tracks backend runtime, decoupling, and API governance work from enhnce-pln.md.
+
+## Status Labels
+- [not started]
+- [in progress]
+- [completed]
+
+## Pre-Marked Status Snapshot
+- [x] [completed] B0 Baseline architecture audit completed.
+- [ ] [not started] All implementation tasks below.
+
+## Tasks
+
+- [x] [completed] B1 Fix backup endpoint contract drift (P1.3)
+  - User story: As a frontend integrator, I want stable API contracts so UI operations do not break due to route mismatch.
+  - Success criteria:
+    - Backup status/download/restore routes align across frontend/backend.
+
+- [x] [completed] B2 Introduce API versioning strategy (P2.1)
+  - User story: As a frontend team of one, I want versioned API contracts so I can evolve UI independently from backend internals.
+  - Success criteria:
+    - Public API strategy documented and applied.
+
+- [x] [completed] B3 Publish OpenAPI spec for core modules (P2.2)
+  - User story: As a future frontend re-platform owner, I want machine-readable API contracts so any frontend stack can integrate safely.
+  - Success criteria:
+    - OpenAPI spec committed and validated.
+
+- [x] [completed] B4 Generate typed API client from contracts (P2.3)
+  - User story: As a frontend developer, I want generated API clients so endpoint drift is caught at compile time.
+  - Success criteria:
+    - Contract changes surface in compile-time checks.
+
+- [x] [completed] B5 Unify validation source of truth (P2.4)
+  - User story: As a maintainer, I want backend-owned validation schemas so business rules stay consistent across all clients.
+  - Success criteria:
+    - Backend is canonical source for business validation.
+
+- [x] [completed] B6 Standardize API error contract (P2.5)
+  - User story: As an app developer, I want consistent error shapes so handling is predictable across all modules.
+  - Success criteria:
+    - Unified error envelope across modules.
+
+- [x] [completed] B7 Separate startup side effects from request serving (P3.1)
+  - User story: As a platform engineer, I want fast stateless handlers so cold starts stay low and failure blast radius is reduced.
+  - Success criteria:
+    - Heavy startup effects are not in request bootstrap path.
+
+- [x] [completed] B8 Isolate heavy capabilities from hot path (P3.2)
+  - User story: As a cost-conscious operator, I want expensive workloads isolated so normal API requests remain fast and cheap.
+  - Success criteria:
+    - Core APIs run without loading heavy modules.
+
+- [x] [completed] B9 Replace local backup storage model (P3.3)
+  - User story: As an SRE-minded developer, I want durable off-instance backups so serverless replacement does not lose data.
+  - Success criteria:
+    - No production backup relies on local FS.
+
+- [x] [completed] B10 Replace local uploads storage model (P3.4)
+  - User story: As a product owner, I want media persistence independent of runtime so files remain available.
+  - Success criteria:
+    - Uploads are durable and runtime-independent.
+
+- [x] [completed] B11 Replace in-process cron with managed scheduler (P3.5)
+  - User story: As an operator, I want predictable job execution so scheduled tasks run even at scale-to-zero.
+  - Success criteria:
+    - Scheduler-driven jobs are reliable and idempotent.
+</pre>
+      </section>
+
+      <section class="card wide">
+        <div class="section-head">
+          <p class="eyebrow">Milestone Source</p>
+          <h2>cutover-stabilization.md</h2>
+        </div>
+        <pre># Cutover and Stabilization (Phase 10)
+
+## Scope
+Tracks production cutover execution, health monitoring, and stabilization outcomes.
+
+## P10.2 Production Cutover Evidence
+- Public production domains:
+  - Frontend: https://gcm.twision.agency
+  - Backend: https://gcm-back.twision.agency
+- Fallback operational frontend URL:
+  - https://frontend-next-chi-eight.vercel.app
+- Canonical host policy:
+  - Vercel fallback frontend host redirects to custom frontend domain (`308`).
+
+### Release Checklist Run
+Command:
+```bash
+CUTOVER_FRONTEND_BASE_URL=https://gcm.twision.agency \
+CUTOVER_BACKEND_BASE_URL=https://gcm-back.twision.agency \
+CUTOVER_FALLBACK_FRONTEND_URL=https://frontend-next-chi-eight.vercel.app \
+node scripts/release/cutover-checklist.mjs
+```
+
+Result:
+- All 5 checks passed.
+
+### Cutover Watch Run
+Command:
+```bash
+CUTOVER_FRONTEND_BASE_URL=https://gcm.twision.agency \
+CUTOVER_BACKEND_BASE_URL=https://gcm-back.twision.agency \
+CUTOVER_WATCH_SAMPLES=5 \
+node scripts/release/cutover-watch.mjs
+```
+
+Result summary:
+- frontend landing: 0% error rate
+- frontend login: 0% error rate
+- backend ping: 0% error rate
+- backend SSE protected endpoint: 0% error rate
+- Overall status: stable
+
+## P10.3 Post-Cutover Hardening
+
+### Triage Outcome
+- No open critical defects detected in smoke, parity, cutover checklist, or watch runs.
+- Auth boundary behavior remains intentional and documented.
+
+### Medium-Priority Refinements Backlog
+1. Add authenticated metrics snapshot polling for `/api/v1/system/metrics` in ops dashboard.
+2. Add scheduled canary trigger for `scripts/release/cutover-watch.mjs` with alert hooks.
+3. Repoint parity legacy target to a non-production staging alias before next major release window.
+
+## Phase 10 Exit
+- P10.1: completed
+- P10.2: completed
+- P10.3: completed
+- Phase status: completed
+</pre>
+      </section>
+
+      <section class="card wide">
+        <div class="section-head">
+          <p class="eyebrow">Milestone Source</p>
+          <h2>data-access-strategy.md</h2>
+        </div>
+        <pre># Server-Aware Data Access Strategy (P4.6)
+
+## Objective
+Define and implement explicit Next.js App Router data policies by route domain so rendering and caching behavior are predictable.
+
+## Policy Summary
+- Public marketing routes: cacheable with ISR where appropriate.
+- Authenticated portals: dynamic per request with no-store fetches.
+- Internal operations routes: dynamic per request with no-store fetches.
+- Shared utility: server fetch wrapper enforces strategy at call site.
+
+## Implemented Controls
+- Public landing: ISR enabled with revalidate 600 seconds.
+  - File: src/app/(public)/landing/page.tsx
+- Client group: dynamic + no-store enforced at layout boundary.
+  - File: src/app/(client)/layout.tsx
+- Subcontractor group: dynamic + no-store enforced at layout boundary.
+  - File: src/app/(subcontractor)/layout.tsx
+- Driver group: dynamic + no-store enforced at layout boundary.
+  - File: src/app/(driver)/layout.tsx
+- Internal group: dynamic + no-store enforced at layout boundary.
+  - File: src/app/(internal)/layout.tsx
+- Shared server fetch helper for strategy-specific API calls.
+  - File: src/lib/serverFetch.ts
+
+## Route Matrix
+| Route Domain | Example Paths | Rendering Mode | Fetch Policy |
+|---|---|---|---|
+| Public | /landing, /home, /login | Static/ISR | force-cache or revalidate |
+| Client Portal | /client/* | Dynamic | no-store |
+| Subcontractor Portal | /subcontractor/* | Dynamic | no-store |
+| Driver Portal | /driver/* | Dynamic | no-store |
+| Internal Ops/Admin | /db, /t, /rd, /sys, etc. | Dynamic | no-store |
+
+## Usage Guideline
+When adding data access to migrated pages, use src/lib/serverFetch.ts and set strategy based on route domain:
+- Public informational data: revalidate/static
+- User/session scoped or frequently mutating data: dynamic
+</pre>
+      </section>
+
+      <section class="card wide">
+        <div class="section-head">
+          <p class="eyebrow">Milestone Source</p>
+          <h2>frontend-migration.md</h2>
+        </div>
+        <pre># Frontend Migration Milestone Plan (Next.js 16 App Router)
+
+## Scope
+Tracks migration from Vite SPA to Next.js 16 App Router under src/app.
+
+## Status Labels
+- [not started]
+- [in progress]
+- [completed]
+
+## Pre-Marked Status Snapshot
+- [x] [completed] F0 Baseline architecture audit completed.
+- [ ] [not started] Migration implementation tasks below.
+
+## Tasks
+
+- [x] [completed] F1 Scaffold Next.js 16 app with src/app (P4.1)
+  - User story: As a frontend architect, I want a modern app-router baseline so I can leverage server-first rendering and Vercel-native optimization.
+  - Success criteria:
+    - Next.js app boots and deploy previews succeed.
+
+- [x] [completed] F2 Route migration map (P4.2)
+  - User story: As a developer, I want explicit route mapping so migration is deterministic and low-risk.
+  - Success criteria:
+    - Approved legacy-to-app-router mapping matrix.
+
+- [x] [completed] F3 Build app shell/providers/layout (P4.3)
+  - User story: As a user, I want consistent navigation/session behavior across all pages after migration.
+  - Success criteria:
+    - Shared layout and providers work across migrated routes.
+
+- [x] [completed] F4 Auth/session boundary migration (P4.4)
+  - User story: As an authenticated user, I want route protection and redirects to remain correct after migration.
+  - Success criteria:
+    - Role-based route protection works end-to-end.
+
+- [x] [completed] F5 Domain-by-domain page migration (P4.5)
+  - User story: As a product owner, I want phased delivery so the app remains usable during migration.
+  - Success criteria:
+    - Feature parity for all legacy routes.
+
+- [x] [completed] F6 Server-aware data access strategy (P4.6)
+  - User story: As a frontend engineer, I want predictable data patterns so I can use server rendering where it adds performance value.
+  - Success criteria:
+    - Route-level data strategy documented and implemented.
+
+- [x] [completed] F7 React 19 action patterns adoption (P4.7)
+  - User story: As a developer, I want modern form/action primitives so mutation flows are simpler and less error-prone.
+  - Success criteria:
+    - Key forms use modern action lifecycle patterns.
+
+- [x] [completed] F8 Suspense and split boundary optimization (P4.8)
+  - User story: As a mobile user, I want fast transitions and stable loading states.
+  - Success criteria:
+    - Critical routes show measurable loading improvements.
+
+- [x] [completed] F9 Decommission legacy Vite frontend (P4.9)
+  - User story: As a maintainer, I want one frontend runtime so deploy complexity stays low.
+  - Success criteria:
+    - Vite path fully removed after parity signoff.
+
+- [x] [completed] F10 Frontend structure decomposition (P5.1-P5.3)
+  - User story: As a solo maintainer, I want lower cognitive load so changes are safer and faster.
+  - Success criteria:
+    - Large orchestration modules decomposed and endpoint usage normalized.
+</pre>
+      </section>
+
+      <section class="card wide">
+        <div class="section-head">
+          <p class="eyebrow">Milestone Source</p>
+          <h2>incident-runbooks.md</h2>
+        </div>
+        <pre># Incident Class Runbooks (P9.3)
+
+## Scope
+Operational response playbooks for critical incident classes in split frontend/backend deployment.
+
+## 1) Auth Outage
+### Symptoms
+- Repeated 401 responses on protected routes.
+- Surge in `AUTH_TOKEN_EXPIRED` or `AUTH_TOKEN_FAILED`.
+- Login endpoint failures.
+
+### Immediate Actions
+1. Verify `JWT_SECRET`, `JWT_EXPIRES_IN`, and `AUTH_COOKIE_*` values are set correctly in backend runtime.
+2. Check `/api/v1/system/metrics` for auth failure spike.
+3. Confirm frontend/backend clock drift is not causing premature expiry.
+4. Validate `/api/v1/auth/login` and `/api/v1/auth/sse-token` manually.
+
+### Stabilization
+- Roll back recent auth config changes.
+- Temporarily lower login throttling only if needed and monitored.
+
+## 2) DB Migration Failure
+### Symptoms
+- Startup migration logs report schema drift or SQL errors.
+- CRUD endpoints fail with relation/column errors.
+
+### Immediate Actions
+1. Run schema health endpoint (`/api/v1/system/schema-health`) as admin.
+2. Compare missing/extra columns against canonical schema and migration scripts.
+3. Stop new destructive operations until schema parity is restored.
+
+### Stabilization
+- Apply verified migration SQL in staging first, then production.
+- Re-run health checks and OpenAPI contract tests.
+
+## 3) Backup Restore Failure
+### Symptoms
+- `/api/v1/system/backup/restore` returns 500.
+- Restore job terminates before DB import completion.
+
+### Immediate Actions
+1. Verify uploaded file type and integrity.
+2. Inspect backend logs + metrics (`backupFailures24h`).
+3. Confirm object storage accessibility and DB write permissions.
+
+### Stabilization
+- Retry with known-good artifact from previous successful backup.
+- If repeated failure: pause restore attempts and escalate with artifact hash + error trace IDs.
+
+## 4) CORS Failure
+### Symptoms
+- Browser rejects API calls with CORS errors.
+- Preflight failures after environment/domain changes.
+
+### Immediate Actions
+1. Verify `CORS_ORIGIN` and `CORS_ALLOWED_ORIGINS` values.
+2. Confirm request origin exactly matches allowlisted domain/protocol.
+3. Validate credentials mode and cookie flags (`sameSite`, `secure`).
+
+### Stabilization
+- Apply explicit allowlist fix, avoid wildcard credentials policies.
+- Re-test from production and preview origins.
+
+## 5) SSE Failure
+### Symptoms
+- Event stream not connecting or frequent disconnects.
+- Missing real-time updates in client dashboards.
+
+### Immediate Actions
+1. Verify `/api/v1/events` auth flow and SSE token issuance endpoint.
+2. Check `sseDisconnects15m` metric and recent alert entries.
+3. Inspect reverse proxy buffering/timeouts and heartbeat behavior.
+
+### Stabilization
+- Ensure `X-Accel-Buffering: no` behavior is preserved in deployed proxy.
+- Validate client reconnect/backoff and token refresh behavior.
+
+## Cross-Incident Checklist
+1. Capture `traceId` from error envelope or `X-Correlation-Id` header.
+2. Record incident timeline and impacted route groups.
+3. Verify smoke suite (`scripts/smoke/split-deployment-smoke.mjs`) before declaring recovery.
+4. Add postmortem action items and threshold tuning updates.
+</pre>
+      </section>
+
+      <section class="card wide">
+        <div class="section-head">
+          <p class="eyebrow">Milestone Source</p>
+          <h2>parity-validation.md</h2>
+        </div>
+        <pre># Parallel Parity Validation (P10.1)
+
+## Objective
+Run baseline frontend and Next.js frontend in parallel against the same backend contract and detect route regressions before cutover.
+
+## Script
+- `scripts/parity/parallel-parity-check.mjs`
+
+## Required Environment
+- `PARITY_BASELINE_FRONTEND_URL`
+- `PARITY_NEXT_BASE_URL`
+- `PARITY_BACKEND_BASE_URL`
+- Optional: `PARITY_TIMEOUT_MS` (default `10000`)
+- Optional preflight mode: `PARITY_DRY_RUN=true`
+
+## Route Coverage
+- Public: `/landing`, `/login`, `/unauthorized`, `/home`
+- Protected boundary checks: `/client/dashboard`, `/subcontractor/dashboard`, `/driver/map`
+- Backend contract check: `/api/v1/ping`
+
+## Validation Rule
+A route passes if baseline and next frontends return the same status class (`2xx` or `3xx`).
+
+## Usage
+```bash
+PARITY_BASELINE_FRONTEND_URL=https://baseline.example.com \
+PARITY_NEXT_BASE_URL=https://next.example.com \
+PARITY_BACKEND_BASE_URL=https://api.example.com \
+node scripts/parity/parallel-parity-check.mjs
+```
+
+## Notes
+- This is a release gate for staging canary before production cutover.
+- Any mismatch should block cutover until resolved or explicitly waived.
+
+## Current Blocker
+- No active blocker for P10.1.
+- Live parity execution completed with:
+	- PARITY_BASELINE_FRONTEND_URL=https://frontend-next-chi-eight.vercel.app
+	- PARITY_NEXT_BASE_URL=https://gcm.twision.agency
+	- PARITY_BACKEND_BASE_URL=https://gcm-back.twision.agency
+- Result: all checks passed.
+- Protected routes (`/client/dashboard`, `/subcontractor/dashboard`, `/driver/map`) are accepted as pass when baseline returns `200` and Next.js returns `307` because this is intentional auth-boundary hardening.
+
+## Immediate Next Step
+1. Keep the parity script and URL set as a pre-cutover gate for P10.2 release checklist.
+2. Proceed with controlled production cutover monitoring and rollback readiness.
+</pre>
+      </section>
+
+      <section class="card wide">
+        <div class="section-head">
+          <p class="eyebrow">Milestone Source</p>
+          <h2>performance-budgets.md</h2>
+        </div>
+        <pre># Performance and Bundle Budgets (P7.2)
+
+## Commands
+- `npm run ci:perf` in `frontend-next/`
+- Includes: build + bundle budget check + critical dependency guard.
+
+## Default Budgets
+- Largest JS chunk: `&lt;= 230KB`
+- Total JS chunks under `.next/static/chunks`: `&lt;= 900KB`
+
+## Behavior
+- Default mode is warning-oriented (non-blocking) for local runs.
+- CI can enforce strict failure by setting:
+  - `BUNDLE_BUDGET_STRICT=true`
+  - `CRITICAL_DEPS_STRICT=true`
+
+## Dependency Guardrails
+Production dependencies are checked for heavy packages that frequently bloat critical routes (for example: `chart.js`, `recharts`, `xlsx`, `moment`, `lodash`, `monaco-editor`, `three`).
+</pre>
+      </section>
+
+      <section class="card wide">
+        <div class="section-head">
+          <p class="eyebrow">Milestone Source</p>
+          <h2>route-migration-map.md</h2>
+        </div>
+        <pre># Route Migration Map (Vite React Router -&gt; Next.js App Router)
+
+## Scope
+Defines a deterministic route migration matrix for moving legacy frontend routes to Next.js 16 App Router under frontend-next/src/app.
+
+## Conventions
+- Keep existing public URLs where possible to avoid breaking bookmarks and integrations.
+- Use route groups in App Router to isolate layout and auth boundaries without changing URL paths.
+- Preserve current role-gate behavior from frontend/src/App.tsx.
+
+## Route Groups (Planned)
+- (public): unauthenticated pages and neutral public pages.
+- (client): client portal layout and guards.
+- (subcontractor): subcontractor portal layout and guards.
+- (driver): driver portal layout and guards.
+- (internal): internal staff layout and role-based guards.
+
+## Legacy to App Router Matrix
+
+| Legacy Path | Current Screen | Next App Route File (planned) | Route Group | Auth/Gate Rule |
+|---|---|---|---|---|
+| / | Landing or role redirect | src/app/page.tsx | (public) | If authenticated: redirect by role; else landing |
+| /login | Login or role redirect | src/app/login/page.tsx | (public) | If authenticated: redirect by role |
+| /landing | Landing | src/app/landing/page.tsx | (public) | Public |
+| /store | Store | src/app/store/page.tsx | (public) | Public |
+| /home | Redirect to /landing | src/app/home/page.tsx | (public) | Permanent redirect to /landing |
+| /client | Redirect to /client/dashboard | src/app/client/page.tsx | (client) | Client roles only |
+| /client/dashboard | ClientDashboard | src/app/client/dashboard/page.tsx | (client) | CLIENT, COMPANY_USER, PROJECT_USER |
+| /client/reports | ClientReports | src/app/client/reports/page.tsx | (client) | CLIENT, COMPANY_USER, PROJECT_USER |
+| /client/account | ClientAccount | src/app/client/account/page.tsx | (client) | CLIENT, COMPANY_USER, PROJECT_USER |
+| /client/support | Support placeholder | src/app/client/support/page.tsx | (client) | CLIENT, COMPANY_USER, PROJECT_USER |
+| /subcontractor | Redirect to /subcontractor/dashboard | src/app/subcontractor/page.tsx | (subcontractor) | SUBCONTRACTOR only |
+| /subcontractor/dashboard | SubcontractorDashboard | src/app/subcontractor/dashboard/page.tsx | (subcontractor) | SUBCONTRACTOR only |
+| /subcontractor/profile | SubcontractorProfile | src/app/subcontractor/profile/page.tsx | (subcontractor) | SUBCONTRACTOR only |
+| /subcontractor/assets | SubcontractorAssets | src/app/subcontractor/assets/page.tsx | (subcontractor) | SUBCONTRACTOR only |
+| /driver | DriverDashboard | src/app/driver/page.tsx | (driver) | DRIVER only |
+| /driver/map | DriverMapView | src/app/driver/map/page.tsx | (driver) | DRIVER only |
+| /db | Dashboard | src/app/db/page.tsx | (internal) | ADMIN, ACCOUNTANT, DATA_ENTRY, DRIVER |
+| /c | Companies | src/app/c/page.tsx | (internal) | ADMIN |
+| /p | Projects | src/app/p/page.tsx | (internal) | ADMIN, COMPANY_USER, PROJECT_USER |
+| /u | UserManagement | src/app/u/page.tsx | (internal) | ADMIN, COMPANY_USER |
+| /t | Trips | src/app/t/page.tsx | (internal) | ADMIN, DATA_ENTRY, LOGISTICS, REPORTS_MANAGER |
+| /rd | ReportsDashboard | src/app/rd/page.tsx | (internal) | ADMIN, REPORTS_MANAGER |
+| /f | Fleet | src/app/f/page.tsx | (internal) | ADMIN, LOGISTICS, DATA_ENTRY |
+| /iv | Inventory | src/app/iv/page.tsx | (internal) | ADMIN, LOGISTICS, DATA_ENTRY |
+| /dr | Drivers | src/app/dr/page.tsx | (internal) | ADMIN, LOGISTICS, DATA_ENTRY |
+| /sup | Suppliers | src/app/sup/page.tsx | (internal) | ADMIN, LOGISTICS |
+| /fac | Facilities | src/app/fac/page.tsx | (internal) | ADMIN, REPORTS_MANAGER |
+| /logistics/queue | TripQueue | src/app/logistics/queue/page.tsx | (internal) | ADMIN, LOGISTICS, REPORTS_MANAGER |
+| /acc | AccountantPortal | src/app/acc/page.tsx | (internal) | ADMIN, ACCOUNTANT |
+| /s | Services | src/app/s/page.tsx | (internal) | ADMIN, REPORTS_MANAGER |
+| /store-admin | EquipmentAdmin | src/app/store-admin/page.tsx | (internal) | ADMIN |
+| /st | Settings | src/app/st/page.tsx | (internal) | ADMIN |
+| /sys | SystemMonitor | src/app/sys/page.tsx | (internal) | ADMIN |
+| /le | LandingSettings | src/app/le/page.tsx | (internal) | ADMIN |
+| /ai-sessions | AISessions | src/app/ai-sessions/page.tsx | (internal) | ADMIN |
+| /l | ActivityLogs | src/app/l/page.tsx | (internal) | ADMIN, DATA_ENTRY, LOGISTICS, REPORTS_MANAGER |
+| /pr | Profile | src/app/pr/page.tsx | (internal) | ADMIN, ACCOUNTANT, DATA_ENTRY, LOGISTICS, REPORTS_MANAGER, DRIVER |
+| * | Role-aware fallback | src/app/[...not_found]/page.tsx + not-found.tsx | mixed | Role redirect when authenticated; else / |
+
+## Role Redirect Rules to Preserve
+- CLIENT, COMPANY_USER, PROJECT_USER -&gt; /client/dashboard
+- SUBCONTRACTOR -&gt; /subcontractor/dashboard
+- REPORTS_MANAGER default internal home -&gt; /rd
+- Remaining internal staff default home -&gt; /db
+
+## Implementation Order (for P4.3/P4.4/P4.5)
+1. Build route-group layouts and guards first.
+2. Implement public routes and auth redirects.
+3. Implement portal routes (client, subcontractor, driver).
+4. Implement internal short-code routes.
+5. Add catch-all redirect parity.
+</pre>
+      </section>
+
+      <section class="card wide">
+        <div class="section-head">
+          <p class="eyebrow">Milestone Source</p>
+          <h2>route-render-cache-matrix.md</h2>
+        </div>
+        <pre># Route Render and Cache Matrix (P7.1)
+
+## Purpose
+Define route-level rendering and cache behavior for predictable performance on web and mobile.
+
+## Matrix
+
+| Route family | Rendering mode | Cache policy | Invalidation trigger |
+| --- | --- | --- | --- |
+| `/landing` | ISR | `revalidate = 600` | Automatic 10-minute refresh; manual deploy refresh |
+| `/` | Static redirect | `force-static` | New deploy only |
+| `/home` | Static redirect | `force-static` | New deploy only |
+| `/login` | Dynamic | `force-no-store` | Always fresh (query/session-sensitive) |
+| `/logout` | Dynamic | `force-no-store` | Always fresh (session mutation) |
+| `/unauthorized` | Static | `force-static` | New deploy only |
+| `/(client)/*` | Dynamic | `force-no-store` via group layout | Always fresh (auth + operational data) |
+| `/(subcontractor)/*` | Dynamic | `force-no-store` via group layout | Always fresh (auth + operational data) |
+| `/(driver)/*` | Dynamic | `force-no-store` via group layout | Always fresh (auth + operational data) |
+| `/(internal)/*` | Dynamic | `force-no-store` via group layout | Always fresh (auth + operational data) |
+
+## Implementation Anchors
+- Public ISR route: `frontend-next/src/app/(public)/landing/page.tsx`
+- Public auth routes: `frontend-next/src/app/(public)/login/page.tsx`, `frontend-next/src/app/(public)/logout/page.tsx`
+- Static public pages: `frontend-next/src/app/page.tsx`, `frontend-next/src/app/(public)/home/page.tsx`, `frontend-next/src/app/(public)/unauthorized/page.tsx`
+- Dynamic portal layouts:
+  - `frontend-next/src/app/(client)/layout.tsx`
+  - `frontend-next/src/app/(subcontractor)/layout.tsx`
+  - `frontend-next/src/app/(driver)/layout.tsx`
+  - `frontend-next/src/app/(internal)/layout.tsx`
+
+## Notes
+- This matrix intentionally keeps authenticated areas uncached at the Next.js fetch layer to avoid stale operational state.
+- Future optimization in P7.2/P7.3 can selectively introduce tagged revalidation for high-read/low-write slices.
+</pre>
+      </section>
+
+      <section class="card wide">
+        <div class="section-head">
+          <p class="eyebrow">Milestone Source</p>
+          <h2>security.md</h2>
+        </div>
+        <pre># Security Milestone Plan
+
+## Scope
+Tracks security-critical hardening tasks from enhnce-pln.md.
+
+## Status Labels
+- [not started]
+- [in progress]
+- [completed]
+
+## Pre-Marked Status Snapshot
+- [x] [completed] Baseline architecture security audit completed.
+- [ ] [not started] All implementation tasks below.
+
+## Tasks
+
+- [x] [completed] S1 Remove frontend secret exposure (P1.1)
+  - User story: As a security-conscious operator, I want secrets to stay server-only so client bundles cannot leak credentials.
+  - Success criteria:
+    - Frontend build contains no backend secret values.
+
+- [x] [completed] S2 Eliminate client-controlled validation bypass (P1.2)
+  - User story: As a backend owner, I want validation trust rooted in server policy so clients cannot bypass business rules.
+  - Success criteria:
+    - Public APIs ignore or reject validation bypass headers.
+
+- [x] [completed] S3 Harden CORS preview policy (P1.4)
+  - User story: As a platform owner, I want strict CORS controls so credentialed APIs are not exposed to unintended origins.
+  - Success criteria:
+    - Credentialed requests only from explicit allowlist.
+
+- [x] [completed] S4 Improve SSE auth transport (P1.5)
+  - User story: As a security engineer, I want auth tokens out of query strings so logs and intermediaries cannot leak sensitive data.
+  - Success criteria:
+    - SSE works without long-lived token in URL query.
+
+- [x] [completed] S5 Request validation and sanitization coverage audit (P6.1)
+  - User story: As a security owner, I want every write endpoint validated so malformed or malicious input is rejected consistently.
+  - Success criteria:
+    - All write endpoints have validation and sanitization coverage.
+
+- [x] [completed] S6 Auth token storage and lifecycle hardening (P6.2)
+  - User story: As a security architect, I want reduced token exposure so session theft risk is minimized.
+  - Success criteria:
+    - Token storage/lifecycle policy documented and enforced.
+
+- [x] [completed] S7 Endpoint-tier rate limiting (P6.3)
+  - User story: As a platform owner, I want abuse-resistant APIs so login and sensitive endpoints are protected under load.
+  - Success criteria:
+    - Sensitive endpoints have stricter tested limits.
+</pre>
+      </section>
+
+      <section class="card wide">
+        <div class="section-head">
+          <p class="eyebrow">Milestone Source</p>
+          <h2>split-deployment-smoke.md</h2>
+        </div>
+        <pre># Split Deployment Smoke Suite (P8.3)
+
+## Script
+- `scripts/smoke/split-deployment-smoke.mjs`
+
+## Required Environment
+- `SMOKE_FRONTEND_BASE_URL` (for example `https://frontend.example.com`)
+- `SMOKE_BACKEND_BASE_URL` (for example `https://api.example.com`)
+- Optional: `SMOKE_TIMEOUT_MS` (default `10000`)
+- Optional: `SMOKE_DRY_RUN=true` to validate configured checks without network calls.
+
+## Checks
+1. Frontend landing route is reachable.
+2. Backend ping route is reachable.
+3. Frontend dashboard route is reachable or redirects (auth boundary check).
+4. Invalid login returns `401`.
+5. Key CRUD write surface (`POST /api/v1/companies`) rejects anonymous access (`401`).
+6. Admin backup status endpoint rejects anonymous access with canonical `AUTH_NO_TOKEN` envelope.
+7. SSE endpoint health (`/api/v1/events`) rejects anonymous access (`401`).
+
+## Usage
+```bash
+SMOKE_FRONTEND_BASE_URL=https://frontend.example.com \
+SMOKE_BACKEND_BASE_URL=https://api.example.com \
+node scripts/smoke/split-deployment-smoke.mjs
+
+# Preflight validation without live endpoints
+SMOKE_DRY_RUN=true node scripts/smoke/split-deployment-smoke.mjs
+```
+
+## CI Gate Recommendation
+Run this script post-deploy in staging and production canary. Treat failures as release blockers.
+
+## Latest Live Run Snapshot
+- Frontend URL (public custom domain): `https://gcm.twision.agency`
+- Backend URL (public custom domain): `https://gcm-back.twision.agency`
+- Operational fallback URLs:
+	- Frontend: `https://frontend-next-chi-eight.vercel.app`
+	- Backend: `https://backend-tau-three-72.vercel.app`
+- Result: all 7 checks passed in production canary.
+</pre>
+      </section>
+
+      <section class="card wide">
+        <div class="section-head">
+          <p class="eyebrow">Milestone Source</p>
+          <h2>testing.md</h2>
+        </div>
+        <pre># Testing and Quality Milestone Plan
+
+## Scope
+Tracks validation gates, contract tests, and release confidence coverage.
+
+## Status Labels
+- [not started]
+- [in progress]
+- [completed]
+
+## Pre-Marked Status Snapshot
+- [x] [completed] T0 Baseline audit completed.
+- [ ] [not started] Test expansion tasks below.
+
+## Tasks
+
+- [x] [completed] T1 Expand frontend unit/integration coverage (P8.1)
+  - User story: As a solo developer, I want confidence to refactor quickly without regressions.
+  - Success criteria:
+    - Critical user paths covered by automated tests.
+
+- [x] [completed] T2 Add backend contract/integration tests (P8.2)
+  - User story: As a backend maintainer, I want contracts validated in CI so breaking API changes are caught before deploy.
+  - Success criteria:
+    - Contract tests fail on breaking changes.
+
+- [x] [completed] T3 Add split-deployment e2e smoke suite (P8.3)
+  - User story: As an operator, I want deployment confidence so frontend/backend split releases are safe.
+  - Success criteria:
+    - Green smoke checks are required before release.
+
+- [x] [completed] T4 Add observability quality gates (P9.1-P9.2)
+  - User story: As an incident responder, I want traceable signals and alerts so issue triage is fast.
+  - Success criteria:
+    - Structured logs, metrics, and alerts are active.
+
+- [x] [completed] T5 Incident runbook validation (P9.3)
+  - User story: As a solo engineer under pressure, I want tested runbooks so incidents can be handled quickly.
+  - Success criteria:
+    - Runbooks are documented and exercised with dry-runs.
+
+- [x] [completed] T6 Cutover validation and stabilization checks (P10.1-P10.3)
+  - User story: As a release manager, I want controlled go-live checks so migration risk is minimized.
+  - Success criteria:
+    - Parity checklist and post-cutover checks pass.
+</pre>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

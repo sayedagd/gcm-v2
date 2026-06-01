@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Reverse-engineered technical document: 02. Architectural Overview">
+  <title>02. Architectural Overview | GCM v2 Docs</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="page-shell section-page">
+    <header class="section-hero">
+      <div>
+        <p class="eyebrow">Reverse-Engineered Documentation</p>
+        <h1>02. Architectural Overview</h1>
+        <p class="lead">This page is the HTML-preserved migration of the original markdown source file.</p>
+      </div>
+      <nav class="subnav" aria-label="Section navigation">
+        <a href="index.html">Home</a>
+        <a href="docs.html">Docs Archive</a>
+        <a href="reverse-engineered.html">Reverse Hub</a>
+        <a href="print.html">Print export</a>
+      </nav>
+    </header>
+
+    <main class="content-grid single-column">
+      <section class="card wide">
+        <div class="section-head">
+          <p class="eyebrow">Source Preservation</p>
+          <h2>Original markdown content (no loss)</h2>
+        </div>
+        <pre class="markdown-archive">
+# 02. Architectural Overview
+
+## 1. High-Level Architecture
+
+```mermaid
+flowchart LR
+    U1[Public User] --&gt; FE[Next.js Frontend]
+    U2[Internal User] --&gt; FE
+    U3[API Client] --&gt; API
+
+    FE --&gt;|Server Actions + Fetch| API[Express API Runtime]
+    FE --&gt;|Role-cookie middleware| FE
+
+    API --&gt;|SQL| DB[(PostgreSQL)]
+    API --&gt;|JWT verify/sign| AUTH[JWT Security Layer]
+    API --&gt;|SSE stream| SSE[Event Bus]
+    API --&gt;|Files backup/upload| FS[Local /tmp or Disk]
+
+    API --&gt;|Backup artifacts| S3B[(S3 Backup Bucket)]
+    API --&gt;|Uploads optional| S3U[(S3 Uploads Bucket)]
+
+    API --&gt;|Email notifications| SMTP[SMTP Provider]
+    API --&gt;|WhatsApp integration| WA[WhatsApp Service]
+    API --&gt;|AI/OCR/Analytics| AI[AI Providers]
+    API --&gt;|Carbon data proxy| CLIMATIQ[Climatiq API]
+```
+
+## 2. Runtime Topology
+
+- Backend entrypoint: `backend/app.js`
+- Serverless wrapper entrypoint: `backend/api/[...path].js`
+- Frontend app: `frontend-next/src/app`
+- Primary API namespace: `/api/v1/*`
+- Legacy compatibility namespace: `/api/*` (with deprecation headers)
+
+## 3. Request Lifecycle (Backend)
+
+1. Request enters Express app.
+2. Security middleware applied: Helmet, CORS, request context, rate limit, body sanitization.
+3. Auth middleware validates JWT (header/cookie/SSE query mode).
+4. Route module handles request via controller.
+5. Shared CRUD engine validates/sanitizes/upserts and logs activity.
+6. Errors are normalized to canonical bilingual envelope.
+7. Correlation id is returned via `X-Correlation-Id`.
+8. Optional SSE event is published to scoped subscribers.
+
+## 4. Frontend-Backend Data Flow
+
+### 4.1 Current Frontend State
+
+- Frontend auth is currently in migration mode:
+  - login page sets role/session cookies via server action
+  - no direct credential exchange with backend yet
+- API utility (`fetchApiJson`) reads base URL from `API_BASE_URL` or `NEXT_PUBLIC_API_BASE_URL`.
+
+### 4.2 Intended Convergence Path
+
+- Frontend should call backend `POST /api/v1/auth/login`.
+- Frontend should rely on backend-issued auth cookie/JWT and avoid synthetic role-only sessions.
+
+## 5. Component Boundaries
+
+- `src/modules/auth/*`: login/profile/users
+- `src/modules/core/*`: companies/projects/services/facilities/rates
+- `src/modules/operations/*`: trips/requests/notifications/asset requests
+- `src/modules/logistics/*`: vehicles/drivers/inventory/suppliers/asset-service links
+- `src/modules/reporting/*`: dashboard/exports/logs
+- `src/modules/public/*`: landing/contact/store/carbon proxy
+- `src/modules/infrastructure/*`: health/backup/settings
+- `src/modules/ai/*`: chat/analytics/ocr
+
+## 6. Cross-Cutting Technical Mechanisms
+
+- Request correlation and metrics tracking
+- Centralized error envelope
+- Rate limit policy profiles
+- Backup artifact abstraction (local or S3)
+- Runtime-safe module loading and lazy route loading for AI modules
+
+## 7. Deployment-Related Architecture Notes
+
+- `backend/vercel.json` rewrites map v1 routes to existing route handlers.
+- Upload and backup writable paths are runtime-dependent (`/tmp` on Vercel).
+- Startup jobs in serverless mode are opt-in (`ENABLE_SERVERLESS_STARTUP_JOBS=true`).
+        </pre>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

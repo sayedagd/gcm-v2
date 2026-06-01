@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Reverse-engineered technical document: 04. Full OpenAPI Specification (Reverse-Engineered)">
+  <title>04. Full OpenAPI Specification (Reverse-Engineered) | GCM v2 Docs</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="page-shell section-page">
+    <header class="section-hero">
+      <div>
+        <p class="eyebrow">Reverse-Engineered Documentation</p>
+        <h1>04. Full OpenAPI Specification (Reverse-Engineered)</h1>
+        <p class="lead">This page is the HTML-preserved migration of the original markdown source file.</p>
+      </div>
+      <nav class="subnav" aria-label="Section navigation">
+        <a href="index.html">Home</a>
+        <a href="docs.html">Docs Archive</a>
+        <a href="reverse-engineered.html">Reverse Hub</a>
+        <a href="print.html">Print export</a>
+      </nav>
+    </header>
+
+    <main class="content-grid single-column">
+      <section class="card wide">
+        <div class="section-head">
+          <p class="eyebrow">Source Preservation</p>
+          <h2>Original markdown content (no loss)</h2>
+        </div>
+        <pre class="markdown-archive">
+# 04. Full OpenAPI Specification (Reverse-Engineered)
+
+Canonical contract file in repo: `backend/openapi/openapi.v1.json`
+
+This section expands the implemented route surface discovered in route modules and runtime mounts.
+
+## 1. OpenAPI Metadata
+
+- OpenAPI: `3.0.3`
+- Title: `GCM Backend API`
+- Version: `1.0.0`
+- Primary base path: `/api/v1`
+- Security: `bearerAuth` (`JWT`)
+
+## 2. Security Model
+
+- `Authorization: Bearer &lt;JWT&gt;` for protected APIs
+- HttpOnly cookie auth is also supported server-side (`gcm_jwt` by default)
+- Admin-only routes require JWT role = `ADMIN`
+- SSE short-lived token endpoint: `GET /api/v1/auth/sse-token`
+
+## 3. Endpoint Catalog (Implemented)
+
+## 3.1 Auth and Session
+
+- `POST /api/v1/auth/login`
+- `POST /api/v1/auth/logout`
+- `GET /api/v1/auth/sse-token` (protected)
+
+## 3.2 Core Domain
+
+- `GET|POST /api/v1/users`
+- `DELETE /api/v1/users/{id}`
+- `GET|POST /api/v1/companies`
+- `DELETE /api/v1/companies/{id}`
+- `GET|POST /api/v1/projects`
+- `DELETE /api/v1/projects/{id}`
+- `GET|POST /api/v1/services`
+- `DELETE /api/v1/services/{id}`
+- `GET|POST /api/v1/facilities`
+- `DELETE /api/v1/facilities/{id}`
+- `GET|POST /api/v1/project_services`
+- `DELETE /api/v1/project_services/{id}`
+- `GET|POST /api/v1/project_supplier_rates`
+- `DELETE /api/v1/project_supplier_rates/{id}`
+
+## 3.3 Operations
+
+- `GET|POST /api/v1/trips`
+- `DELETE /api/v1/trips/{id}`
+- `GET|POST /api/v1/requests`
+- `DELETE /api/v1/requests/{id}`
+- `GET|POST /api/v1/asset_requests`
+- `DELETE /api/v1/asset_requests/{id}`
+- `GET|POST /api/v1/notifications`
+- `PATCH /api/v1/notifications/read-all`
+- `PATCH /api/v1/notifications/{id}/read`
+- `DELETE /api/v1/notifications`
+- `DELETE /api/v1/notifications/{id}`
+
+## 3.4 Logistics
+
+- `GET|POST /api/v1/vehicles`
+- `DELETE /api/v1/vehicles/{id}`
+- `GET|POST /api/v1/drivers`
+- `DELETE /api/v1/drivers/{id}`
+- `GET|POST /api/v1/suppliers`
+- `DELETE /api/v1/suppliers/{id}`
+- `GET /api/v1/inventory/containers`
+- `POST /api/v1/inventory/containers`
+- `DELETE /api/v1/inventory/containers/{id}`
+- `GET /api/v1/inventory/tanks`
+- `POST /api/v1/inventory/tanks`
+- `DELETE /api/v1/inventory/tanks/{id}`
+- `GET /api/v1/inventory/scales`
+- `POST /api/v1/inventory/scales`
+- `DELETE /api/v1/inventory/scales/{id}`
+- `GET /api/v1/inventory/sizes`
+- `POST /api/v1/inventory/sizes`
+- `DELETE /api/v1/inventory/sizes/{id}`
+- `GET /api/v1/asset-service-links`
+- `GET /api/v1/asset-service-links/{assetType}/{assetId}`
+- `PUT /api/v1/asset-service-links/{assetType}/{assetId}`
+
+## 3.5 Reporting
+
+- `GET /api/v1/reporting/dashboard/stats`
+- `GET /api/v1/reporting/dashboard/health`
+- `GET /api/v1/reporting/exports/backup`
+- `GET|POST|DELETE /api/v1/logs` (via logs module mount)
+
+## 3.6 Public
+
+- `GET|POST /api/v1/public/landing`
+- `GET|POST|DELETE /api/v1/public/contact`
+- `GET /api/v1/public/store/equipments`
+- `GET /api/v1/public/store/equipments/{id}`
+- `POST /api/v1/public/store/inquiries`
+- `POST /api/v1/public/store/equipments`
+- `PUT /api/v1/public/store/equipments/{id}`
+- `POST /api/v1/public/store/equipments/{id}/share`
+- `DELETE /api/v1/public/store/equipments/{id}`
+- `GET /api/v1/public/store/inquiries`
+- `GET /api/v1/public/store/inquiries/{id}`
+- `PUT /api/v1/public/store/inquiries/{id}`
+- `DELETE /api/v1/public/store/inquiries/{id}`
+- `GET /api/v1/public/carbon-proxy`
+
+## 3.7 Infrastructure and Admin
+
+- `GET /api/v1/ping`
+- `GET /api/v1/diag`
+- `GET /api/v1/events` (protected SSE)
+- `GET /api/v1/config`
+- `POST /api/v1/config`
+- `GET /api/v1/system/health/status` (admin)
+- `GET /api/v1/system/health/ping` (admin)
+- `GET /api/v1/system/metrics` (admin)
+- `GET /api/v1/system/schema-health` (admin)
+- `GET /api/v1/system/force-migrate` (admin)
+- `GET /api/v1/system/whatsapp/qr` (admin)
+- `POST /api/v1/system/backup/trigger` (admin)
+- `GET /api/v1/system/backup/download` (admin)
+- `GET /api/v1/system/backup/status` (admin)
+- `POST /api/v1/system/backup/restore` (admin, multipart)
+- `GET /api/v1/system/settings`
+- `POST /api/v1/system/settings`
+
+## 3.8 AI
+
+- `POST /api/v1/ai/chat`
+- `POST /api/v1/ai/log-session`
+- `GET /api/v1/ai/sessions/{id}`
+- `GET /api/v1/ai/analytics`
+- `GET /api/v1/ai/sessions`
+- `PATCH /api/v1/ai/sessions/{id}/rate`
+- `POST /api/v1/ai/vision`
+
+## 4. Core Request/Response Models
+
+Representative models from contract and code:
+
+- `LoginRequest`: `email`, `password`
+- `AuthResponse`: token and user payload
+- `ErrorResponse`: canonical envelope with `code`, `error`, `errorEn`, `errorAr`, `traceId`
+- `UpsertSuccess`, `DeleteSuccess`, `OperationSuccess`
+- Domain entities: `User`, `Company`, `Project`, `Service`, `Facility`, `Trip`
+
+## 5. Authentication Requirements by Prefix
+
+- Public/no auth:
+  - `/api/v1/public/*`
+  - `/api/v1/ping`
+  - `/api/v1/diag`
+  - `/api/v1/config` (currently open)
+- Protected:
+  - most `/api/v1/*` operational and core routes
+- Protected + Admin role:
+  - `/api/v1/system/*` for backup/health/metrics/schema operations
+
+## 6. Versioning and Compatibility
+
+- Runtime preserves legacy `/api/*` endpoints with deprecation headers and sunset support.
+- `backend/vercel.json` rewrites map v1 route aliases into active route handlers.
+
+## 7. Recommended Spec Consolidation
+
+To make this truly machine-complete for SDK generation:
+
+1. Merge all route module signatures into `backend/openapi/openapi.v1.json`.
+2. Add path-level auth metadata per route.
+3. Add strict schema definitions for trip/notification/store/admin payloads.
+4. Add reusable error examples with `traceId`.
+        </pre>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

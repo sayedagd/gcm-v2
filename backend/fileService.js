@@ -1,5 +1,10 @@
 const fs = require('fs');
 const path = require('path');
+const {
+    isUploadsObjectStorageEnabled,
+    uploadUploadBuffer,
+    resolveUploadUrl
+} = require('./src/shared/services/uploadStorageService');
 
 const UPLOADS_ROOT = path.join(__dirname, 'uploads');
 
@@ -8,6 +13,17 @@ const UPLOADS_ROOT = path.join(__dirname, 'uploads');
  */
 const ensureDir = async (dirPath) => {
     await fs.promises.mkdir(dirPath, { recursive: true });
+};
+
+const parseBase64Payload = (base64Data) => {
+    const matches = base64Data.match(/^data:([A-Za-z0-9/+.-]+);base64,(.+)$/);
+    if (!matches || matches.length !== 3) {
+        throw new Error('Invalid base64 string');
+    }
+    return {
+        mimeType: matches[1],
+        buffer: Buffer.from(matches[2], 'base64')
+    };
 };
 
 /**
@@ -58,22 +74,28 @@ const saveFileHierarchical = async ({
         );
         const absoluteDirPath = path.join(UPLOADS_ROOT, relativePath);
 
-        // 3. Ensure directory exists
-        ensureDir(absoluteDirPath);
+        // 3. Extract buffer from base64
+        const { mimeType, buffer } = parseBase64Payload(base64Data);
 
-        // 4. Extract buffer from base64
-        const matches = base64Data.match(/^data:([A-Za-z-+/]+);base64,(.+)$/);
-        if (!matches || matches.length !== 3) throw new Error('Invalid base64 string');
-        const buffer = Buffer.from(matches[2], 'base64');
-
-        // 5. Final file path
+        // 4. Final file path
         const finalFileName = `${Date.now()}_${cleanName(fileName)}`;
-        const finalFilePath = path.join(absoluteDirPath, finalFileName);
+        const objectKey = `${relativePath.replace(/\\/g, '/')}/${finalFileName}`;
 
-        // 6. Write file
+        if (isUploadsObjectStorageEnabled()) {
+            await uploadUploadBuffer({
+                key: objectKey,
+                body: buffer,
+                contentType: mimeType
+            });
+            return resolveUploadUrl(objectKey);
+        }
+
+        // 5. Local fallback (dev only)
+        await ensureDir(absoluteDirPath);
+        const finalFilePath = path.join(absoluteDirPath, finalFileName);
         await fs.promises.writeFile(finalFilePath, buffer);
 
-        // 7. Return relative URL path for DB storage
+        // 6. Return relative URL path for DB storage
         return `/uploads/${relativePath.replace(/\\/g, '/')}/${finalFileName}`;
     } catch (error) {
         console.error('[FileService Error]', error);
@@ -122,14 +144,21 @@ const saveEntityDoc = async (entityType, entityName, fileName, base64Data) => {
         }
 
         const absoluteDirPath = path.join(UPLOADS_ROOT, relativePath);
-        ensureDir(absoluteDirPath);
-
-        const matches = base64Data.match(/^data:([A-Za-z-+/]+);base64,(.+)$/);
-        if (!matches) throw new Error('Invalid base64');
-        const buffer = Buffer.from(matches[2], 'base64');
+        const { mimeType, buffer } = parseBase64Payload(base64Data);
         const finalFileName = `${Date.now()}_${cleanName(fileName)}`;
-        const finalFilePath = path.join(absoluteDirPath, finalFileName);
+        const objectKey = `${relativePath.replace(/\\/g, '/')}/${finalFileName}`;
 
+        if (isUploadsObjectStorageEnabled()) {
+            await uploadUploadBuffer({
+                key: objectKey,
+                body: buffer,
+                contentType: mimeType
+            });
+            return resolveUploadUrl(objectKey);
+        }
+
+        await ensureDir(absoluteDirPath);
+        const finalFilePath = path.join(absoluteDirPath, finalFileName);
         await fs.promises.writeFile(finalFilePath, buffer);
         return `/uploads/${relativePath.replace(/\\/g, '/')}/${finalFileName}`;
     } catch (error) {

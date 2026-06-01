@@ -18,7 +18,24 @@ const log = (msg) => {
     console.log(entry);
 };
 
+const logEvent = (event, data = {}) => {
+    const payload = {
+        ts: new Date().toISOString(),
+        event,
+        ...data,
+    };
+    const line = `${JSON.stringify(payload)}\n`;
+
+    try {
+        fs.appendFileSync(LOG_FILE, line);
+    } catch (e) {
+        // Silently fail if log cannot be written (usually permission issues)
+    }
+    console.log(line);
+};
+
 module.exports = {
     log,
+    logEvent,
     LOG_FILE
 };

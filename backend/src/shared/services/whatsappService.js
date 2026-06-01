@@ -1,11 +1,31 @@
-const { Client, LocalAuth } = require('whatsapp-web.js');
-const qrcode = require('qrcode');
-
 let whatsappClient = null;
 let latestQrCodeData = null; // Base64 string of the QR code
 let isClientReady = false;
 
+let Client = null;
+let LocalAuth = null;
+let qrcode = null;
+
+const loadWhatsAppDependencies = () => {
+    if (Client && LocalAuth && qrcode) return true;
+
+    try {
+        const wa = require('whatsapp-web.js');
+        Client = wa.Client;
+        LocalAuth = wa.LocalAuth;
+        qrcode = require('qrcode');
+        return true;
+    } catch (err) {
+        console.warn('[WhatsApp Service] Heavy dependencies are unavailable. Service stays disabled:', err.message);
+        return false;
+    }
+};
+
 const initWhatsApp = () => {
+    if (!loadWhatsAppDependencies()) {
+        return;
+    }
+
     whatsappClient = new Client({
         authStrategy: new LocalAuth({ dataPath: './.wwebjs_auth' }),
         puppeteer: {

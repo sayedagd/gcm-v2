@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="GCM v2 full enhancement and migration plan.">
+  <title>GCM v2 Enhancement Plan</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="page-shell section-page">
+    <header class="section-hero">
+      <div>
+        <p class="eyebrow">Program Plan</p>
+        <h1>GCM v2 enhancement and migration plan</h1>
+        <p class="lead">This page is the full archived plan that guided architecture hardening, migration, governance, testing, and production cutover.</p>
+      </div>
+      <nav class="subnav" aria-label="Section navigation">
+        <a href="index.html">Home</a>
+        <a href="overview.html">Overview</a>
+        <a href="frontend.html">Frontend</a>
+        <a href="backend.html">Backend</a>
+        <a href="runbooks.html">Runbooks</a>
+        <a href="docs.html">Docs archive</a>
+        <a href="milestones.html">Milestones</a>
+        <a href="print.html">Print export</a>
+      </nav>
+    </header>
+
+    <main class="content-grid single-column">
+      <section class="card wide">
+        <div class="section-head">
+          <p class="eyebrow">Completion State</p>
+          <h2>Program completed through Phase 10</h2>
+        </div>
+        <ul class="list">
+          <li>All implementation phases from critical security fixes through cutover stabilization are complete.</li>
+          <li>Open items remain in planning hygiene only: branch strategy ADR formalization from Phase 0.</li>
+          <li>Milestone evidence is preserved in <a href="milestones.html">milestones.html</a>.</li>
+        </ul>
+      </section>
+
+      <section class="card wide">
+        <div class="section-head">
+          <p class="eyebrow">Force Required Procedural</p>
+          <h2>Execution rules used during implementation</h2>
+        </div>
+        <ol class="ordered">
+          <li>Follow plan order strictly; do not defer or skip tasks.</li>
+          <li>Execute one task at a time and mark task status as in progress before coding.</li>
+          <li>After each task completion, run validation: typecheck, lint, touched-area tests, and build-check where needed.</li>
+          <li>If validation fails, fix immediately before moving to next task.</li>
+          <li>Only after clean validation, update task status to completed.</li>
+          <li>Start next task automatically without asking user.</li>
+          <li>Keep user replies minimal during execution.</li>
+          <li>Never use static or hardcoded app data for business entities; all app data must be DB-driven.</li>
+          <li>Keep migrations, schema, and API contracts aligned at every task.</li>
+          <li>Do not close a phase until all success criteria pass.</li>
+        </ol>
+      </section>
+
+      <section class="card wide">
+        <div class="section-head">
+          <p class="eyebrow">Goal</p>
+          <h2>Program objectives</h2>
+        </div>
+        <ul class="list">
+          <li>Fix all security, contract, and runtime gaps from architecture review.</li>
+          <li>Enforce strict frontend/backend decoupling.</li>
+          <li>Migrate frontend from Vite SPA to Next.js 16 App Router under src/app.</li>
+          <li>Keep split deployment model (frontend project and backend project) on Vercel.</li>
+        </ul>
+      </section>
+
+      <section class="card wide">
+        <div class="section-head">
+          <p class="eyebrow">Status Labels</p>
+          <h2>Tracking legend</h2>
+        </div>
+        <ul class="list">
+          <li>not started</li>
+          <li>in progress</li>
+          <li>completed</li>
+        </ul>
+      </section>
+
+      <section class="card wide">
+        <div class="section-head">
+          <p class="eyebrow">Tracking Rules</p>
+          <h2>Plan governance</h2>
+        </div>
+        <ul class="list">
+          <li>Update each task status label as work progresses.</li>
+          <li>Keep every task tied to a user story and measurable acceptance criteria.</li>
+          <li>Do not start downstream tasks until blocking dependencies are completed.</li>
+        </ul>
+      </section>
+
+      <section class="card wide">
+        <div class="section-head">
+          <p class="eyebrow">Phase 0</p>
+          <h2>Program setup and control</h2>
+        </div>
+        <ul class="list">
+          <li><strong>P0.1 Establish migration branch strategy [not started]</strong>: create long-lived migration branch, define feature branch naming, and set merge/rollback checklist.</li>
+          <li><strong>P0.2 Define architecture decision records [not started]</strong>: ADRs for split deploy model, API-only backend, Next.js migration, storage model, and auth model.</li>
+          <li><strong>P0.3 Baseline architecture audit [completed]</strong>: repository-wide review completed and findings mapped into this plan.</li>
+        </ul>
+      </section>
+
+      <section class="card wide">
+        <div class="section-head">
+          <p class="eyebrow">Phase 1</p>
+          <h2>Critical security and contract fixes</h2>
+        </div>
+        <ul class="list">
+          <li><strong>P1.1 Remove frontend secret exposure [completed]</strong>: removed injected API key definitions from frontend build config and verified no secret leakage in assets.</li>
+          <li><strong>P1.2 Eliminate client-controlled validation bypass [completed]</strong>: removed x-skip-validation behavior from public API paths.</li>
+          <li><strong>P1.3 Fix backup endpoint contract drift [completed]</strong>: aligned frontend backup endpoints with backend route mounts and added contract checks.</li>
+          <li><strong>P1.4 Harden CORS preview policy [completed]</strong>: replaced wildcard preview suffix logic with explicit allowlist.</li>
+          <li><strong>P1.5 Improve SSE auth transport [completed]</strong>: removed long-lived query-token model and applied safer auth transport.</li>
+        </ul>
+      </section>
+
+      <section class="card wide">
+        <div class="section-head">
+          <p class="eyebrow">Phase 2</p>
+          <h2>Strict decoupling and API governance</h2>
+        </div>
+        <ul class="list">
+          <li><strong>P2.1 Introduce versioned API namespace [completed]</strong>: public contracts standardized under versioned strategy.</li>
+          <li><strong>P2.2 Publish OpenAPI spec [completed]</strong>: core modules documented with request/response and error schemas.</li>
+          <li><strong>P2.3 Generate typed API client [completed]</strong>: code generation workflow added and manual endpoint drift reduced.</li>
+          <li><strong>P2.4 Unify validation source of truth [completed]</strong>: backend retained as authoritative validation layer.</li>
+          <li><strong>P2.5 Standardize API error contract [completed]</strong>: canonical envelope enforced across controllers.</li>
+        </ul>
+      </section>
+
+      <section class="card wide">
+        <div class="section-head">
+          <p class="eyebrow">Phase 3</p>
+          <h2>Backend runtime refactor for Vercel reliability</h2>
+        </div>
+        <ul class="list">
+          <li><strong>P3.1 Separate startup side effects [completed]</strong>: heavy startup work moved out of hot request bootstrap paths.</li>
+          <li><strong>P3.2 Decouple heavy capabilities [completed]</strong>: Puppeteer/WhatsApp-heavy paths isolated from core CRUD/auth runtime.</li>
+          <li><strong>P3.3 Replace local backup storage [completed]</strong>: backups moved to durable object storage with DB metadata and signed access.</li>
+          <li><strong>P3.4 Replace local uploads model [completed]</strong>: upload flows moved to object storage for serverless-safe persistence.</li>
+          <li><strong>P3.5 Replace in-process cron [completed]</strong>: managed scheduler model with idempotency and lock protection implemented.</li>
+        </ul>
+      </section>
+
+      <section class="card wide">
+        <div class="section-head">
+          <p class="eyebrow">Phase 4</p>
+          <h2>Frontend migration to Next.js 16</h2>
+        </div>
+        <ul class="list">
+          <li><strong>P4.1 Scaffold Next.js 16 workspace [completed]</strong>: App Router baseline established.</li>
+          <li><strong>P4.2 Define route migration map [completed]</strong>: legacy-to-app route matrix completed.</li>
+          <li><strong>P4.3 Build app-level layout and providers [completed]</strong>.</li>
+          <li><strong>P4.4 Migrate auth/session boundary [completed]</strong>.</li>
+          <li><strong>P4.5 Migrate pages domain-by-domain [completed]</strong>.</li>
+          <li><strong>P4.6 Move data access to server-aware patterns [completed]</strong>.</li>
+          <li><strong>P4.7 Introduce React 19 action patterns [completed]</strong>.</li>
+          <li><strong>P4.8 Optimize suspense and code-splitting [completed]</strong>.</li>
+          <li><strong>P4.9 Decommission legacy Vite app [completed]</strong>: frontend runtime became Next.js-only.</li>
+        </ul>
+      </section>
+
+      <section class="card wide">
+        <div class="section-head">
+          <p class="eyebrow">Phase 5</p>
+          <h2>State, data, and code organization</h2>
+        </div>
+        <ul class="list">
+          <li><strong>P5.1 Decompose monolithic app and store modules [completed]</strong>.</li>
+          <li><strong>P5.2 Introduce feature-folder conventions [completed]</strong>: ui/hooks/api/model/tests structure standardized.</li>
+          <li><strong>P5.3 Normalize endpoint constants and API calls [completed]</strong>.</li>
+        </ul>
+      </section>
+
+      <section class="card wide">
+        <div class="section-head">
+          <p class="eyebrow">Phase 6</p>
+          <h2>Security hardening</h2>
+        </div>
+        <ul class="list">
+          <li><strong>P6.1 Validation and sanitization coverage audit [completed]</strong>.</li>
+          <li><strong>P6.2 Auth token lifecycle and storage policy [completed]</strong>.</li>
+          <li><strong>P6.3 Endpoint-tier rate limits [completed]</strong>.</li>
+        </ul>
+      </section>
+
+      <section class="card wide">
+        <div class="section-head">
+          <p class="eyebrow">Phase 7</p>
+          <h2>Performance and cost optimization</h2>
+        </div>
+        <ul class="list">
+          <li><strong>P7.1 Route rendering/cache matrix [completed]</strong>.</li>
+          <li><strong>P7.2 Payload and bundle budget optimization [completed]</strong>.</li>
+          <li><strong>P7.3 Image/media delivery optimization [completed]</strong>.</li>
+        </ul>
+      </section>
+
+      <section class="card wide">
+        <div class="section-head">
+          <p class="eyebrow">Phase 8</p>
+          <h2>Test and quality gates</h2>
+        </div>
+        <ul class="list">
+          <li><strong>P8.1 Frontend unit/integration expansion [completed]</strong>.</li>
+          <li><strong>P8.2 Backend contract/integration tests [completed]</strong>.</li>
+          <li><strong>P8.3 Split-deployment smoke tests [completed]</strong>.</li>
+        </ul>
+      </section>
+
+      <section class="card wide">
+        <div class="section-head">
+          <p class="eyebrow">Phase 9</p>
+          <h2>Observability and operations</h2>
+        </div>
+        <ul class="list">
+          <li><strong>P9.1 Structured logging and correlation IDs [completed]</strong>.</li>
+          <li><strong>P9.2 Metrics and alerts [completed]</strong>: latency, error rate, auth failures, backup failures, and SSE disconnects tracked with thresholds.</li>
+          <li><strong>P9.3 Incident runbooks [completed]</strong>: auth outage, migration failure, restore failure, CORS failure, and SSE failure documented.</li>
+        </ul>
+      </section>
+
+      <section class="card wide">
+        <div class="section-head">
+          <p class="eyebrow">Phase 10</p>
+          <h2>Cutover and stabilization</h2>
+        </div>
+        <ul class="list">
+          <li><strong>P10.1 Parallel run and parity validation [completed]</strong>: parity and smoke gates green.</li>
+          <li><strong>P10.2 Production cutover [completed]</strong>: custom domains active at gcm.twision.agency and gcm-back.twision.agency.</li>
+          <li><strong>P10.3 Post-cutover hardening sprint [completed]</strong>: no critical defects remained; medium-priority refinements tracked in milestones.</li>
+        </ul>
+      </section>
+
+      <section class="card wide">
+        <div class="section-head">
+          <p class="eyebrow">Timeline</p>
+          <h2>Suggested solo execution cadence</h2>
+        </div>
+        <ul class="list">
+          <li>Sprint 1 (Week 1-2): Phase 1 + start Phase 2.</li>
+          <li>Sprint 2 (Week 3-4): complete Phase 2 + Phase 3 foundations.</li>
+          <li>Sprint 3 (Week 5-7): Phase 4 migration core.</li>
+          <li>Sprint 4 (Week 8-9): finish Phase 4 + Phase 5.</li>
+          <li>Sprint 5 (Week 10): Phase 6 + Phase 7 critical items.</li>
+          <li>Sprint 6 (Week 11): Phase 8 + Phase 9.</li>
+          <li>Sprint 7 (Week 12): Phase 10 cutover and stabilization.</li>
+        </ul>
+      </section>
+
+      <section class="card wide">
+        <div class="section-head">
+          <p class="eyebrow">Definition Of Done</p>
+          <h2>Program-level completion criteria</h2>
+        </div>
+        <ul class="list">
+          <li>Strict decoupling enforced: frontend can be replaced without backend contract changes.</li>
+          <li>Backend API contract versioned, documented, and test-enforced.</li>
+          <li>Frontend runs on Next.js 16 App Router under src/app with feature parity.</li>
+          <li>Serverless-hostile local persistence and in-process scheduling removed from production path.</li>
+          <li>Security-critical gaps closed: secrets, auth transport, validation bypass, and CORS hardening.</li>
+          <li>Observability, test gates, and runbooks in place for reliable operations.</li>
+        </ul>
+      </section>
+    </main>
+  </div>
+</body>
+</html>
