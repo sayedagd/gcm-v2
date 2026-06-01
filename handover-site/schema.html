@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="GCM v2 database schema documentation.">
+  <title>GCM v2 Schema</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="page-shell section-page">
+    <header class="section-hero">
+      <div>
+        <p class="eyebrow">Database Schema</p>
+        <h1>Schema integration and contract notes</h1>
+        <p class="lead">The database contract was normalized around a single schema source of truth. The key tables below are the ones that matter most for product integrity and deployment confidence.</p>
+      </div>
+      <nav class="subnav" aria-label="Section navigation">
+        <a href="index.html">Home</a>
+        <a href="overview.html">Overview</a>
+        <a href="frontend.html">Frontend</a>
+        <a href="backend.html">Backend</a>
+        <a href="api.html">API</a>
+        <a href="print.html">Print export</a>
+      </nav>
+    </header>
+    <main class="content-grid single-column">
+      <section class="card wide">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Area</th><th>Key tables</th><th>Notes</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Core CRM</td><td>users, companies, projects, services</td><td>Project-service mapping drives trip eligibility and client isolation.</td></tr>
+              <tr><td>Operations</td><td>trips, notifications, activity_logs</td><td>Trips are the operational center and must remain lifecycle-safe.</td></tr>
+              <tr><td>Logistics</td><td>vehicles, drivers, suppliers, facilities, inventory tables</td><td>Role and availability checks are applied at workflow level and in backend policy.</td></tr>
+              <tr><td>System</td><td>saas_config, permission_requests, contact_submissions</td><td>Configuration is database-driven and supports bilingual content and branding.</td></tr>
+              <tr><td>Finance / AI</td><td>project_supplier_rates, ai_sessions, ai_messages</td><td>Reporting and AI history are stored for audit and analytics use cases.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+      <section class="card wide">
+        <p class="note">Schema contract alignment was normalized by removing duplicate DDL, aligning contact-person naming, and fixing equipment inquiry and contact submission structures.</p>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

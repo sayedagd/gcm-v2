@@ -1,0 +1,53 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Deployment and Backups
+GCM_DEPLOY.zip
+deploy_ready/
+backend/backups/
+prev adv dep/GCM_DEPLOY-low.zip
+.wwebjs_auth/
+*.zip
+*.rar
+*.tmp
+temp_*
+
+# Environment files
+.env
+.env.local
+.env.*.local
+.env.development
+.env.test
+.env.production
+
+# Sensitive data dumps
+gcm_production_dump.sql
+*.dump
+
+# Debug/temp scripts (root-level only)
+/fix*.cjs
+/old_export.ts
+/load_test_trips.js
+/revert.cjs

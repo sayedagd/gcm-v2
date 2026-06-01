@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="GCM v2 print-friendly handover export.">
+  <title>GCM v2 Print Export</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="print-export">
+  <div class="page-shell print-shell">
+    <header class="print-header">
+      <p class="eyebrow">Print Export</p>
+      <h1>GCM v2 handover documentation</h1>
+      <p>Use this page for a condensed offline handover packet. It contains the same operational facts as the portal pages but is styled for printing and PDF export.</p>
+    </header>
+
+    <section class="print-section">
+      <h2>Overview</h2>
+      <p>GCM v2 is an environmental operations platform for companies that collect projects, recyclables, and waste. The core system manages companies, projects, services, trips, drivers, vehicles, suppliers, facilities, inventory, reports, AI sessions, and public landing/store flows.</p>
+    </section>
+
+    <section class="print-section">
+      <h2>Frontend</h2>
+      <p>The frontend is a standalone React + Vite application. It uses React Router, Zustand, Mantine, custom utility components, and Tailwind-based styling. Build it separately and point it to the backend API with <code>VITE_API_BASE_URL</code>.</p>
+    </section>
+
+    <section class="print-section">
+      <h2>Backend</h2>
+      <p>The backend is an API-only Express service. It owns auth, route modules, migrations, backups, event stream handling, WhatsApp, OCR, and AI services. It does not serve the SPA shell.</p>
+    </section>
+
+    <section class="print-section">
+      <h2>Schema</h2>
+      <p>The database contract centers on users, companies, projects, services, trips, logistics tables, system config, and reporting/AI history. Schema alignment was normalized by removing duplicate DDL and aligning runtime contract names.</p>
+    </section>
+
+    <section class="print-section">
+      <h2>API</h2>
+      <p>Core route groups include auth, trips, projects, companies, services, vehicles, drivers, facilities, suppliers, and system routes such as schema-health, force-migrate, and WhatsApp QR.</p>
+    </section>
+
+    <section class="print-section">
+      <h2>User flows</h2>
+      <p>Admin, operations staff, client, subcontractor, and driver journeys are separated by role so each persona sees an appropriate slice of the platform.</p>
+    </section>
+
+    <section class="print-section">
+      <h2>Runbooks</h2>
+      <p>Backup, restore, release, incident response, and rollback steps are documented for the split deployment model. Use schema health first when verifying operational state.</p>
+    </section>
+
+    <section class="print-section">
+      <h2>Environment</h2>
+      <pre>DATABASE_URL=postgresql://...
+JWT_SECRET=...
+PORT=8080
+CORS_ORIGIN=https://your-frontend-domain
+
+VITE_API_BASE_URL=https://your-backend-domain
+GROQ_API_KEY=...
+CLIMATIQ_API_KEY=...</pre>
+    </section>
+  </div>
+</body>
+</html>
