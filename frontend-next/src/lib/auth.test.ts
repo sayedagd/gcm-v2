@@ -12,14 +12,16 @@ describe("auth policy helpers", () => {
   test("getRoleHome maps major role families", () => {
     expect(getRoleHome("CLIENT")).toBe("/client/dashboard");
     expect(getRoleHome("SUBCONTRACTOR")).toBe("/subcontractor/dashboard");
-    expect(getRoleHome("REPORTS_MANAGER")).toBe("/rd");
-    expect(getRoleHome("ADMIN")).toBe("/db");
+    expect(getRoleHome("DRIVER")).toBe("/driver");
+    expect(getRoleHome("ACCOUNTANT")).toBe("/accountant-portal");
+    expect(getRoleHome("REPORTS_MANAGER")).toBe("/reports-dashboard");
+    expect(getRoleHome("ADMIN")).toBe("/dashboard");
   });
 
   test("getRequiredRoles resolves prefix policies", () => {
     expect(getRequiredRoles("/client/dashboard")).toContain("CLIENT");
     expect(getRequiredRoles("/driver/map")).toEqual(["DRIVER"]);
-    expect(getRequiredRoles("/sys")).toEqual(["ADMIN"]);
-    expect(getRequiredRoles("/landing")).toBeNull();
+    expect(getRequiredRoles("/system-monitor")).toEqual(["ADMIN"]);
+    expect(getRequiredRoles("/login")).toBeNull();
   });
 });

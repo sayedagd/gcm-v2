@@ -20,29 +20,56 @@ vi.mock("next/navigation", () => ({
 }));
 
 describe("loginAction", () => {
+  const fetchMock = vi.fn();
+
   beforeEach(() => {
     cookieSetMock.mockReset();
     redirectMock.mockClear();
+    fetchMock.mockReset();
+    vi.stubGlobal("fetch", fetchMock);
   });
 
-  test("returns error for invalid role", async () => {
+  test("returns error for invalid email", async () => {
     const formData = new FormData();
-    formData.set("role", "NOT_A_ROLE");
+    formData.set("email", "invalid-email");
+    formData.set("password", "123");
 
     const result = await loginAction({ error: null }, formData);
 
-    expect(result).toEqual({ error: "Invalid role." });
+    expect(result).toEqual({ error: "Please enter a valid email address." });
+    expect(fetchMock).not.toHaveBeenCalled();
     expect(cookieSetMock).not.toHaveBeenCalled();
     expect(redirectMock).not.toHaveBeenCalled();
   });
 
-  test("sets auth cookies and redirects to next path", async () => {
+  test("returns error on backend 401", async () => {
     const formData = new FormData();
-    formData.set("role", "ADMIN");
-    formData.set("next", "/db");
+    formData.set("email", "admin@gcm.com");
+    formData.set("password", "wrong");
+
+    fetchMock.mockResolvedValue({ ok: false, status: 401 });
+
+    const result = await loginAction({ error: null }, formData);
+
+    expect(result).toEqual({ error: "Invalid email or password." });
+    expect(cookieSetMock).not.toHaveBeenCalled();
+    expect(redirectMock).not.toHaveBeenCalled();
+  });
+
+  test("sets auth cookies and redirects to next path after successful backend login", async () => {
+    const formData = new FormData();
+    formData.set("email", "admin@gcm.com");
+    formData.set("password", "123");
+    formData.set("next", "/dashboard");
+
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: async () => ({ role: "ADMIN", tokenExpiresInSeconds: 3600 }),
+    });
 
     await expect(loginAction({ error: null }, formData)).rejects.toThrow("REDIRECT:/db");
 
+    expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(cookieSetMock).toHaveBeenCalledWith(AUTH_COOKIE, "true", expect.objectContaining({ path: "/" }));
     expect(cookieSetMock).toHaveBeenCalledWith(ROLE_COOKIE, "ADMIN", expect.objectContaining({ path: "/" }));
     expect(cookieSetMock).toHaveBeenCalledWith(
@@ -50,6 +77,6 @@ describe("loginAction", () => {
       expect.any(String),
       expect.objectContaining({ path: "/" }),
     );
-    expect(redirectMock).toHaveBeenCalledWith("/db");
+    expect(redirectMock).toHaveBeenCalledWith("/dashboard");
   });
 });

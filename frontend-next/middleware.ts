@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { AUTH_COOKIE, ROLE_COOKIE, SESSION_EXP_COOKIE } from "@/features/auth/model/sessionCookies";
+import {
+  AUTH_COOKIE,
+  LEGACY_BOOTSTRAP_COOKIE,
+  ROLE_COOKIE,
+  SESSION_EXP_COOKIE,
+} from "@/features/auth/model/sessionCookies";
 import { API_LEGACY_PREFIX } from "@/features/core/model/endpoints";
 import { getRequiredRoles, getRoleHome, isGcmRole } from "@/lib/auth";
 
@@ -12,7 +17,7 @@ const ENABLE_CANONICAL_HOST_REDIRECT =
 
 export function middleware(request: NextRequest) {
   const forwardedHost = request.headers.get("x-forwarded-host") || request.headers.get("host") || "";
-  const requestHost = forwardedHost.split(":")[0].toLowerCase();
+  const requestHost = (forwardedHost.split(":")[0] || "").toLowerCase();
 
   if (
     ENABLE_CANONICAL_HOST_REDIRECT &&
@@ -27,6 +32,17 @@ export function middleware(request: NextRequest) {
   }
 
   const { pathname } = request.nextUrl;
+
+  if (pathname === "/logout") {
+    const loginUrl = new URL("/login", request.url);
+    loginUrl.searchParams.set("reason", "signed_out");
+    const response = NextResponse.redirect(loginUrl);
+    response.cookies.delete(AUTH_COOKIE);
+    response.cookies.delete(ROLE_COOKIE);
+    response.cookies.delete(SESSION_EXP_COOKIE);
+    response.cookies.delete(LEGACY_BOOTSTRAP_COOKIE);
+    return response;
+  }
 
   if (pathname.startsWith("/_next") || pathname.startsWith(API_LEGACY_PREFIX) || pathname === "/favicon.ico") {
     return NextResponse.next();

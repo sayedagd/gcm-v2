@@ -1,0 +1,286 @@
+@import '@mantine/core/styles.css';
+@import '@mantine/dates/styles.css';
+@import "leaflet/dist/leaflet.css";
+
+@theme {
+  /* Mapped Primary Colors (Runtime Dynamic) */
+  --color-primary-50: var(--color-primary-50);
+  --color-primary-100: var(--color-primary-100);
+  --color-primary-200: var(--color-primary-200);
+  --color-primary-300: var(--color-primary-300);
+  --color-primary-400: var(--color-primary-400);
+  --color-primary-500: var(--color-primary-500);
+  --color-primary-600: var(--color-primary-600);
+  --color-primary-700: var(--color-primary-700);
+  --color-primary-800: var(--color-primary-800);
+  --color-primary-900: var(--color-primary-900);
+  --color-primary-950: var(--color-primary-950);
+  --color-primary: var(--primary-color);
+
+  /* Semantic Theme Colors */
+  --color-surface: var(--surface);
+  --color-surface-subtle: var(--surface-subtle);
+  --color-surface-elevated: var(--surface-elevated);
+  --color-border: var(--border-color);
+  --color-border-subtle: var(--border-subtle);
+  --color-text-main: var(--text-main);
+  --color-text-subtle: var(--text-subtle);
+  --color-text-placeholder: var(--text-placeholder);
+  --color-danger: var(--danger-color);
+  --color-danger-muted: var(--danger-muted);
+  --color-danger-strong: var(--danger-strong);
+  --color-success: var(--success-color);
+  --color-success-muted: var(--success-muted);
+  --color-success-strong: var(--success-strong);
+  --color-amber: var(--amber-color);
+  --color-amber-muted: var(--amber-muted);
+  --color-amber-strong: var(--amber-strong);
+
+  /* Font Configuration */
+  --font-sans: 'Cairo', sans-serif;
+  --font-display: 'Cairo', sans-serif;
+}
+
+:root {
+  --font-cairo: 'Cairo', sans-serif;
+  --mantine-font-family: var(--font-cairo);
+  --primary-color: #10b981;
+
+  /* Primary Color Scale */
+  --color-primary-50: color-mix(in srgb, var(--primary-color), white 90%);
+  --color-primary-100: color-mix(in srgb, var(--primary-color), white 80%);
+  --color-primary-200: color-mix(in srgb, var(--primary-color), white 60%);
+  --color-primary-300: color-mix(in srgb, var(--primary-color), white 40%);
+  --color-primary-400: color-mix(in srgb, var(--primary-color), white 20%);
+  --color-primary-500: var(--primary-color);
+  --color-primary-600: color-mix(in srgb, var(--primary-color), black 10%);
+  --color-primary-700: color-mix(in srgb, var(--primary-color), black 20%);
+  --color-primary-800: color-mix(in srgb, var(--primary-color), black 30%);
+  --color-primary-900: color-mix(in srgb, var(--primary-color), black 40%);
+  --color-primary-950: color-mix(in srgb, var(--primary-color), black 50%);
+  --color-primary: var(--primary-color);
+
+  /* Light Theme Tokens */
+  --surface: #ffffff;
+  --surface-subtle: #f8fafc; /* slate-50 */
+  --surface-elevated: #f1f5f9; /* slate-100 */
+  --border-color: #e2e8f0; /* slate-200 */
+  --border-subtle: #f1f5f9; /* slate-100 */
+  --text-main: #0f172a; /* slate-900 */
+  --text-subtle: #64748b; /* slate-500 */
+  --text-placeholder: #cbd5e1; /* slate-300 */
+  --danger-color: #e11d48; /* rose-600 */
+  --danger-muted: #fff1f2; /* rose-50 */
+  --danger-strong: #be123c; /* rose-700 */
+  --success-color: #059669; /* emerald-600 */
+  --success-muted: #f0fdf4; /* emerald-50 */
+  --success-strong: #047857; /* emerald-700 */
+  --amber-color: #d97706; /* amber-600 */
+  --amber-muted: #fffbeb; /* amber-50 */
+  --amber-strong: #b45309; /* amber-700 */
+}
+
+.dark {
+  /* Dark Theme Tokens */
+  --surface: #0f172a; /* slate-900 */
+  --surface-subtle: #020617; /* slate-950 */
+  --surface-elevated: #1e293b; /* slate-800 */
+  --border-color: #334155; /* slate-700 */
+  --border-subtle: #1e293b; /* slate-800 */
+  --text-main: #f8fafc; /* slate-50 */
+  --text-subtle: #94a3b8; /* slate-400 */
+  --text-placeholder: #475569; /* slate-600 */
+  --danger-color: #fb7185; /* rose-400 */
+  --danger-muted: rgba(159, 18, 57, 0.2); /* rose-900/20 */
+  --danger-strong: #fda4af; /* rose-300 */
+  --success-color: #34d399; /* emerald-400 */
+  --success-muted: rgba(6, 78, 59, 0.2); /* emerald-900/20 */
+  --success-strong: #6ee7b7; /* emerald-300 */
+  --amber-color: #fbbf24; /* amber-400 */
+  --amber-muted: rgba(120, 53, 15, 0.2); /* amber-900/20 */
+  --amber-strong: #fcd34d; /* amber-300 */
+}
+
+@layer base {
+  html {
+    font-family: 'Cairo', sans-serif;
+  }
+  
+  body {
+    font-family: 'Cairo', sans-serif;
+    background-color: var(--color-surface-subtle);
+    color: var(--color-text-main);
+    transition: color 0.2s, background-color 0.2s;
+  }
+}
+
+/* === Global Reusable Classes === */
+.btn-main {
+  background-color: var(--primary-color, #3b82f6) !important;
+  color: white !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  border-radius: 1rem;
+  font-weight: 700;
+  font-size: 0.875rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  transition-property: all;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 300ms;
+}
+
+.btn-main:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+.btn-main:active {
+  transform: scale(0.98);
+}
+
+.btn-danger {
+  background-color: var(--danger-color, #f43f5e) !important;
+  color: white !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  border-radius: 1rem;
+  font-weight: 700;
+  font-size: 0.875rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-danger:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+.btn-danger:active {
+  transform: scale(0.98);
+}
+
+.btn-pagination {
+  background-color: var(--surface, #ffffff) !important;
+  color: var(--text-main, #0f172a) !important;
+  border: 1px solid var(--border-color, #e2e8f0) !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.75rem;
+  font-weight: 700;
+  transition: all 0.2s ease;
+}
+
+.btn-pagination:hover:not(:disabled) {
+  border-color: var(--primary-color, #3b82f6) !important;
+  color: var(--primary-color, #3b82f6) !important;
+  background-color: var(--surface-subtle) !important;
+}
+
+.btn-pagination:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-pagination.active {
+  background-color: var(--primary-color, #3b82f6) !important;
+  color: #ffffff !important;
+  border-color: var(--primary-color, #3b82f6) !important;
+  opacity: 1 !important;
+}
+
+/* Force fix for primary color visibility */
+.bg-primary-50 { background-color: var(--color-primary-50) !important; }
+.bg-primary-100 { background-color: var(--color-primary-100) !important; }
+.bg-primary-500 { background-color: var(--color-primary-500) !important; }
+.bg-primary-600 { background-color: var(--color-primary-600) !important; }
+.bg-primary-700 { background-color: var(--color-primary-700) !important; }
+
+.text-primary-500 { color: var(--color-primary-500) !important; }
+.text-primary-600 { color: var(--color-primary-600) !important; }
+.border-primary-500 { border-color: var(--color-primary-500) !important; }
+.border-primary-600 { border-color: var(--color-primary-600) !important; }
+
+/* === Premium UI Classes === */
+.glass-panel {
+  background: color-mix(in srgb, var(--surface) 65%, transparent) !important;
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid color-mix(in srgb, var(--border-color) 40%, transparent) !important;
+  box-shadow: 0 4px 24px -1px color-mix(in srgb, var(--primary-color) 5%, rgba(0,0,0,0.05));
+}
+
+.glass {
+  background: color-mix(in srgb, var(--surface) 70%, transparent) !important;
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid color-mix(in srgb, var(--border-color) 50%, transparent) !important;
+}
+
+.premium-card {
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.04);
+}
+.premium-card:hover {
+  transform: translateY(-4px) scale(1.005);
+  box-shadow: 0 20px 40px -5px rgba(0, 0, 0, 0.08), 0 10px 15px -5px color-mix(in srgb, var(--primary-color) 10%, transparent);
+  border-color: color-mix(in srgb, var(--primary-color) 30%, transparent);
+}
+
+.input-premium {
+  background-color: var(--surface-subtle);
+  border: 1.5px solid transparent;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
+}
+.input-premium:focus-within, .input-premium:focus {
+  background-color: var(--surface);
+  border-color: var(--color-primary-400);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--primary-color) 10%, transparent), inset 0 2px 4px rgba(0,0,0,0.01);
+  outline: none;
+}
+
+/* Force contrast on filled Mantine buttons to prevent white-on-white issues */
+.mantine-Button-root[data-variant="filled"] {
+  color: #ffffff !important;
+}
+
+/* Subtle pattern background for dark elements */
+.sadu-bg {
+  background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 0l30 30-30 30L0 30z' fill='%23ffffff' fill-opacity='0.05' fill-rule='evenodd'/%3E%3C/svg%3E");
+}
+
+/* === Responsive Utilities === */
+/* Hide scrollbar while keeping scroll functionality */
+.no-scrollbar {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;     /* Firefox */
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+/* Safe area inset for iOS notch/home indicator */
+.safe-area-inset-top {
+  padding-top: max(0.75rem, env(safe-area-inset-top));
+}
+.safe-area-inset-bottom {
+  padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+}
+
+/* Improved touch target sizing for mobile */
+@media (max-width: 768px) {
+  button, a, [role="button"] {
+    min-height: 36px;
+  }
+}

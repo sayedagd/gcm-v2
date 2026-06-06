@@ -1,4 +1,8 @@
 @import "tailwindcss";
+@import "@mantine/core/styles.css";
+@import "@mantine/dates/styles.css";
+@import "leaflet/dist/leaflet.css";
+@import "./legacy.css";
 
 :root {
   --background: #f5f7fb;

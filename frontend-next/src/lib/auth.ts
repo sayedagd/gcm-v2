@@ -29,14 +29,14 @@ export const ACCESS_POLICIES: Array<{ prefix: string; roles: readonly GcmRole[] 
   { prefix: "/client", roles: CLIENT_ROLES },
   { prefix: "/subcontractor", roles: ["SUBCONTRACTOR"] },
   { prefix: "/driver", roles: ["DRIVER"] },
-  { prefix: "/db", roles: INTERNAL_ROLES },
-  { prefix: "/rd", roles: ["ADMIN", "REPORTS_MANAGER"] },
-  { prefix: "/acc", roles: ["ADMIN", "ACCOUNTANT"] },
-  { prefix: "/st", roles: ADMIN_ONLY },
-  { prefix: "/sys", roles: ADMIN_ONLY },
-  { prefix: "/le", roles: ADMIN_ONLY },
+  { prefix: "/dashboard", roles: INTERNAL_ROLES },
+  { prefix: "/reports-dashboard", roles: ["ADMIN", "REPORTS_MANAGER"] },
+  { prefix: "/accountant-portal", roles: ["ADMIN", "ACCOUNTANT"] },
+  { prefix: "/settings", roles: ADMIN_ONLY },
+  { prefix: "/system-monitor", roles: ADMIN_ONLY },
+  { prefix: "/landing-settings", roles: ADMIN_ONLY },
   { prefix: "/ai-sessions", roles: ADMIN_ONLY },
-  { prefix: "/store-admin", roles: ADMIN_ONLY },
+  { prefix: "/equipment-admin", roles: ADMIN_ONLY },
 ];
 
 export function isGcmRole(value: string | undefined): value is GcmRole {
@@ -56,11 +56,19 @@ export function getRoleHome(role: GcmRole): string {
     return "/subcontractor/dashboard";
   }
 
-  if (role === "REPORTS_MANAGER") {
-    return "/rd";
+  if (role === "DRIVER") {
+    return "/driver";
   }
 
-  return "/db";
+  if (role === "ACCOUNTANT") {
+    return "/accountant-portal";
+  }
+
+  if (role === "REPORTS_MANAGER") {
+    return "/reports-dashboard";
+  }
+
+  return "/dashboard";
 }
 
 export function getRequiredRoles(pathname: string): readonly GcmRole[] | null {
