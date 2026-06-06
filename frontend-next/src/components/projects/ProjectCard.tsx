@@ -1,7 +1,8 @@
 import React from 'react';
+import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { Card, Button } from '@/components';
-import { Briefcase, Eye, Edit2, Trash2, ArrowRight } from 'lucide-react';
+import { Eye, Edit2, Trash2, ArrowRight } from 'lucide-react';
 import { Project, Company } from '@/types';
 import { handleImageError } from '@/utils/helpers';
 
@@ -38,9 +39,9 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
                         <div className="w-20 sm:w-28 shrink-0 mx-auto sm:mx-0">
                             <div className="aspect-square bg-primary-600 rounded-xl flex items-center justify-center text-white border-2 border-primary-500/20 shadow-xl shadow-primary-500/20 relative overflow-hidden group/logo cursor-pointer" onClick={onView}>
                                 {project.logo_url ? (
-                                    <img src={project.logo_url} className="w-full h-full object-cover group-hover/logo:scale-110 transition-transform duration-700 bg-white" onError={handleImageError} alt={project.project_name} />
+                                    <Image src={project.logo_url} className="w-full h-full object-cover group-hover/logo:scale-110 transition-transform duration-700 bg-white" onError={handleImageError} alt={project.project_name} width={112} height={112} unoptimized />
                                 ) : (
-                                    <img src="/logo-light.png" onError={handleImageError} className="w-full h-full object-contain bg-white group-hover/logo:scale-110 transition-transform duration-700" alt="GCM" />
+                                    <Image src="/logo-light.png" onError={handleImageError} className="w-full h-full object-contain bg-white group-hover/logo:scale-110 transition-transform duration-700" alt="GCM" width={112} height={112} />
                                 )}
                                 <div className="absolute inset-0 bg-white/20 flex items-center justify-center opacity-0 group-hover/logo:opacity-100 transition-opacity">
                                     <Eye size={20} className="text-white" />

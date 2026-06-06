@@ -26,7 +26,7 @@ const logSession = async (req, res) => {
         res.json({ status: 'success', session_id: id });
     } catch (e) {
         log(`[AI] Log session error: ${e.message}`);
-        res.status(500).json({ error: e.message });
+        res.status(500).json({ error: 'Internal server error' });
     }
 };
 
@@ -58,7 +58,7 @@ const getSessions = async (req, res) => {
         res.json({ data: result.rows, total, page: parseInt(page), limit: parseInt(limit), pages: Math.ceil(total / parseInt(limit)) });
     } catch (e) {
         log(`[AI] List sessions error: ${e.message}`);
-        res.status(500).json({ error: e.message });
+        res.status(500).json({ error: 'Internal server error' });
     }
 };
 
@@ -71,7 +71,7 @@ const getSessionDetails = async (req, res) => {
         res.json({ ...session.rows[0], messages: messages.rows });
     } catch (e) {
         log(`[AI] Session detail error: ${e.message}`);
-        res.status(500).json({ error: e.message });
+        res.status(500).json({ error: 'Internal server error' });
     }
 };
 
@@ -101,7 +101,7 @@ const getAnalytics = async (req, res) => {
         });
     } catch (e) {
         log(`[AI] Analytics error: ${e.message}`);
-        res.status(500).json({ error: e.message });
+        res.status(500).json({ error: 'Internal server error' });
     }
 };
 
@@ -121,7 +121,7 @@ const rateSession = async (req, res) => {
         res.json({ status: 'updated' });
     } catch (e) {
         log(`[AI] Rate session error: ${e.message}`);
-        res.status(500).json({ error: e.message });
+        res.status(500).json({ error: 'Internal server error' });
     }
 };
 
@@ -219,7 +219,7 @@ ${context ? JSON.stringify(context, null, 0) : 'لا توجد بيانات سي�
         res.json({ reply, usage: data.usage });
     } catch (e) {
         log(`[AI Chat] Error: ${e.message}`);
-        res.status(500).json({ error: e.message });
+        res.status(500).json({ error: 'Internal server error' });
     }
 };
 

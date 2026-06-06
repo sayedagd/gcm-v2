@@ -3,6 +3,11 @@
  */
 const { log } = require('../../../shared/utils/logger');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
+const bcrypt = require('bcryptjs');
+const Joi = require('joi');
+const { getJwtSecret } = require('../../../shared/config/auth');
+const { buildValidationError } = require('../../../shared/utils/validationErrorContract');
 
 let query = null;
 const getQuery = () => {
@@ -19,6 +24,35 @@ const getQuery = () => {
 };
 
 const COOKIE_NAME = process.env.AUTH_COOKIE_NAME || 'gcm_jwt';
+const CSRF_COOKIE_NAME = process.env.AUTH_CSRF_COOKIE_NAME || 'gcm_csrf';
+const BCRYPT_HASH_PATTERN = /^\$2[aby]\$\d{2}\$/;
+const loginPayloadSchema = Joi.object({
+    email: Joi.string().email({ tlds: false }).required(),
+    password: Joi.string().min(1).required(),
+}).unknown(false);
+
+const isBcryptHash = (value) => typeof value === 'string' && BCRYPT_HASH_PATTERN.test(value);
+
+const verifyPassword = async (providedPassword, storedPassword) => {
+    if (typeof providedPassword !== 'string' || typeof storedPassword !== 'string') {
+        return false;
+    }
+
+    if (isBcryptHash(storedPassword)) {
+        return bcrypt.compare(providedPassword, storedPassword);
+    }
+
+    if (process.env.ALLOW_LEGACY_PASSWORD_FALLBACK === 'false') {
+        return false;
+    }
+
+    return providedPassword === storedPassword;
+};
+
+const hashPassword = async (password) => {
+    const rounds = Number.parseInt(process.env.BCRYPT_SALT_ROUNDS || '10', 10);
+    return bcrypt.hash(password, rounds);
+};
 
 const buildCookieOptions = (maxAgeMs) => {
     const sameSiteRaw = (process.env.AUTH_COOKIE_SAMESITE || 'lax').toLowerCase();
@@ -34,8 +68,16 @@ const buildCookieOptions = (maxAgeMs) => {
     };
 };
 
+const buildCsrfCookieOptions = (maxAgeMs) => {
+    const baseOptions = buildCookieOptions(maxAgeMs);
+    return {
+        ...baseOptions,
+        httpOnly: false,
+    };
+};
+
 const issueAuthToken = ({ id, role, company_id, project_id, supplier_id }) => {
-    const jwtSecret = process.env.JWT_SECRET;
+    const jwtSecret = getJwtSecret();
     if (!jwtSecret) {
         throw new Error('JWT_SECRET is not configured');
     }
@@ -62,7 +104,17 @@ const issueAuthToken = ({ id, role, company_id, project_id, supplier_id }) => {
 };
 
 const login = async (req, res) => {
-    const { email, password } = req.body;
+    const { error, value } = loginPayloadSchema.validate(req.body || {});
+    if (error) {
+        return res.status(400).json(buildValidationError({
+            code: 'AUTH_VALIDATION_FAILED',
+            errorEn: 'Invalid login payload.',
+            errorAr: 'بيانات تسجيل الدخول غير صالحة.',
+            details: error.details.map((detail) => detail.message),
+        }));
+    }
+
+    const { email, password } = value;
     log(`[Auth/Login] Attempt: ${email}`);
     try {
         const dbQuery = getQuery();
@@ -74,10 +126,19 @@ const login = async (req, res) => {
         const { rows } = await dbQuery('SELECT * FROM users WHERE email = $1', [email]);
         if (rows.length > 0) {
             const u = rows[0];
-            // PLAIN TEXT MATCH (requested for debugging)
-            const match = (password === u.password);
+            const match = await verifyPassword(password, u.password);
 
             if (match) {
+                if (!isBcryptHash(u.password) && typeof u.password === 'string' && u.password.length > 0) {
+                    try {
+                        const upgradedHash = await hashPassword(password);
+                        await dbQuery('UPDATE users SET password = $1 WHERE id = $2', [upgradedHash, u.id]);
+                        u.password = upgradedHash;
+                    } catch (upgradeError) {
+                        log(`[Auth/Login] Legacy password upgrade failed for user ${u.id}: ${upgradeError.message}`);
+                    }
+                }
+
                 log(`[Auth/Login] Success: ${email}`);
                 const safe = { ...u };
                 delete safe.password;
@@ -119,11 +180,11 @@ const login = async (req, res) => {
                     project_id: u.project_id,
                     supplier_id: u.supplier_id,
                 });
+                const csrfToken = crypto.randomBytes(32).toString('hex');
 
                 res.cookie(COOKIE_NAME, authToken.token, authToken.cookieOptions);
+                res.cookie(CSRF_COOKIE_NAME, csrfToken, buildCsrfCookieOptions(authToken.cookieOptions.maxAge));
 
-                // Keep token in payload for legacy clients until they migrate to HttpOnly cookie mode.
-                safe.token = authToken.token;
                 safe.tokenExpiresAt = authToken.expiresAt;
                 safe.tokenExpiresInSeconds = authToken.expiresInSeconds;
 
@@ -134,7 +195,7 @@ const login = async (req, res) => {
         res.status(401).json({ error: 'Auth Failed' });
     } catch (e) {
         log(`[Auth/Login Error] ${email}: ${e.message}`);
-        res.status(500).json({ error: e.message, details: 'Check backend logs' });
+        res.status(500).json({ error: 'Internal server error' });
     }
 };
 
@@ -149,11 +210,22 @@ const logout = async (req, res) => {
         sameSite,
         path: '/',
     });
+    res.clearCookie(CSRF_COOKIE_NAME, {
+        httpOnly: false,
+        secure,
+        sameSite,
+        path: '/',
+    });
 
     return res.json({ status: 'success' });
 };
 
 module.exports = {
     login,
-    logout
+    logout,
+    __internal: {
+        isBcryptHash,
+        verifyPassword,
+        hashPassword,
+    },
 };

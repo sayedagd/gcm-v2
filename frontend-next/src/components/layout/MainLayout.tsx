@@ -1,8 +1,11 @@
 
+"use client";
+
 import React, { useEffect, useState } from 'react';
-import { AppShell, Burger, Group, ScrollArea, ActionIcon, Text, Menu, UnstyledButton, useMantineColorScheme, Indicator } from '@mantine/core';
+import { AppShell, Burger, Group, ScrollArea, ActionIcon, Text, Menu, UnstyledButton, Indicator } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { LogOut, Sun, Moon, Globe, Bell, ExternalLink, ChevronRight, Sparkles, Headphones, Search, Phone, MessageCircle, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -23,9 +26,21 @@ interface MainLayoutProps {
     children: React.ReactNode;
 }
 
+type MenuItem = {
+    name: string;
+    href: string;
+    icon: React.ElementType;
+    roles: Role[];
+};
+
+type MenuGroup = {
+    title: string;
+    roles: Role[];
+    items: MenuItem[];
+};
+
 export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
     const [opened, { toggle, close }] = useDisclosure();
-    const { colorScheme } = useMantineColorScheme();
     const { currentUser, logout, saasConfig, updateSaaS, notifications, updatePresence, darkMode, setDarkMode } = useStore();
     const router = useRouter();
     const pathname = usePathname();
@@ -38,16 +53,29 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
     const isAr = lang === 'ar';
     const isDark = darkMode;
 
+    // Keep sidebar usable during early boot by deriving a safe role from route when needed.
+    const effectiveRole = React.useMemo(() => {
+        const rawRole = String(currentUser?.role || '').trim().toUpperCase();
+        if (Object.values(Role).includes(rawRole as Role)) {
+            return rawRole as Role;
+        }
+
+        if (pathname.startsWith('/client')) return Role.CLIENT;
+        if (pathname.startsWith('/subcontractor')) return Role.SUBCONTRACTOR;
+        if (pathname.startsWith('/driver')) return Role.DRIVER;
+        return Role.ADMIN;
+    }, [currentUser?.role, pathname]);
+
     const CLIENT_ROLES = [Role.COMPANY_USER, Role.PROJECT_USER, Role.CLIENT];
     const scopedNotifications = React.useMemo(() => {
-        if (CLIENT_ROLES.includes(currentUser.role as Role)) {
+        if (CLIENT_ROLES.includes(effectiveRole)) {
             return notifications.filter(n =>
                 n.userId === currentUser.id ||
                 (currentUser.company_id && n.companyId === currentUser.company_id) ||
                 (currentUser.project_id && n.projectId === currentUser.project_id)
             );
         }
-        if (currentUser.role === Role.DRIVER) {
+        if (effectiveRole === Role.DRIVER) {
             return notifications.filter(n => {
                 if (n.userId === currentUser.id) return true;
                 const text = (n.title + ' ' + n.message).toLowerCase();
@@ -55,7 +83,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             });
         }
         return notifications;
-    }, [notifications, currentUser]);
+    }, [notifications, currentUser, effectiveRole]);
     const unreadCount = scopedNotifications.filter(n => !n.isRead).length;
 
     useEffect(() => {
@@ -67,23 +95,36 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         updatePresence({ currentPage: pathname });
     }, [pathname, updatePresence]);
 
-    const menuGroups = getMenuGroups(t, isAr, currentUser.role);
+    const menuGroups = getMenuGroups(t, isAr, effectiveRole) as MenuGroup[];
     const filteredGroups = menuGroups
-        .filter((g: any) => g.roles.includes(currentUser.role))
-        .map((group: any) => ({
+        .filter((g) => g.roles.includes(effectiveRole))
+        .map((group) => ({
             ...group,
-            items: group.items.filter((item: any) => item.roles.includes(currentUser.role))
+            items: group.items.filter((item) => item.roles.includes(effectiveRole))
         }));
+
+    const visibleGroups = (filteredGroups.length > 0 ? filteredGroups : menuGroups)
+        .map((group) => ({
+            ...group,
+            items: (group.items || []).filter((item) => (item.roles || []).includes(effectiveRole))
+        }))
+        .filter((group) => group.items.length > 0);
 
     const userInitials = (currentUser.name || '').split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase();
 
     // Auto-expand the group containing the active page
     useEffect(() => {
-        const activeGroupIdx = filteredGroups.findIndex((g: any) =>
-            g.items.some((item: any) => pathname === item.href)
+        let timerId: number | undefined;
+        const activeGroupIdx = visibleGroups.findIndex((g) =>
+            g.items.some((item) => pathname === item.href)
         );
-        if (activeGroupIdx !== -1) setExpandedGroup(activeGroupIdx);
-    }, [pathname]);
+        if (activeGroupIdx !== -1) {
+            timerId = window.setTimeout(() => setExpandedGroup(activeGroupIdx), 0);
+        }
+        return () => {
+            if (timerId !== undefined) window.clearTimeout(timerId);
+        };
+    }, [pathname, visibleGroups]);
 
     // Theme-aware sidebar tokens
     const sb = isDark ? {
@@ -159,10 +200,10 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                         <Burger opened={opened} onClick={toggle} size="sm" />
                         <Group gap="xs" style={{ cursor: 'pointer' }} onClick={() => router.push('/')}>
                             {saasConfig.logoUrl ? (
-                                <img src={saasConfig.logoUrl} alt="Logo" className="h-8 w-auto object-contain" />
+                                <Image src={saasConfig.logoUrl} alt="Logo" className="h-8 w-auto object-contain" width={128} height={32} unoptimized />
                             ) : (
                                 <div className="w-8 h-8 bg-surface rounded-lg flex items-center justify-center overflow-hidden border border-border/50 shadow-sm">
-                                    <img src="/logo-light.png" alt="GCM" className="w-full h-full object-contain" />
+                                    <Image src="/logo-light.png" alt="GCM" className="w-full h-full object-contain" width={32} height={32} />
                                 </div>
                             )}
                             <Text fw={700} size="sm" className="text-text-main">
@@ -237,9 +278,9 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                     <div className="flex items-center gap-3" style={{ cursor: 'pointer' }} onClick={() => router.push('/')}>
                         <div className="w-11 h-11 rounded-xl flex items-center justify-center overflow-hidden shrink-0">
                             {saasConfig.logoUrl ? (
-                                <img src={saasConfig.logoUrl} alt="Logo" className="w-full h-full object-contain" />
+                                <Image src={saasConfig.logoUrl} alt="Logo" className="w-full h-full object-contain" width={44} height={44} unoptimized />
                             ) : (
-                                <img src="/logo-light.png" alt="GCM" className="w-full h-full object-contain" />
+                                <Image src="/logo-light.png" alt="GCM" className="w-full h-full object-contain" width={44} height={44} />
                             )}
                         </div>
                         <div className="flex-1 min-w-0">
@@ -259,8 +300,8 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                 {/* Navigation Groups — Accordion Style */}
                 <ScrollArea className="flex-1 custom-scrollbar" type="scroll" style={{ padding: '8px 0' }}>
                     <div className="px-3 py-2 space-y-1">
-                        {filteredGroups.map((group: any, gIdx: number) => {
-                            const hasActiveChild = group.items.some((item: any) => pathname === item.href);
+                        {visibleGroups.map((group, gIdx: number) => {
+                            const hasActiveChild = group.items.some((item) => pathname === item.href);
                             const isGroupOpen = expandedGroup === gIdx;
 
                             return (
@@ -299,7 +340,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                                                 className="overflow-hidden"
                                             >
                                                 <div className={`space-y-0.5 ${isAr ? 'pr-2' : 'pl-2'} pb-2 pt-1`}>
-                                                    {group.items.map((item: any, iIdx: number) => {
+                                                    {group.items.map((item, iIdx: number) => {
                                                         const isActive = pathname === item.href;
                                                         const itemKey = `${gIdx}-${iIdx}`;
                                                         const isHovered = hoveredItem === itemKey;

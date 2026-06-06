@@ -6,8 +6,54 @@ const { log } = require('../utils/logger');
 const { sanitizeForDB, deepMerge } = require('../utils/helpers');
 const { DEFAULT_SaaS_CONFIG } = require('../config/constants');
 
+const CONFIG_CACHE_TTL_MS = Number(process.env.CONFIG_CACHE_TTL_MS || 15000);
+let cachedConfig = null;
+let cacheExpiresAt = 0;
+
+const getCachedConfig = () => {
+    if (!cachedConfig) {
+        return null;
+    }
+
+    if (Date.now() >= cacheExpiresAt) {
+        cachedConfig = null;
+        cacheExpiresAt = 0;
+        return null;
+    }
+
+    return cachedConfig;
+};
+
+const setCachedConfig = (config) => {
+    cachedConfig = config;
+    cacheExpiresAt = Date.now() + CONFIG_CACHE_TTL_MS;
+};
+
+const invalidateConfigCache = () => {
+    cachedConfig = null;
+    cacheExpiresAt = 0;
+};
+
+const parseJSONField = (value, fallback) => {
+    if (typeof value !== 'string') {
+        return value ?? fallback;
+    }
+
+    try {
+        return JSON.parse(value);
+    } catch {
+        return fallback;
+    }
+};
+
 const getConfig = async (req, res) => {
     log('[API] Get Config request');
+
+    const cached = getCachedConfig();
+    if (cached) {
+        return res.json(cached);
+    }
+
     try {
         const r = await query('SELECT * FROM saas_config WHERE id = \'SINGLETON\'');
         const dbConfig = r.rows[0] || {};
@@ -20,19 +66,22 @@ const getConfig = async (req, res) => {
             logo_url: dbConfig.logo_url,
             logo_dark_url: dbConfig.logo_dark_url,
             language: dbConfig.language,
-            template_config: typeof dbConfig.template_config === 'string' ? JSON.parse(dbConfig.template_config) : dbConfig.template_config,
-            ai_assistant: typeof dbConfig.ai_assistant === 'string' ? JSON.parse(dbConfig.ai_assistant) : dbConfig.ai_assistant,
-            boot_config: typeof dbConfig.boot_config === 'string' ? JSON.parse(dbConfig.boot_config) : dbConfig.boot_config,
+            template_config: parseJSONField(dbConfig.template_config, {}),
+            ai_assistant: parseJSONField(dbConfig.ai_assistant, {}),
+            boot_config: parseJSONField(dbConfig.boot_config, {}),
             management_controls_enabled: dbConfig.management_controls_enabled,
-            landing_page: typeof dbConfig.landing_page === 'string' ? JSON.parse(dbConfig.landing_page) : (dbConfig.landing_page || {}),
-            store_page: typeof dbConfig.store_page === 'string' ? JSON.parse(dbConfig.store_page) : (dbConfig.store_page || {}),
+            landing_page: parseJSONField(dbConfig.landing_page, {}),
+            store_page: parseJSONField(dbConfig.store_page, {}),
             support_phone: dbConfig.support_phone,
             support_whatsapp: dbConfig.support_whatsapp
         };
-        res.json(deepMerge(DEFAULT_SaaS_CONFIG, configToMerge));
+
+        const mergedConfig = deepMerge(DEFAULT_SaaS_CONFIG, configToMerge);
+        setCachedConfig(mergedConfig);
+        return res.json(mergedConfig);
     } catch (e) {
         log(`[API] Config fetch error: ${e.message}`);
-        res.json(DEFAULT_SaaS_CONFIG);
+        return res.json(DEFAULT_SaaS_CONFIG);
     }
 };
 
@@ -43,10 +92,11 @@ const updateConfig = async (req, res) => {
         const cols = Object.keys(dbData).filter(c => c !== 'id');
         const setClause = cols.map((cl, i) => `"${cl}" = $${i + 1}`).join(', ');
         await query(`UPDATE saas_config SET ${setClause} WHERE id = 'SINGLETON'`, cols.map(c => dbData[c]));
+        invalidateConfigCache();
         res.json({ status: 'updated' });
     } catch (e) {
         log(`Config Error: ${e.message}`);
-        res.status(500).json({ error: e.message });
+        res.status(500).json({ error: 'Internal server error' });
     }
 };
 

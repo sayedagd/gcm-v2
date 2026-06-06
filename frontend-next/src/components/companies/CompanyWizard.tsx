@@ -1,4 +1,5 @@
 import React, { useRef } from 'react';
+import Image from 'next/image';
 import { Modal, Input, Button, FileUploader, Select, QuickUserModal } from '@/components';
 import { Company, User, Role } from '@/types';
 import { Building2, Briefcase, ArrowRight, ArrowLeft, Hash, CheckCircle2, Scale, UserCheck, Phone, Mail, Navigation, AlertCircle, MapPin, UserPlus, UploadCloud } from 'lucide-react';
@@ -53,7 +54,7 @@ const CompanyWizard: React.FC<CompanyWizardProps> = ({
                             
                             <div className="flex items-start gap-6 p-4 bg-surface-subtle border border-border-subtle rounded-2xl">
                                 <div className="w-24 h-24 bg-surface rounded-2xl shadow-sm flex items-center justify-center border border-border shrink-0 overflow-hidden relative group">
-                                    {currentCompany?.logo_url ? <img src={currentCompany.logo_url} className="w-full h-full object-contain p-2" /> : <Building2 size={32} className="text-text-placeholder" />}
+                                    {currentCompany?.logo_url ? <Image src={currentCompany.logo_url} alt={isAr ? 'شعار الشركة' : 'Company logo'} width={96} height={96} unoptimized className="w-full h-full object-contain p-2" /> : <Building2 size={32} className="text-text-placeholder" />}
                                     <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer" onClick={() => logoInputRef.current?.click()}>
                                         <UploadCloud size={20} className="text-white" />
                                     </div>

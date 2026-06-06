@@ -26,7 +26,9 @@ describe("fetchApiJson trace propagation", () => {
 
     await fetchApiJson("/api/v1/ping", { strategy: "dynamic" });
 
-    const [, init] = fetchMock.mock.calls[0];
+    const callArgs = fetchMock.mock.calls[0];
+    expect(callArgs).toBeDefined();
+    const init = callArgs?.[1];
     const headers = new Headers((init as RequestInit).headers);
     expect(headers.get("x-correlation-id")).toBeTruthy();
     expect(headers.get("x-request-id")).toBeTruthy();

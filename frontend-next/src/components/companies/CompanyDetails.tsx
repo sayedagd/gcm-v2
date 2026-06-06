@@ -1,4 +1,5 @@
 import React from 'react';
+import Image from 'next/image';
 import { Modal, Card, StatCard, Button } from '@/components';
 import { Company, Project, Trip, ProjectService, Service } from '@/types';
 import {
@@ -193,7 +194,7 @@ const CompanyDetails: React.FC<CompanyDetailsProps> = ({
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
                     <Card className="lg:col-span-1 p-5 space-y-4 bg-surface-subtle border-none shadow-inner flex flex-col items-center">
                         <div className="w-24 h-24 rounded-2xl bg-surface shadow-sm flex items-center justify-center border border-border overflow-hidden">
-                            {company.logo_url ? <img src={company.logo_url} className="w-full h-full object-contain p-2" /> : <Building2 size={36} className="text-text-subtle" />}
+                            {company.logo_url ? <Image src={company.logo_url} alt={isAr ? 'شعار الشركة' : 'Company logo'} width={96} height={96} unoptimized className="w-full h-full object-contain p-2" /> : <Building2 size={36} className="text-text-subtle" />}
                         </div>
                         <div className="text-center space-y-2">
                             <h2 className="text-lg font-bold text-text-main tracking-tight uppercase leading-tight">{company.company_name}</h2>

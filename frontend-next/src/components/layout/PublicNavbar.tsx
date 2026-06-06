@@ -1,5 +1,6 @@
 
 import React, { useState } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { Globe, User, ShieldCheck, Lock, Zap, Key, Sun, Moon, Menu, X } from 'lucide-react';
 import { useStore } from '@/context';
@@ -9,12 +10,16 @@ interface PublicNavbarProps {
     setIsLoginModalOpen: (val: boolean) => void;
 }
 
+const LANDING_ROUTE = '/landing';
+const STORE_ROUTE = '/store';
+
 export const PublicNavbar: React.FC<PublicNavbarProps> = ({ isScrolled, setIsLoginModalOpen }) => {
     const { saasConfig, updateSaaS, darkMode, setDarkMode } = useStore();
     const router = useRouter();
     const isAr = saasConfig.language === 'ar';
     const lp = saasConfig.landingPage;
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+    const logoSrc = ((darkMode && saasConfig.logoDarkUrl) ? saasConfig.logoDarkUrl : saasConfig.logoUrl) || null;
 
     const getPortalIcon = (type: string) => {
         switch (type) {
@@ -28,12 +33,12 @@ export const PublicNavbar: React.FC<PublicNavbarProps> = ({ isScrolled, setIsLog
 
     const scrollToSection = (id: string) => {
         setMobileMenuOpen(false);
-        if (window.location.pathname !== '/landing') {
-            router.push('/landing');
-            setTimeout(() => {
-                document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
-            }, 100);
+        if (window.location.pathname !== LANDING_ROUTE) {
+            router.push(`${LANDING_ROUTE}#${id}`);
             return;
+        }
+        if (window.location.hash !== `#${id}`) {
+            window.history.replaceState(null, '', `#${id}`);
         }
         document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
     };
@@ -41,7 +46,7 @@ export const PublicNavbar: React.FC<PublicNavbarProps> = ({ isScrolled, setIsLog
     const navLinks = [
         { label: isAr ? 'عن الشركة' : 'About', action: () => scrollToSection('about') },
         { label: isAr ? 'خدماتنا' : 'Services', action: () => scrollToSection('services') },
-        { label: isAr ? 'متجر الأجهزة' : 'Equipment Store', action: () => { router.push('/store'); setMobileMenuOpen(false); } },
+        { label: isAr ? 'متجر الأجهزة' : 'Equipment Store', action: () => { router.push(STORE_ROUTE); setMobileMenuOpen(false); } },
         { label: isAr ? 'الأسطول' : 'Fleet', action: () => scrollToSection('fleet') },
         { label: isAr ? 'تواصل معنا' : 'Contact', action: () => scrollToSection('contact') },
     ];
@@ -50,12 +55,12 @@ export const PublicNavbar: React.FC<PublicNavbarProps> = ({ isScrolled, setIsLog
         <nav className={`fixed top-0 w-full z-[100] transition-all duration-500 ${isScrolled ? 'h-16 md:h-20 glass border-b border-primary-500/10 shadow-lg' : 'h-20 md:h-28 bg-transparent'}`}>
             <div className="max-w-7xl mx-auto h-full px-6 md:px-12 flex items-center justify-between">
                 {/* Logo */}
-                <div className="flex items-center gap-4 cursor-pointer" onClick={() => router.push('/landing')}>
-                    {((darkMode && saasConfig.logoDarkUrl) || saasConfig.logoUrl) ? (
-                        <img src={(darkMode && saasConfig.logoDarkUrl) ? saasConfig.logoDarkUrl : saasConfig.logoUrl} className="w-10 h-10 md:w-14 md:h-14 rounded-2xl object-cover shadow-lg" alt="App Logo" />
+                <div className="flex items-center gap-4 cursor-pointer" onClick={() => router.push(LANDING_ROUTE)}>
+                    {logoSrc ? (
+                        <Image src={logoSrc} className="w-10 h-10 md:w-14 md:h-14 rounded-2xl object-cover shadow-lg" alt="App Logo" width={56} height={56} unoptimized />
                     ) : (
                         <div className="w-10 h-10 md:w-14 md:h-14 bg-surface rounded-2xl flex items-center justify-center overflow-hidden shadow-lg border border-border/50">
-                            <img src="/logo-light.png" alt="GCM" className="w-full h-full object-contain" />
+                            <Image src="/logo-light.png" alt="GCM" className="w-full h-full object-contain" width={56} height={56} />
                         </div>
                     )}
                     <div className="flex flex-col">

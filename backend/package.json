@@ -7,6 +7,10 @@
     "scripts": {
         "start": "node app.js",
         "dev": "nodemon app.js",
+        "test": "jest",
+        "check:openapi-sync": "node scripts/openapi/verify-sync.js",
+        "ci:check": "npm run test -- --runInBand src/__tests__/unit/openapiContract.test.js && npm run check:openapi-sync",
+        "perf:baseline": "node scripts/perf/capture-baseline.mjs",
         "maintenance:create-test-accounts": "node scripts/maintenance/create_test_accounts.js",
         "maintenance:inject-services": "node scripts/maintenance/inject_services.js",
         "maintenance:reset-admin": "node scripts/maintenance/reset_admin.js",

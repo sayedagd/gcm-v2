@@ -1,3 +1,5 @@
+'use client';
+
 import React, { ErrorInfo, ReactNode } from 'react';
 
 interface Props {
@@ -24,7 +26,7 @@ class ErrorBoundary extends React.Component<Props, State> {
         return { hasError: true, error, errorInfo: null };
     }
 
-    componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    override componentDidCatch(error: Error, errorInfo: ErrorInfo) {
         const { moduleName = 'Unknown' } = this.props;
         console.error(`[ErrorBoundary:${moduleName}] Caught error:`, error.message);
         console.error('[ErrorBoundary] Component stack:', errorInfo.componentStack);
@@ -35,7 +37,7 @@ class ErrorBoundary extends React.Component<Props, State> {
         this.setState({ hasError: false, error: null, errorInfo: null });
     };
 
-    render() {
+    override render() {
         const { hasError, error, errorInfo } = this.state;
         const { fallback, moduleName = 'Module', isAr = false } = this.props;
 

@@ -86,6 +86,28 @@ describe('protect()', () => {
     expect(mockNext).not.toHaveBeenCalled();
   });
 
+  test('returns 401 for expired cookie token on SSE endpoint', async () => {
+    mockReq.cookies = { gcm_jwt: 'expired-cookie-token' };
+    mockReq.path = '/api/events';
+    jwt.verify.mockImplementation(() => {
+      const err = new Error('Token expired');
+      err.name = 'TokenExpiredError';
+      throw err;
+    });
+
+    await protect(mockReq, mockRes, mockNext);
+
+    expect(mockRes.status).toHaveBeenCalledWith(401);
+    expect(mockRes.setHeader).toHaveBeenCalledWith(
+      'WWW-Authenticate',
+      'Bearer error="invalid_token", error_description="The access token expired"'
+    );
+    expect(mockRes.json).toHaveBeenCalledWith(expect.objectContaining({
+      code: 'AUTH_TOKEN_EXPIRED'
+    }));
+    expect(mockNext).not.toHaveBeenCalled();
+  });
+
   test('returns 401 if token signature is invalid', async () => {
     mockReq.headers.authorization = 'Bearer invalid-token';
     jwt.verify.mockImplementation(() => {
@@ -152,6 +174,9 @@ describe('protect()', () => {
     const mockDecoded = { id: 'user-123', role: 'CLIENT' };
 
     mockReq.cookies = { gcm_jwt: 'cookie-token' };
+    mockReq.headers['x-csrf-token'] = 'csrf-token-1';
+    mockReq.cookies.gcm_csrf = 'csrf-token-1';
+    mockReq.method = 'POST';
     jwt.verify.mockReturnValue(mockDecoded);
 
     await protect(mockReq, mockRes, mockNext);
@@ -161,23 +186,9 @@ describe('protect()', () => {
     expect(mockNext).toHaveBeenCalled();
   });
 
-  test('extracts token from query param for SSE endpoint', async () => {
-    const mockDecoded = { id: 'user-123', role: 'CLIENT', purpose: 'sse' };
-
+  test('does NOT allow query param token auth', async () => {
     mockReq.query = { token: 'query-token' };
     mockReq.path = '/api/events';
-    jwt.verify.mockReturnValue(mockDecoded);
-
-    await protect(mockReq, mockRes, mockNext);
-
-    expect(jwt.verify).toHaveBeenCalledWith('query-token', 'test_secret', { algorithms: ['HS256'] });
-    expect(mockReq.user).toEqual(mockDecoded);
-    expect(mockNext).toHaveBeenCalled();
-  });
-
-  test('does NOT allow query param token for non-SSE endpoints', async () => {
-    mockReq.query = { token: 'query-token' };
-    mockReq.path = '/api/companies'; // Not SSE endpoint
 
     await protect(mockReq, mockRes, mockNext);
 
@@ -207,6 +218,37 @@ describe('protect()', () => {
     await protect(mockReq, mockRes, mockNext);
 
     expect(jwt.verify).toHaveBeenCalledWith('header-cookie-token', 'test_secret', { algorithms: ['HS256'] });
+    expect(mockNext).toHaveBeenCalled();
+  });
+
+  test('returns 403 when cookie-auth write request has missing csrf token', async () => {
+    mockReq.cookies = { gcm_jwt: 'cookie-token' };
+    mockReq.method = 'POST';
+    jwt.verify.mockReturnValue({ id: 'user-123', role: 'ADMIN' });
+
+    await protect(mockReq, mockRes, mockNext);
+
+    expect(mockRes.status).toHaveBeenCalledWith(403);
+    expect(mockRes.json).toHaveBeenCalledWith(expect.objectContaining({
+      code: 'AUTH_CSRF_INVALID',
+    }));
+    expect(mockNext).not.toHaveBeenCalled();
+  });
+
+  test('allows cookie-auth write request with matching csrf token', async () => {
+    const mockDecoded = { id: 'user-123', role: 'ADMIN' };
+
+    mockReq.cookies = {
+      gcm_jwt: 'cookie-token',
+      gcm_csrf: 'abcdefghijklmnopqrstuvwxyz123456',
+    };
+    mockReq.headers['x-csrf-token'] = 'abcdefghijklmnopqrstuvwxyz123456';
+    mockReq.method = 'PATCH';
+    jwt.verify.mockReturnValue(mockDecoded);
+
+    await protect(mockReq, mockRes, mockNext);
+
+    expect(mockReq.user).toEqual(mockDecoded);
     expect(mockNext).toHaveBeenCalled();
   });
 });

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useMemo, useState, useCallback, useEffect } from 'react';
+import Image from 'next/image';
 import { useStore } from '@/context';
 import { Trip, TripStatus, Role } from '@/types';
 import { Card, Modal, Select, Button } from '@/components';
@@ -13,7 +14,7 @@ import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 
 // Fix Leaflet Default Icon Issue
-// @ts-ignore
+// @ts-expect-error leaflet internal prototype override
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
     iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
@@ -59,7 +60,7 @@ const PRIORITY_ICONS: Record<string, React.ElementType> = { URGENT: Zap, HIGH: A
 const ACTIVE_STATUSES = [TripStatus.REQUESTED, TripStatus.ASSIGNED, TripStatus.EN_ROUTE, TripStatus.LOADING, TripStatus.PENDING_APPROVAL];
 
 const TripQueue: React.FC = () => {
-    const { saasConfig, trips, projects, services, drivers, vehicles, users, upsertTrip, currentUser, addNotification } = useStore();
+    const { saasConfig, trips, drivers, vehicles, upsertTrip, currentUser } = useStore();
     const isAr = saasConfig.language === 'ar';
     const isSuperUser = [Role.ADMIN, Role.REPORTS_MANAGER].includes(currentUser.role);
 
@@ -69,12 +70,6 @@ const TripQueue: React.FC = () => {
     const [selectedDriver, setSelectedDriver] = useState('');
     const [selectedVehicle, setSelectedVehicle] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [overrideStatus, setOverrideStatus] = useState<Record<string, string>>({});
-
-    // Role guard
-    if (![Role.LOGISTICS, Role.ADMIN, Role.REPORTS_MANAGER].includes(currentUser.role)) {
-        return <div className="text-center py-16 text-text-subtle font-bold">{isAr ? 'غير مصرح' : 'Unauthorized'}</div>;
-    }
 
     const queueTrips = useMemo(() => {
         let filtered = trips.filter(t => ACTIVE_STATUSES.includes(t.status));
@@ -101,10 +96,10 @@ const TripQueue: React.FC = () => {
                 id: t.trip_id,
                 coords: extractCoords(t.trip_location_url),
                 status: t.status,
-                project: getProjectName(t.project_id)
+                project: projectMap[t.project_id]?.project_name || t.project_id
             }))
             .filter(m => m.coords !== null) as { id: string, coords: [number, number], status: TripStatus, project: string }[];
-    }, [queueTrips, projects]);
+    }, [queueTrips, projectMap]);
 
     const defaultCenter: [number, number] = [24.7136, 46.6753]; // Riyadh
             const firstMarker = mapMarkers[0];
@@ -132,17 +127,10 @@ const TripQueue: React.FC = () => {
         }
     }, [assignModal, selectedDriver, selectedVehicle, upsertTrip, currentUser.role]);
 
-    const handleOverrideStatus = useCallback(async (trip: Trip, newStatus: string) => {
-        if (!isSuperUser) return;
-        setIsSubmitting(true);
-        try {
-            await upsertTrip({ ...trip, status: newStatus as TripStatus });
-        } catch (err) {
-            console.error(err);
-        } finally {
-            setIsSubmitting(false);
-        }
-    }, [isSuperUser, upsertTrip]);
+    // Role guard (kept after hooks to satisfy hooks ordering)
+    if (![Role.LOGISTICS, Role.ADMIN, Role.REPORTS_MANAGER].includes(currentUser.role)) {
+        return <div className="text-center py-16 text-text-subtle font-bold">{isAr ? 'غير مصرح' : 'Unauthorized'}</div>;
+    }
 
     return (
         <div className="space-y-6">
@@ -233,7 +221,7 @@ const TripQueue: React.FC = () => {
                                                 {trip.request_container_image && (
                                                     <div className="flex items-center gap-2 text-xs text-text-subtle">
                                                         <Camera size={14} />
-                                                        <img src={resolveImagePath(trip.request_container_image)} alt="" className="w-8 h-8 rounded-md object-cover border border-border" />
+                                                        <Image src={resolveImagePath(trip.request_container_image)} alt="" className="w-8 h-8 rounded-md object-cover border border-border" width={32} height={32} unoptimized />
                                                     </div>
                                                 )}
                                                 {trip.request_location_url && (

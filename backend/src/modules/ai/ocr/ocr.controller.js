@@ -108,7 +108,7 @@ If a field is not found or unreadable, set its value to null. Output standard JS
 
     } catch (error) {
         log(`[OCR] Controller Error: ${error.message}`);
-        res.status(500).json({ error: 'Failed to extract data: ' + error.message });
+        res.status(500).json({ error: 'Failed to extract data' });
     }
 };
 

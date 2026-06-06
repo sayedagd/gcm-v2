@@ -27,6 +27,16 @@ To learn more about Next.js, take a look at the following resources:
 - [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
 - [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
 
+## Project Docs
+
+- Cache strategy matrix: `docs/cache-strategy-matrix.md`
+- Runtime image inventory: `docs/runtime-img-inventory.md`
+- Baseline performance metrics: `docs/baseline-metrics.md`
+- Baseline performance raw snapshot: `docs/baseline-metrics.json`
+- Post-remediation benchmark report: `docs/post-remediation-benchmark.md`
+- Release readiness sign-off: `docs/release-readiness-signoff.md`
+- Production rollout checklist: `docs/production-rollout-checklist.md`
+
 You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
 ## Deploy on Vercel

@@ -4,32 +4,63 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import {
     Server, Database, Activity, Users, Cpu, HardDrive, CheckCircle2, Clock, Shield, Globe,
-    RefreshCw, Terminal, Download, AlertTriangle, Archive, Upload
+    RefreshCw, Terminal, AlertTriangle, Archive, Upload
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { Card, Button } from '@/components';
 import { useStore } from '@/context';
 import { createApiClient } from '@/api/client';
+import { getClientAuthHeaders } from '@/lib/clientAuth';
+
+type SystemMetricsSnapshot = {
+    generatedAt: string;
+    uptimeSeconds: number;
+    thresholds: {
+        sseDisconnects15m: number;
+        backupFailures24h: number;
+    };
+    metrics: {
+        requestCount15m: number;
+        requestErrors15m: number;
+        avgLatencyMs15m: number;
+        errorRatePercent15m: number;
+        authFailures15m: number;
+        sseDisconnects15m: number;
+        backupFailures24h: number;
+    };
+    activeAlerts: Array<{ name: string }>;
+};
+
+type ServiceStatus = 'online' | 'offline' | 'idle';
+
+type ServiceItem = {
+    name: string;
+    status: ServiceStatus;
+    latency: string;
+};
+
+type ServerStatCardProps = {
+    title: string;
+    value: string;
+    subValue: string;
+    icon: LucideIcon;
+    color: 'blue' | 'emerald' | 'violet' | 'amber';
+};
+
+type ResourceBarProps = {
+    label: string;
+    value: number;
+    icon: LucideIcon;
+    color: 'blue' | 'purple' | 'orange';
+};
 
 const SystemMonitor: React.FC = () => {
     const { saasConfig, users, logs } = useStore();
     const isAr = saasConfig.language === 'ar';
 
-    const [systemStats, setSystemStats] = useState({
-        cpu: 12,
-        memory: 45,
-        storage: 68,
-        uptime: '14d 2h 15m'
-    });
-
-    const [services, setServices] = useState([
-        { name: 'API Server', status: 'online', latency: '45ms' },
-        { name: 'Database', status: 'online', latency: '12ms' },
-        { name: 'File Storage', status: 'online', latency: '120ms' },
-        { name: 'Auth Service', status: 'online', latency: '38ms' },
-        { name: 'Email Gateway', status: 'idle', latency: '-' },
-    ]);
-
     const api = useMemo(() => createApiClient(saasConfig?.apiConfig?.baseUrl || ''), [saasConfig?.apiConfig?.baseUrl]);
+    const [metricsSnapshot, setMetricsSnapshot] = useState<SystemMetricsSnapshot | null>(null);
+    const [metricsError, setMetricsError] = useState<string | null>(null);
     const [backupStatus, setBackupStatus] = useState<{ lastBackupDate: string | null, isMediaIncluded: boolean }>({ lastBackupDate: null, isMediaIncluded: false });
     const [isBackingUpDb, setIsBackingUpDb] = useState(false);
     const [isBackingUpFull, setIsBackingUpFull] = useState(false);
@@ -45,19 +76,40 @@ const SystemMonitor: React.FC = () => {
         api.getBackupStatus().then(setBackupStatus).catch(console.error);
     }, [api]);
 
+    useEffect(() => {
+        let isMounted = true;
+
+        const pollMetrics = async () => {
+            try {
+                const data = await api.getSystemMetrics() as SystemMetricsSnapshot;
+                if (!isMounted) return;
+                setMetricsSnapshot(data);
+                setMetricsError(null);
+            } catch (error) {
+                if (!isMounted) return;
+                setMetricsError(error instanceof Error ? error.message : 'Unknown metrics error');
+            }
+        };
+
+        pollMetrics();
+        const intervalId = setInterval(pollMetrics, 30000);
+
+        return () => {
+            isMounted = false;
+            clearInterval(intervalId);
+        };
+    }, [api]);
+
     const handleBackup = async (format: 'sql' | 'full') => {
         if (format === 'full') setIsBackingUpFull(true);
         else setIsBackingUpDb(true);
 
         try {
-            const isAuth = localStorage.getItem('gcm_auth_session') === 'true';
-            const token = isAuth ? localStorage.getItem('gcm_jwt_token') || '' : '';
             const url = `${saasConfig?.apiConfig?.baseUrl || ''}/api/system/backup/download?format=${format}`;
             
             const response = await fetch(url, {
-                headers: {
-                    'Authorization': token ? `Bearer ${token}` : '',
-                }
+                headers: getClientAuthHeaders(),
+                credentials: 'include',
             });
 
             if (!response.ok) {
@@ -120,24 +172,64 @@ const SystemMonitor: React.FC = () => {
             await api.restoreBackup(selectedFile);
             alert(isAr ? 'تم استعادة النظام بنجاح! سيتم تحديث الصفحة.' : 'System restored successfully! Page will reload.');
             window.location.reload();
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error(error);
-            alert((isAr ? 'فشلت عملية الاستعادة: ' : 'Restore failed: ') + (error.error || error.message || 'Unknown error'));
+            const message = error instanceof Error ? error.message : 'Unknown error';
+            alert((isAr ? 'فشلت عملية الاستعادة: ' : 'Restore failed: ') + message);
             setIsRestoring(false);
         }
     };
 
-    // Simulate live data updates
-    useEffect(() => {
-        const interval = setInterval(() => {
-            setSystemStats(prev => ({
-                ...prev,
-                cpu: Math.max(5, Math.min(90, prev.cpu + (Math.random() * 10 - 5))),
-                memory: Math.max(30, Math.min(80, prev.memory + (Math.random() * 6 - 3))),
-            }));
-        }, 3000);
-        return () => clearInterval(interval);
-    }, []);
+    const uptimeLabel = useMemo(() => {
+        const total = metricsSnapshot?.uptimeSeconds || 0;
+        const days = Math.floor(total / 86400);
+        const hours = Math.floor((total % 86400) / 3600);
+        const minutes = Math.floor((total % 3600) / 60);
+        return `${days}d ${hours}h ${minutes}m`;
+    }, [metricsSnapshot?.uptimeSeconds]);
+
+    const services = useMemo<ServiceItem[]>(() => {
+        const metrics = metricsSnapshot?.metrics;
+        const thresholds = metricsSnapshot?.thresholds;
+        if (!metrics || !thresholds) {
+            return [
+                { name: 'API Server', status: 'idle', latency: '-' },
+                { name: 'Auth Service', status: 'idle', latency: '-' },
+                { name: 'SSE Stream', status: 'idle', latency: '-' },
+                { name: 'Backup Pipeline', status: 'idle', latency: '-' },
+                { name: 'Metrics Endpoint', status: metricsError ? 'offline' : 'idle', latency: '-' },
+            ];
+        }
+
+        return [
+            { name: 'API Server', status: metrics.requestErrors15m > 0 ? 'idle' : 'online', latency: `${metrics.avgLatencyMs15m}ms` },
+            { name: 'Auth Service', status: metrics.authFailures15m > 0 ? 'idle' : 'online', latency: `${metrics.authFailures15m} fails/15m` },
+            {
+                name: 'SSE Stream',
+                status: metrics.sseDisconnects15m >= thresholds.sseDisconnects15m ? 'offline' : 'online',
+                latency: `${metrics.sseDisconnects15m} drops/15m`,
+            },
+            {
+                name: 'Backup Pipeline',
+                status: metrics.backupFailures24h >= thresholds.backupFailures24h ? 'offline' : 'online',
+                latency: `${metrics.backupFailures24h} fails/24h`,
+            },
+            { name: 'Metrics Endpoint', status: 'online', latency: `${new Date(metricsSnapshot.generatedAt).toLocaleTimeString()}` },
+        ];
+    }, [metricsSnapshot, metricsError]);
+
+    const resourceMetrics = useMemo(() => {
+        const metrics = metricsSnapshot?.metrics;
+        const thresholds = metricsSnapshot?.thresholds;
+
+        const errorRate = Math.max(0, Math.min(100, metrics?.errorRatePercent15m || 0));
+        const avgLatency = Math.max(0, Math.min(100, ((metrics?.avgLatencyMs15m || 0) / 1000) * 100));
+        const ssePressure = metrics && thresholds
+            ? Math.max(0, Math.min(100, (metrics.sseDisconnects15m / Math.max(1, thresholds.sseDisconnects15m)) * 100))
+            : 0;
+
+        return { errorRate, avgLatency, ssePressure };
+    }, [metricsSnapshot]);
 
     const getStatusColor = (status: string) => {
         switch (status) {
@@ -270,10 +362,10 @@ const SystemMonitor: React.FC = () => {
                 />
                 <ServerStatCard
                     title={isAr ? 'وقت التشغيل' : 'System Uptime'}
-                    value={systemStats.uptime}
+                    value={uptimeLabel}
                     icon={Clock}
                     color="emerald"
-                    subValue="Since last patch"
+                    subValue={metricsSnapshot ? 'Live metrics' : 'Awaiting metrics'}
                 />
                 <ServerStatCard
                     title={isAr ? 'المستخدمين النشطين' : 'Active Users'}
@@ -284,10 +376,10 @@ const SystemMonitor: React.FC = () => {
                 />
                 <ServerStatCard
                     title={isAr ? 'حالة الأمان' : 'Security Status'}
-                    value="Secure"
+                    value={(metricsSnapshot?.activeAlerts?.length || 0) > 0 ? 'Alerted' : 'Secure'}
                     icon={Shield}
-                    color="emerald"
-                    subValue="No threats detected"
+                    color={(metricsSnapshot?.activeAlerts?.length || 0) > 0 ? 'amber' : 'emerald'}
+                    subValue={(metricsSnapshot?.activeAlerts?.length || 0) > 0 ? `${metricsSnapshot?.activeAlerts?.length || 0} active alerts` : 'No active alerts'}
                 />
             </div>
 
@@ -302,20 +394,20 @@ const SystemMonitor: React.FC = () => {
 
                         <div className="space-y-6">
                             <ResourceBar
-                                label="CPU Usage"
-                                value={systemStats.cpu}
+                                label="Request Error Rate (15m)"
+                                value={resourceMetrics.errorRate}
                                 icon={Cpu}
                                 color="blue"
                             />
                             <ResourceBar
-                                label="Memory Usage"
-                                value={systemStats.memory}
+                                label="Average Latency (15m)"
+                                value={resourceMetrics.avgLatency}
                                 icon={Activity}
                                 color="purple"
                             />
                             <ResourceBar
-                                label="SSD Storage"
-                                value={systemStats.storage}
+                                label="SSE Disconnect Pressure"
+                                value={resourceMetrics.ssePressure}
                                 icon={HardDrive}
                                 color="orange"
                             />
@@ -328,8 +420,8 @@ const SystemMonitor: React.FC = () => {
                             <CheckCircle2 size={18} /> {isAr ? 'حالة الخدمات' : 'Service Health'}
                         </h3>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            {services.map((svc, i) => (
-                                <div key={i} className="flex items-center justify-between p-4 rounded-xl bg-surface-subtle border border-border">
+                            {services.map((svc) => (
+                                <div key={svc.name} className="flex items-center justify-between p-4 rounded-xl bg-surface-subtle border border-border">
                                     <div className="flex items-center gap-3">
                                         <div className={`p-2 rounded-lg ${getStatusColor(svc.status)}`}>
                                             <Server size={16} />
@@ -342,6 +434,11 @@ const SystemMonitor: React.FC = () => {
                                     <span className="text-xs font-mono font-bold text-primary">{svc.latency}</span>
                                 </div>
                             ))}
+                            {metricsError && (
+                                <div className="sm:col-span-2 p-3 rounded-lg border border-red-500/20 bg-red-500/10 text-red-500 text-xs font-medium">
+                                    {isAr ? 'تعذر جلب قياسات النظام الحية.' : 'Unable to fetch live system metrics.'}
+                                </div>
+                            )}
                         </div>
                     </Card>
                 </div>
@@ -429,7 +526,7 @@ const SystemMonitor: React.FC = () => {
                             <RefreshCw size={12} className="text-text-subtle hover:text-primary cursor-pointer" />
                         </div>
                         <div className="flex-1 overflow-y-auto custom-scrollbar p-0">
-                            {logs.slice(0, 10).map((log, i) => (
+                            {logs.slice(0, 10).map((log) => (
                                 <div key={log.id} className="p-3 border-b border-border hover:bg-surface-subtle/50 transition-colors text-xs font-mono">
                                     <div className="flex items-center gap-2 mb-1">
                                         <span className="text-primary-600 font-bold">[{new Date(log.timestamp).toLocaleTimeString()}]</span>
@@ -452,8 +549,8 @@ const SystemMonitor: React.FC = () => {
     );
 };
 
-const ServerStatCard = ({ title, value, subValue, icon: Icon, color }: any) => {
-    const colorClasses: any = {
+const ServerStatCard = ({ title, value, subValue, icon: Icon, color }: ServerStatCardProps) => {
+    const colorClasses: Record<ServerStatCardProps['color'], string> = {
         blue: 'bg-blue-500/10 text-blue-600 dark:text-blue-400',
         emerald: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
         violet: 'bg-violet-500/10 text-violet-600 dark:text-violet-400',
@@ -474,8 +571,8 @@ const ServerStatCard = ({ title, value, subValue, icon: Icon, color }: any) => {
     );
 };
 
-const ResourceBar = ({ label, value, icon: Icon, color }: any) => {
-    const colorClasses: any = {
+const ResourceBar = ({ label, value, icon: Icon, color }: ResourceBarProps) => {
+    const colorClasses: Record<ResourceBarProps['color'], string> = {
         blue: 'bg-blue-500',
         purple: 'bg-purple-500',
         orange: 'bg-orange-500',

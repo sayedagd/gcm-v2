@@ -6,6 +6,7 @@
  */
 
 import React, { useState, useRef } from 'react';
+import Image from 'next/image';
 import { Upload, CheckCircle2, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { compressImage } from '../../utils/helpers';
@@ -75,7 +76,7 @@ const FileUploader: React.FC<FileUploaderProps> = ({
         return (
             <div className="flex items-center gap-2">
                 {value.startsWith('data:image/') && (
-                    <img src={value} alt="preview" className="w-10 h-10 rounded-lg object-cover border border-border" />
+                    <Image src={value} alt="preview" width={40} height={40} unoptimized className="w-10 h-10 rounded-lg object-cover border border-border" />
                 )}
                 <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
                     <CheckCircle2 size={14} />

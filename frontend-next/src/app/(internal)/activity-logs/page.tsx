@@ -2,6 +2,7 @@
 
 
 import React, { useState, useMemo } from 'react';
+import Image from 'next/image';
 import { useStore } from '@/context';
 import {
   ScrollText, Search, Calendar, User as UserIcon,
@@ -63,15 +64,37 @@ const ActivityLogs: React.FC = () => {
             start: startOfDay(parseISO(dateRange.start)),
             end: endOfDay(parseISO(dateRange.end))
           });
-        } catch (e) { matchDate = false; }
+        } catch { matchDate = false; }
       }
 
       return matchSearch && matchUser && matchAction && matchEntity && matchDate;
     });
   }, [secureLogs, searchTerm, filterUser, filterAction, filterEntity, dateRange]);
 
-  // Reset to page 1 when any filter changes
-  React.useEffect(() => { setCurrentPage(1); }, [searchTerm, filterUser, filterAction, filterEntity, dateRange]);
+  const setSearchTermAndReset = (value: string) => {
+    setSearchTerm(value);
+    setCurrentPage(1);
+  };
+
+  const setFilterUserAndReset = (value: string) => {
+    setFilterUser(value);
+    setCurrentPage(1);
+  };
+
+  const setFilterActionAndReset = (value: string) => {
+    setFilterAction(value);
+    setCurrentPage(1);
+  };
+
+  const setFilterEntityAndReset = (value: string) => {
+    setFilterEntity(value);
+    setCurrentPage(1);
+  };
+
+  const setDateRangeAndReset = (next: { start: string; end: string }) => {
+    setDateRange(next);
+    setCurrentPage(1);
+  };
 
   const totalPages = Math.ceil(filteredLogs.length / PAGE_SIZE);
   const paginatedLogs = useMemo(() => {
@@ -138,14 +161,14 @@ const ActivityLogs: React.FC = () => {
               className="w-full pl-12 pr-4 py-3 bg-surface-subtle border border-border rounded-xl font-bold text-sm focus:ring-2 ring-primary/20"
               placeholder={isAr ? 'بحث بالاسم أو التفاصيل...' : 'Search logs...'}
               value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
+              onChange={e => setSearchTermAndReset(e.target.value)}
             />
           </div>
 
           {canFilterUsers && (
             <div className="flex items-center gap-3 bg-surface-subtle px-4 py-2 rounded-xl border border-border focus-within:border-primary/20 transition-all">
               <UserIcon size={16} className="text-text-subtle" />
-              <select className="bg-transparent border-none outline-none font-bold text-xs w-full" value={filterUser} onChange={e => setFilterUser(e.target.value)}>
+              <select className="bg-transparent border-none outline-none font-bold text-xs w-full" value={filterUser} onChange={e => setFilterUserAndReset(e.target.value)}>
                 <option value="all">{isAr ? 'كل المستخدمين' : 'All Users'}</option>
                 {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
               </select>
@@ -154,7 +177,7 @@ const ActivityLogs: React.FC = () => {
 
           <div className="flex items-center gap-3 bg-surface-subtle px-4 py-2 rounded-xl border border-border focus-within:border-primary/20 transition-all">
             <Activity size={16} className="text-text-subtle" />
-            <select className="bg-transparent border-none outline-none font-bold text-xs w-full" value={filterAction} onChange={e => setFilterAction(e.target.value)}>
+            <select className="bg-transparent border-none outline-none font-bold text-xs w-full" value={filterAction} onChange={e => setFilterActionAndReset(e.target.value)}>
               <option value="all">{isAr ? 'كل العمليات' : 'All Actions'}</option>
               {Object.values(ActionType).map(a => <option key={a} value={a}>{formatActionType(a, isAr)}</option>)}
             </select>
@@ -162,7 +185,7 @@ const ActivityLogs: React.FC = () => {
 
           <div className="flex items-center gap-3 bg-surface-subtle px-4 py-2 rounded-xl border border-border focus-within:border-primary/20 transition-all">
             <Database size={16} className="text-text-subtle" />
-            <select className="bg-transparent border-none outline-none font-bold text-xs w-full" value={filterEntity} onChange={e => setFilterEntity(e.target.value)}>
+            <select className="bg-transparent border-none outline-none font-bold text-xs w-full" value={filterEntity} onChange={e => setFilterEntityAndReset(e.target.value)}>
               <option value="all">{isAr ? 'كل الموديلات' : 'All Entities'}</option>
               {Object.values(EntityType).map(e => <option key={e} value={e}>{formatEntityType(e, isAr)}</option>)}
             </select>
@@ -173,11 +196,11 @@ const ActivityLogs: React.FC = () => {
           <Calendar size={16} className="text-text-subtle" />
           <span className="text-[10px] font-bold uppercase text-text-subtle tracking-widest">{isAr ? 'نطاق التاريخ' : 'Date Range'}:</span>
           <div className="flex items-center gap-3">
-            <input type="date" className="bg-surface-subtle border border-border px-4 py-2 rounded-xl text-xs font-bold outline-none" value={dateRange.start} onChange={e => setDateRange({ ...dateRange, start: e.target.value })} />
+            <input type="date" className="bg-surface-subtle border border-border px-4 py-2 rounded-xl text-xs font-bold outline-none" value={dateRange.start} onChange={e => setDateRangeAndReset({ ...dateRange, start: e.target.value })} />
             <ChevronRight size={14} className="text-text-subtle" />
-            <input type="date" className="bg-surface-subtle border border-border px-4 py-2 rounded-xl text-xs font-bold outline-none" value={dateRange.end} onChange={e => setDateRange({ ...dateRange, end: e.target.value })} />
+            <input type="date" className="bg-surface-subtle border border-border px-4 py-2 rounded-xl text-xs font-bold outline-none" value={dateRange.end} onChange={e => setDateRangeAndReset({ ...dateRange, end: e.target.value })} />
           </div>
-          <button onClick={() => setDateRange({ start: '', end: '' })} className="text-[10px] font-bold text-primary uppercase hover:underline ml-auto">{isAr ? 'مسح التاريخ' : 'Clear Dates'}</button>
+          <button onClick={() => setDateRangeAndReset({ start: '', end: '' })} className="text-[10px] font-bold text-primary uppercase hover:underline ml-auto">{isAr ? 'مسح التاريخ' : 'Clear Dates'}</button>
         </div>
       </div>
 
@@ -216,7 +239,7 @@ const ActivityLogs: React.FC = () => {
                     </td>
                     <td className="px-8 py-6">
                       <div className="flex items-center gap-3">
-                        <img src={user?.avatar || '/logo.png'} className="w-8 h-8 rounded-lg border shadow-sm" alt="" />
+                        <Image src={user?.avatar || '/logo.png'} className="w-8 h-8 rounded-lg border shadow-sm" alt="" width={32} height={32} unoptimized />
                         <div className="min-w-0">
                           <p className="text-sm font-bold truncate">{user?.name || log.user_id}</p>
                           <p className="text-[9px] font-bold text-text-subtle uppercase tracking-widest truncate">{formatRole(user?.role || 'System', isAr)}</p>

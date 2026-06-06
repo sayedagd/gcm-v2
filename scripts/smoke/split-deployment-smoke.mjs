@@ -59,15 +59,53 @@ const checks = [
     },
   },
   {
+    name: "backend CORS preflight allows configured frontend origin",
+    run: async () => {
+      const res = await withTimeout(`${backendBase}/api/v1/auth/login`, {
+        method: "OPTIONS",
+        headers: {
+          Origin: frontendBase,
+          "Access-Control-Request-Method": "POST",
+          "Access-Control-Request-Headers": "content-type",
+        },
+      });
+
+      if (!(res.ok || res.status === 204)) {
+        throw new Error(`Expected successful preflight status, got ${res.status}`);
+      }
+
+      const allowOrigin = res.headers.get("access-control-allow-origin");
+      const allowCredentials = res.headers.get("access-control-allow-credentials");
+
+      if (allowOrigin !== frontendBase) {
+        throw new Error(`Expected access-control-allow-origin=${frontendBase}, got ${allowOrigin || "<missing>"}`);
+      }
+
+      if (allowCredentials !== "true") {
+        throw new Error(`Expected access-control-allow-credentials=true, got ${allowCredentials || "<missing>"}`);
+      }
+    },
+  },
+  {
     name: "auth login rejects invalid credentials",
     run: async () => {
       const res = await withTimeout(`${backendBase}/api/v1/auth/login`, {
         method: "POST",
+        headers: {
+          Origin: frontendBase,
+        },
         body: JSON.stringify({ email: "smoke-invalid@example.com", password: "invalid" }),
       });
 
       if (res.status !== 401) {
         throw new Error(`Expected 401, got ${res.status}`);
+      }
+
+      const allowOrigin = res.headers.get("access-control-allow-origin");
+      if (allowOrigin !== frontendBase) {
+        throw new Error(
+          `Expected CORS allow-origin on auth response to be ${frontendBase}, got ${allowOrigin || "<missing>"}`,
+        );
       }
     },
   },

@@ -1,17 +1,18 @@
 import React from 'react';
+import Image from 'next/image';
 import {
     Activity, Building2, Briefcase, UserCog, UserMinus, Shield, Truck,
     HardHat, Wallet, User as UserIcon
 } from 'lucide-react';
 import { Card } from '@/components';
-import { Role, Company, Project, UserPresence } from '@/types';
+import { Role, Company, Project, UserPresence, User } from '@/types';
 import { formatRole, resolveImagePath, handleImageError } from '@/utils/helpers';
 import { useConfirmDialog } from '@/components/common/ConfirmDialog';
 import { useLookupMaps } from '@/hooks/useLookupMaps';
 
 interface UserCardProps {
-    user: any; // Using any for simplicity as User type might have extra fields or be inconsistent
-    currentUser: any;
+    user: User;
+    currentUser: User;
     presence: UserPresence | undefined;
     isAr: boolean;
     isMasterAdmin: boolean;
@@ -26,8 +27,8 @@ interface UserCardProps {
         }
     };
     tripsCount: number;
-    onView: (user: any) => void;
-    onEdit: (user: any) => void;
+    onView: (user: User) => void;
+    onEdit: (user: User) => void;
     onDelete: (userId: string) => void;
 }
 
@@ -51,17 +52,16 @@ const UserCard: React.FC<UserCardProps> = ({
     isAr,
     isMasterAdmin,
     isCompanyAdmin,
-    companies,
-    projects,
     t,
     tripsCount,
     onView,
     onEdit,
     onDelete
 }) => {
-    const isOnline = presence && (Date.now() - new Date(presence.lastActive).getTime() < 60000);
+    const isOnline = Boolean(presence?.lastActive);
     const { confirm, ConfirmDialogRenderer } = useConfirmDialog();
     const { companyMap, projectMap } = useLookupMaps();
+    const avatarSrc = resolveImagePath(user.avatar) || 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==';
 
     return (<>
         <Card className="p-5 sm:p-8 flex flex-col group relative overflow-hidden transition-all duration-300 hover:shadow-lg border-border bg-surface-subtle">
@@ -74,10 +74,13 @@ const UserCard: React.FC<UserCardProps> = ({
 
             <div className="flex items-center gap-5 mb-8">
                 <div className="relative">
-                    <img
-                        src={resolveImagePath(user.avatar) || undefined}
+                    <Image
+                        src={avatarSrc}
                         className={`w-16 h-16 sm:w-20 sm:h-20 rounded-xl border-4 border-surface shadow-xl ${!user.avatar ? 'bg-surface-subtle p-2' : ''}`}
-                        alt={user.name}
+                        alt={user.name || 'User avatar'}
+                        width={80}
+                        height={80}
+                        unoptimized
                         onError={handleImageError}
                     />
                     <div className="absolute -bottom-2 -right-2 p-1.5 sm:p-2 bg-surface rounded-2xl shadow-lg border border-border">

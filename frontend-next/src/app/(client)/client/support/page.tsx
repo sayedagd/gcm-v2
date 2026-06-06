@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useMemo, useRef } from 'react';
+import Image from 'next/image';
 import { useStore } from '@/context';
 import { TripStatus, Role, NotificationType } from '@/types';
 import { StatCard, Card, Button, Modal } from '@/components';
@@ -35,7 +36,7 @@ const ServiceRequest: React.FC = () => {
     const [selectedService, setSelectedService] = useState('');
     const [quantity, setQuantity] = useState('');
     const [unit, setUnit] = useState<'TON' | 'CBM' | 'KG'>('TON');
-    const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+    const [date, setDate] = useState(new Date().toISOString().split('T')[0] ?? '');
     const [preferredTime, setPreferredTime] = useState('');
     const [priority, setPriority] = useState<'LOW' | 'NORMAL' | 'HIGH' | 'URGENT'>('NORMAL');
     const [notes, setNotes] = useState('');
@@ -157,25 +158,25 @@ const ServiceRequest: React.FC = () => {
             const project = projectMap[selectedProject];
             const newTripId = `REQ-${Date.now()}`;
 
-            const newTrip: any = {
+            const newTrip = {
                 trip_id: newTripId,
                 project_id: selectedProject,
                 company_id: project?.company_id || currentUser.company_id || '',
                 service_id: selectedService,
-                date,
+                date: date || new Date().toISOString().split('T')[0] || '',
                 time: preferredTime || '08:00',
-                preferred_time: preferredTime || null,
-                quantity: parseFloat(quantity) || 0,
+                preferred_time: preferredTime || '',
+                quantity: String(parseFloat(quantity) || 0),
                 unit,
                 status: TripStatus.REQUESTED,
                 priority,
-                driver_id: null,
-                vehicle_id: null,
-                facility_id: null,
-                notes: notes || null,
-                request_location_url: gpsUrl || null,
-                request_container_image: containerImage || null,
-                trip_location_url: gpsUrl || null,
+                driver_id: '',
+                vehicle_id: '',
+                facility_id: '',
+                notes: notes || '',
+                request_location_url: gpsUrl || '',
+                request_container_image: containerImage || '',
+                trip_location_url: gpsUrl || '',
             };
 
             await upsertTrip(newTrip);
@@ -377,7 +378,7 @@ const ServiceRequest: React.FC = () => {
                                 <select
                                     className="input-premium rounded-2xl py-4 px-4 font-bold text-text-main appearance-none min-w-[100px]"
                                     value={unit}
-                                    onChange={e => setUnit(e.target.value as any)}
+                                    onChange={e => setUnit(e.target.value as 'TON' | 'CBM' | 'KG')}
                                 >
                                     <option value="TON">TON</option>
                                     <option value="CBM">CBM</option>
@@ -524,7 +525,7 @@ const ServiceRequest: React.FC = () => {
                         </label>
                         {containerImage && (
                             <div className="w-16 h-16 rounded-xl overflow-hidden border-2 border-border">
-                                <img src={containerImage} alt="" className="w-full h-full object-cover" />
+                                <Image src={containerImage} alt="" className="w-full h-full object-cover" width={64} height={64} unoptimized />
                             </div>
                         )}
                     </div>

@@ -1,5 +1,6 @@
 
 import React from 'react';
+import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
 import LoginForm from '@/components/auth/LoginForm';
@@ -13,6 +14,7 @@ interface LoginModalProps {
 export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
     const { saasConfig, darkMode } = useStore();
     const isAr = saasConfig.language === 'ar';
+    const logoSrc = ((darkMode && saasConfig.logoDarkUrl) ? saasConfig.logoDarkUrl : saasConfig.logoUrl) || null;
 
     return (
         <AnimatePresence>
@@ -22,11 +24,11 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
                     <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 20 }} className="bg-surface w-full max-w-md rounded-2xl p-10 shadow-lg relative z-[201] border border-border transition-colors">
                         <button onClick={onClose} className={`absolute top-6 ${isAr ? 'left-6' : 'right-6'} p-2 bg-surface-subtle rounded-xl hover:bg-rose-50 hover:text-rose-500 transition-all`}><X size={18} className="text-text-subtle" /></button>
                         <div className="text-center mb-8">
-                            {((darkMode && saasConfig.logoDarkUrl) || saasConfig.logoUrl) ? (
-                                <img src={(darkMode && saasConfig.logoDarkUrl) ? saasConfig.logoDarkUrl : saasConfig.logoUrl} className="w-16 h-16 rounded-2xl object-cover mx-auto mb-4 shadow-xl shadow-primary-500/20" alt="App Logo" />
+                            {logoSrc ? (
+                                <Image src={logoSrc} className="w-16 h-16 rounded-2xl object-cover mx-auto mb-4 shadow-xl shadow-primary-500/20" alt="App Logo" width={64} height={64} unoptimized />
                             ) : (
                                 <div className="w-16 h-16 bg-surface rounded-2xl flex items-center justify-center overflow-hidden mx-auto mb-4 shadow-xl shadow-primary-500/10 border border-border/50">
-                                    <img src="/logo-light.png" alt="GCM" className="w-full h-full object-contain" />
+                                    <Image src="/logo-light.png" alt="GCM" className="w-full h-full object-contain" width={64} height={64} />
                                 </div>
                             )}
                             <h3 className="text-2xl font-bold text-text-main">{isAr ? 'بوابة الدخول' : 'Portal Login'}</h3>

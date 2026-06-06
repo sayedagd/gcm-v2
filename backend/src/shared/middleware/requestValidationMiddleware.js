@@ -1,4 +1,5 @@
 const WRITE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
+const { buildValidationError } = require('../utils/validationErrorContract');
 
 const isPlainObject = (value) => {
     return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
@@ -49,13 +50,14 @@ const validateAndSanitizeWritePayload = (req, res, next) => {
     }
 
     if (shouldValidateBodyShape(req) && req.body !== undefined && req.body !== null && !isPlainObject(req.body)) {
-        return res.status(400).json({
-            status: 'fail',
-            error: 'Invalid request body',
-            message: 'Write endpoints require a JSON object payload.',
+        const payload = buildValidationError({
             code: 'INVALID_BODY_SHAPE',
-            traceId: res.locals?.correlationId,
+            errorEn: 'Write endpoints require a JSON object payload.',
+            errorAr: 'نقاط الكتابة تتطلب حمولة JSON على شكل كائن.',
         });
+
+        payload.traceId = res.locals?.correlationId;
+        return res.status(400).json(payload);
     }
 
     if (isPlainObject(req.body)) {

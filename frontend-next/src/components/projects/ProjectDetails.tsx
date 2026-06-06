@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { Modal, Card, StatCard, Button, Select, Input } from '@/components';
 import { Project, Company, ProjectService, Service, Supplier, SupplierRate, Trip } from '@/types';
@@ -43,11 +44,12 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({
     qtyProgress,
     timeProgress
 }) => {
-    if (!project) return null;
+    const projectId = project?.project_id || '';
 
     const tripsPerServiceData = useMemo(() => {
-        const projectTrips = trips.filter(t => t.project_id === project.project_id);
-        const pServices = projectServices.filter(ps => ps.project_id === project.project_id);
+        if (!projectId) return [];
+        const projectTrips = trips.filter(t => t.project_id === projectId);
+        const pServices = projectServices.filter(ps => ps.project_id === projectId);
         return pServices.map(ps => {
             const svc = services.find(s => s.service_id === ps.service_id);
             // Count actual quantity consumed (sum of quantities, not trip count)
@@ -61,7 +63,9 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({
                 alertAt: Number(ps.warning_threshold) || 0
             };
         }).filter(d => d.target > 0 || d.actual > 0);
-    }, [trips, projectServices, services, project.project_id]);
+    }, [trips, projectServices, services, project, projectId]);
+
+    if (!project) return null;
 
     const servicesCount = projectServices.filter(ps => ps.project_id === project.project_id).length;
 
@@ -251,7 +255,7 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({
                     {/* Left Identity Card — Compact on mobile, full on desktop */}
                     <Card className="lg:col-span-1 p-4 bg-surface-subtle border-none shadow-inner flex flex-col items-center gap-4">
                         <div className="w-20 h-20 rounded-2xl bg-surface shadow-sm flex items-center justify-center border border-border overflow-hidden">
-                            {project.logo_url ? <img src={project.logo_url} onError={handleImageError} className="w-full h-full object-cover" /> : <Briefcase size={32} className="text-text-subtle" />}
+                            {project.logo_url ? <Image src={project.logo_url} onError={handleImageError} className="w-full h-full object-cover" alt={project.project_name} width={80} height={80} unoptimized /> : <Briefcase size={32} className="text-text-subtle" />}
                         </div>
                         <div className="text-center space-y-1 w-full">
                             <h2 className="text-base font-bold text-text-main tracking-tight uppercase line-clamp-2">{project.project_name}</h2>

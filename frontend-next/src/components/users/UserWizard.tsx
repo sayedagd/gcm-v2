@@ -1,21 +1,40 @@
 import React, { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { motion } from 'framer-motion';
 import {
     User as UserIcon, Mail, Lock, Shield, Building2, AlertCircle, UserPlus
 } from 'lucide-react';
 import { Modal, Button, Input } from '@/components';
-import { Role, Company, Project, Supplier } from '@/types';
+import { Role, Company, Project, Supplier, User } from '@/types';
 import { formatRole } from '@/utils/helpers';
+
+type EditableUser = (Partial<User> & { password?: string; avatar?: string }) | null;
+
+interface UserSavePayload {
+    name: string;
+    email: string;
+    password: string;
+    role: Role;
+    companyId?: string | undefined;
+    projectId?: string | undefined;
+    supplierId?: string | undefined;
+    avatar: string;
+}
+
+interface CurrentUserContext {
+    id?: string;
+    company_id?: string;
+}
 
 interface UserWizardProps {
     isOpen: boolean;
     onClose: () => void;
-    onSave: (userData: any) => void;
+    onSave: (userData: UserSavePayload) => void;
     isSubmitting?: boolean;
-    editingUser: any | null;
+    editingUser: EditableUser;
     isAr: boolean;
     isCompanyAdmin: boolean;
-    currentUser: any;
+    currentUser: CurrentUserContext;
     companies: Company[];
     projects: Project[];
     suppliers: Supplier[];
@@ -52,28 +71,36 @@ const UserWizard: React.FC<UserWizardProps> = ({
     const [error, setError] = useState('');
 
     useEffect(() => {
+        let timerId: number | undefined;
+
         if (isOpen) {
-            if (editingUser) {
-                setName(editingUser.name || '');
-                setEmail(editingUser.email || '');
-                setPassword(editingUser.password || '');
-                setRole(editingUser.role || (isCompanyAdmin ? Role.PROJECT_USER : Role.DATA_ENTRY));
-                setCompanyId(editingUser.company_id || '');
-                setProjectId(editingUser.project_id || '');
-                setSupplierId(editingUser.supplier_id || '');
-                setAvatar(editingUser.avatar || '');
-            } else {
-                setName('');
-                setEmail('');
-                setPassword('');
-                setRole(isCompanyAdmin ? Role.PROJECT_USER : Role.DATA_ENTRY);
-                setCompanyId(isCompanyAdmin ? currentUser.company_id! : '');
-                setProjectId('');
-                setSupplierId('');
-                setAvatar('');
-            }
-            setError('');
+            timerId = window.setTimeout(() => {
+                if (editingUser) {
+                    setName(editingUser.name || '');
+                    setEmail(editingUser.email || '');
+                    setPassword(editingUser.password || '');
+                    setRole(editingUser.role || (isCompanyAdmin ? Role.PROJECT_USER : Role.DATA_ENTRY));
+                    setCompanyId(editingUser.company_id || '');
+                    setProjectId(editingUser.project_id || '');
+                    setSupplierId(editingUser.supplier_id || '');
+                    setAvatar(editingUser.avatar || '');
+                } else {
+                    setName('');
+                    setEmail('');
+                    setPassword('');
+                    setRole(isCompanyAdmin ? Role.PROJECT_USER : Role.DATA_ENTRY);
+                    setCompanyId(isCompanyAdmin ? (currentUser.company_id || '') : '');
+                    setProjectId('');
+                    setSupplierId('');
+                    setAvatar('');
+                }
+                setError('');
+            }, 0);
         }
+
+        return () => {
+            if (timerId !== undefined) window.clearTimeout(timerId);
+        };
     }, [isOpen, editingUser, isCompanyAdmin, currentUser]);
 
     const validate = () => {
@@ -171,10 +198,13 @@ const UserWizard: React.FC<UserWizardProps> = ({
                                 />
                                 <div className="w-16 h-16 rounded-2xl bg-surface border-2 border-dashed border-border flex items-center justify-center text-text-subtle group-hover:border-primary transition-all overflow-hidden">
                                     {(avatar || name) ? (
-                                        <img
+                                        <Image
                                             src={avatar || '/logo.png'}
                                             alt="avatar"
                                             className="w-full h-full object-cover"
+                                            fill
+                                            sizes="64px"
+                                            unoptimized
                                         />
                                     ) : (
                                         <UserIcon size={24} />

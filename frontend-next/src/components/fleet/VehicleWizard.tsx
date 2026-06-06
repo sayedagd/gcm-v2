@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Shield, Paperclip, X, Plus, CheckCircle2, Sparkles, AlertCircle, Camera, Image, RotateCw } from 'lucide-react';
+import NextImage from 'next/image';
+import { Shield, Paperclip, X, Plus, CheckCircle2, Sparkles, AlertCircle, Camera, Image as ImageIcon, RotateCw } from 'lucide-react';
 import { Button, Input, Select } from '@/components';
 import { Vehicle, Supplier, PermitEntry, VehicleDocument, DocumentStatus, Service } from '@/types';
 import { motion } from 'framer-motion';
@@ -44,39 +45,43 @@ const VehicleWizard: React.FC<VehicleWizardProps> = ({
     const backPhotoRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
-        setLocalVehicle(currentVehicle ?? {});
-        if (currentVehicle) {
-            // Plate Sync
-            const parts = (currentVehicle.plate_no || '').split(' ');
-            if (parts.length === 2) {
-                setPlateDigits(parts[0] || '');
-                setPlateLetters(parts[1] || '');
-            } else {
-                setPlateDigits('');
-                setPlateLetters('');
-            }
+        const timerId = window.setTimeout(() => {
+            setLocalVehicle(currentVehicle ?? {});
+            if (currentVehicle) {
+                // Plate Sync
+                const parts = (currentVehicle.plate_no || '').split(' ');
+                if (parts.length === 2) {
+                    setPlateDigits(parts[0] || '');
+                    setPlateLetters(parts[1] || '');
+                } else {
+                    setPlateDigits('');
+                    setPlateLetters('');
+                }
 
-            // Permits Sync
-            try {
-                const storedPermits = JSON.parse(currentVehicle.permit_zones || '[]');
-                setPermits(Array.isArray(storedPermits) ? storedPermits : []);
-            } catch (e) {
-                setPermits([]);
-            }
+                // Permits Sync
+                try {
+                    const storedPermits = JSON.parse(currentVehicle.permit_zones || '[]');
+                    setPermits(Array.isArray(storedPermits) ? storedPermits : []);
+                } catch (_error) {
+                    setPermits([]);
+                }
 
-            // Documents Sync & Default Init if Empty
-            if (currentVehicle.documents && currentVehicle.documents.length > 0) {
-                setDocuments(currentVehicle.documents);
-            } else {
-                // Define required documents
-                setDocuments([
-                    { id: `DOC-RC-${Date.now()}`, type: 'Registration Card', number: '', expiry_date: '', status: DocumentStatus.EXPIRED, progress_weight: 30 },
-                    { id: `DOC-INS-${Date.now()}`, type: 'Insurance', number: '', expiry_date: '', status: DocumentStatus.EXPIRED, progress_weight: 30 },
-                    { id: `DOC-FIT-${Date.now()}`, type: 'Fitness', number: '', expiry_date: '', status: DocumentStatus.EXPIRED, progress_weight: 20 },
-                    { id: `DOC-IC-${Date.now()}`, type: 'Inspection Certificate', number: '', expiry_date: '', status: DocumentStatus.EXPIRED, progress_weight: 20 }
-                ]);
+                // Documents Sync & Default Init if Empty
+                if (currentVehicle.documents && currentVehicle.documents.length > 0) {
+                    setDocuments(currentVehicle.documents);
+                } else {
+                    // Define required documents
+                    setDocuments([
+                        { id: `DOC-RC-${Date.now()}`, type: 'Registration Card', number: '', expiry_date: '', status: DocumentStatus.EXPIRED, progress_weight: 30 },
+                        { id: `DOC-INS-${Date.now()}`, type: 'Insurance', number: '', expiry_date: '', status: DocumentStatus.EXPIRED, progress_weight: 30 },
+                        { id: `DOC-FIT-${Date.now()}`, type: 'Fitness', number: '', expiry_date: '', status: DocumentStatus.EXPIRED, progress_weight: 20 },
+                        { id: `DOC-IC-${Date.now()}`, type: 'Inspection Certificate', number: '', expiry_date: '', status: DocumentStatus.EXPIRED, progress_weight: 20 }
+                    ]);
+                }
             }
-        }
+        }, 0);
+
+        return () => window.clearTimeout(timerId);
     }, [currentVehicle?.vehicle_id]); // Only re-run when ID changes, preventing loops
 
     const handlePlateChange = (digits: string, letters: string) => {
@@ -87,14 +92,14 @@ const VehicleWizard: React.FC<VehicleWizardProps> = ({
         if (plateError) setPlateError('');
     };
 
-    const updateDocument = (idx: number, key: keyof VehicleDocument, value: any) => {
+    const updateDocument = (idx: number, key: keyof VehicleDocument, value: VehicleDocument[keyof VehicleDocument]) => {
         const newDocs = [...documents];
         const currentDoc = newDocs[idx];
         if (!currentDoc) return;
         newDocs[idx] = { ...currentDoc, [key]: value };
 
         // Auto-calculate status if date changes
-        if (key === 'expiry_date') {
+        if (key === 'expiry_date' && typeof value === 'string') {
             const expiry = new Date(value);
             const now = new Date();
             const diffTime = expiry.getTime() - now.getTime();
@@ -271,7 +276,7 @@ const VehicleWizard: React.FC<VehicleWizardProps> = ({
                     <Select
                         label={isAr ? 'الحالة التشغيلية' : 'Operational Status'}
                         value={localVehicle?.status || ''}
-                        onChange={val => setLocalVehicle(prev => ({ ...prev, status: val as any }))}
+                        onChange={val => setLocalVehicle(prev => ({ ...prev, status: val as Vehicle['status'] }))}
                         options={[
                             { label: 'READY / ACTIVE', value: 'ACTIVE' },
                             { label: 'IN MAINTENANCE', value: 'MAINTENANCE' },
@@ -330,7 +335,7 @@ const VehicleWizard: React.FC<VehicleWizardProps> = ({
                         >
                             {localVehicle?.photo_front ? (
                                 <>
-                                    <img src={localVehicle.photo_front} className="w-full h-full object-cover" />
+                                    <NextImage src={localVehicle.photo_front} className="w-full h-full object-cover" alt={isAr ? 'صورة أمامية للمعدة' : 'Vehicle front photo'} fill sizes="(max-width: 768px) 100vw, 50vw" unoptimized />
                                     <div className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 flex items-center justify-center gap-2 transition-all">
                                         <button onClick={() => frontPhotoRef.current?.click()} className="p-2 bg-white/20 hover:bg-white/40 rounded-lg text-white backdrop-blur-md"><RotateCw size={18} /></button>
                                         <button onClick={() => setLocalVehicle(prev => {
@@ -341,7 +346,7 @@ const VehicleWizard: React.FC<VehicleWizardProps> = ({
                                 </>
                             ) : (
                                 <button onClick={() => frontPhotoRef.current?.click()} className="flex flex-col items-center gap-2 text-text-subtle hover:text-primary-500 transition-colors">
-                                    <Image size={32} strokeWidth={1.5} />
+                                    <ImageIcon size={32} strokeWidth={1.5} />
                                     <span className="text-[9px] font-bold uppercase">{isAr ? 'ارفع صورة' : 'Upload Front'}</span>
                                 </button>
                             )}
@@ -357,7 +362,7 @@ const VehicleWizard: React.FC<VehicleWizardProps> = ({
                         >
                             {localVehicle?.photo_back ? (
                                 <>
-                                    <img src={localVehicle.photo_back} className="w-full h-full object-cover" />
+                                    <NextImage src={localVehicle.photo_back} className="w-full h-full object-cover" alt={isAr ? 'صورة خلفية للمعدة' : 'Vehicle back photo'} fill sizes="(max-width: 768px) 100vw, 50vw" unoptimized />
                                     <div className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 flex items-center justify-center gap-2 transition-all">
                                         <button onClick={() => backPhotoRef.current?.click()} className="p-2 bg-white/20 hover:bg-white/40 rounded-lg text-white backdrop-blur-md"><RotateCw size={18} /></button>
                                         <button onClick={() => setLocalVehicle(prev => {
@@ -368,7 +373,7 @@ const VehicleWizard: React.FC<VehicleWizardProps> = ({
                                 </>
                             ) : (
                                 <button onClick={() => backPhotoRef.current?.click()} className="flex flex-col items-center gap-2 text-text-subtle hover:text-primary-500 transition-colors">
-                                    <Image size={32} strokeWidth={1.5} />
+                                    <ImageIcon size={32} strokeWidth={1.5} />
                                     <span className="text-[9px] font-bold uppercase">{isAr ? 'ارفع صورة' : 'Upload Back'}</span>
                                 </button>
                             )}

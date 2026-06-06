@@ -1,12 +1,19 @@
 import { create } from 'zustand';
-import axios from 'axios';
+import axios, { AxiosHeaders } from 'axios';
 import { SupplierRate } from '@/types';
+import { getClientAuthHeaders } from '@/lib/clientAuth';
 
-/** Auth-aware axios instance — automatically injects the JWT token from localStorage */
-const authAxios = axios.create();
+/** Auth-aware axios instance — uses cookie-backed auth context for requests. */
+const authAxios = axios.create({ withCredentials: true });
 authAxios.interceptors.request.use((config) => {
-    const token = localStorage.getItem('gcm_jwt_token');
-    if (token) config.headers['Authorization'] = `Bearer ${token}`;
+    const authHeaders = getClientAuthHeaders();
+    if (Object.keys(authHeaders).length > 0) {
+        const headers = AxiosHeaders.from(config.headers);
+        for (const [key, value] of Object.entries(authHeaders)) {
+            headers.set(key, value);
+        }
+        config.headers = headers;
+    }
     return config;
 });
 
@@ -26,7 +33,7 @@ export const useSupplierRatesStore = create<SupplierRatesStore>((set) => ({
     fetchRates: async () => {
         set({ isLoading: true });
         try {
-            const { data } = await authAxios.get('/api/project_supplier_rates');
+            const { data } = await authAxios.get('/api/v1/project_supplier_rates');
             set({ rates: data });
         } catch (error) {
             console.error('Failed to fetch supplier rates:', error);
@@ -37,7 +44,7 @@ export const useSupplierRatesStore = create<SupplierRatesStore>((set) => ({
 
     addRate: async (rate) => {
         try {
-            const { data } = await authAxios.post('/api/project_supplier_rates', rate);
+            const { data } = await authAxios.post('/api/v1/project_supplier_rates', rate);
             if (data.status === 'success') {
                 const newRate = { ...rate, id: data.id } as SupplierRate;
                 set(state => ({ rates: [...state.rates, newRate] }));
@@ -50,7 +57,7 @@ export const useSupplierRatesStore = create<SupplierRatesStore>((set) => ({
 
     updateRate: async (id, rate) => {
         try {
-            await authAxios.post('/api/project_supplier_rates', { id, ...rate });
+            await authAxios.post('/api/v1/project_supplier_rates', { id, ...rate });
             set(state => ({
                 rates: state.rates.map(r => r.id === id ? { ...r, ...rate } : r)
             }));

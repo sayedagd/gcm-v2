@@ -1,13 +1,21 @@
+"use client";
+
 import React from 'react';
+import dynamic from 'next/dynamic';
 import {
     Container as SkipIcon, Droplet, Scale, Activity, MapPin, Shield,
     Globe, Edit2, DownloadCloud, Calendar, Wrench, Building2, TrendingUp, CheckCircle2
 } from 'lucide-react';
-import { Card, StatCard, Button } from '@/components';
+import Card from '@/components/ui/Card';
+import StatCard from '@/components/ui/StatCard';
+import Button from '@/components/ui/Button';
 import { InventorySize, Project, Trip } from '@/types';
 import { printInventoryDossier } from '@/utils/exportHelpers';
 import { useStore } from '@/context';
-import AssetMap from './AssetMap';
+
+const AssetMap = dynamic(() => import('./AssetMap'), {
+    ssr: false,
+});
 
 const { useMemo } = React;
 

@@ -5,6 +5,11 @@ const nextBase = (process.env.PARITY_NEXT_BASE_URL || "").trim();
 const backendBase = (process.env.PARITY_BACKEND_BASE_URL || "").trim();
 const timeoutMs = Number.parseInt(process.env.PARITY_TIMEOUT_MS || "10000", 10);
 const dryRun = process.env.PARITY_DRY_RUN === "true";
+const allowProductionBaseline = process.env.PARITY_ALLOW_PRODUCTION_BASELINE === "true";
+const productionHosts = (process.env.PARITY_PRODUCTION_HOSTS || "gcm.twision.agency,frontend-next-chi-eight.vercel.app")
+  .split(",")
+  .map((host) => host.trim().toLowerCase())
+  .filter(Boolean);
 
 const routeChecks = [
   { route: "/landing" },
@@ -19,6 +24,21 @@ const routeChecks = [
 if (!dryRun && (!baselineBase || !nextBase || !backendBase)) {
   console.error("[parity] Missing required env vars: PARITY_BASELINE_FRONTEND_URL, PARITY_NEXT_BASE_URL, PARITY_BACKEND_BASE_URL");
   process.exit(1);
+}
+
+if (!dryRun && !allowProductionBaseline) {
+  try {
+    const baselineHost = new URL(baselineBase).hostname.toLowerCase();
+    if (productionHosts.includes(baselineHost)) {
+      console.error(
+        "[parity] PARITY_BASELINE_FRONTEND_URL points to a protected production host. Use a staging alias or set PARITY_ALLOW_PRODUCTION_BASELINE=true to override.",
+      );
+      process.exit(1);
+    }
+  } catch {
+    console.error("[parity] PARITY_BASELINE_FRONTEND_URL must be a valid absolute URL.");
+    process.exit(1);
+  }
 }
 
 if (dryRun) {

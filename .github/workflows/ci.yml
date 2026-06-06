@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install backend deps
+        run: npm ci
+
+      - name: Backend CI checks
+        run: npm run ci:check
+
+      - name: Backend auth regression tests
+        run: npm test -- --runInBand src/__tests__/unit/loginValidation.test.js src/__tests__/unit/loginLegacyMigration.test.js src/__tests__/unit/loginPasswordHashing.test.js
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend-next
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend-next/package-lock.json
+
+      - name: Install frontend deps
+        run: npm ci
+
+      - name: Frontend lint and policy checks
+        run: npm run lint
+
+      - name: Frontend focused tests
+        run: npx vitest run src/proxy.test.ts src/lib/server/writeProxy.test.ts src/features/auth/api/loginAction.test.ts
+
+      - name: Frontend production build check
+        run: npx next build --webpack

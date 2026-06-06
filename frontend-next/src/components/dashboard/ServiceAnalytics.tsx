@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { BarChart, Bar, PieChart, Pie, LineChart, Line, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { useStore } from '@/context';
-import { Card } from '@/components';
+import Card from '@/components/ui/Card';
 import { TrendingUp, Layers, Activity, Award } from 'lucide-react';
 
 interface ServiceAnalyticsProps {

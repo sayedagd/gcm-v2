@@ -1,4 +1,5 @@
 import React from 'react';
+import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { Card, Button } from '@/components';
 import { Company, Project } from '@/types';
@@ -31,9 +32,9 @@ const CompanyCard: React.FC<CompanyCardProps> = ({
                     <div className="flex items-center gap-4">
                         <div className="w-16 h-16 rounded-xl bg-primary-600 border-2 border-primary-500/20 shadow-xl shadow-primary-500/20 flex items-center justify-center overflow-hidden shrink-0 group-hover:scale-105 transition-transform duration-500">
                             {company.logo_url ? (
-                                <img src={company.logo_url} className="w-full h-full object-contain bg-white" onError={handleImageError} />
+                                <Image src={company.logo_url} className="w-full h-full object-contain bg-white" onError={handleImageError} alt={company.company_name} width={64} height={64} unoptimized />
                             ) : (
-                                <img src="/logo-light.png" className="w-full h-full object-contain bg-white" alt="GCM" />
+                                <Image src="/logo-light.png" className="w-full h-full object-contain bg-white" alt="GCM" width={64} height={64} />
                             )}
                         </div>
                         <div>

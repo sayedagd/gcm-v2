@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import Image from 'next/image';
 import {
     Building2, Scale, Truck, ChevronDown, Briefcase, Calendar, AlertCircle,
     Wallet, TrendingDown, AlertTriangle, ShieldAlert, CheckCircle2
@@ -21,8 +22,51 @@ interface ServiceAlert {
     level: 'WARNING' | 'CRITICAL' | 'EXCEEDED';
 }
 
+interface CompanyInfo {
+    company_id: string;
+    company_name: string;
+    logo_url?: string;
+    commercial_reg?: string;
+}
+
+interface ProjectInfo {
+    project_id: string;
+    project_name: string;
+    budget?: number;
+    start_date?: string;
+    end_date?: string;
+}
+
+interface ServiceInfo {
+    service_id?: string;
+    service_name?: string;
+}
+
+interface AccountantService {
+    info?: ServiceInfo;
+    trips?: number;
+    qty?: number;
+    unit?: string;
+    cost?: number;
+}
+
+interface AccountantProject {
+    info: ProjectInfo;
+    totalQty?: number;
+    totalTrips?: number;
+    spent?: number;
+    services: Record<string, AccountantService>;
+}
+
+interface AccountantCompany {
+    info: CompanyInfo;
+    totalQty?: number;
+    totalTrips?: number;
+    projects: Record<string, AccountantProject>;
+}
+
 interface CompanyFinancialsProps {
-    accountantData: any[];
+    accountantData: unknown[];
     projectServices: ProjectService[];
     isAr: boolean;
     resetFilters: () => void;
@@ -30,6 +74,7 @@ interface CompanyFinancialsProps {
 
 const CompanyFinancials: React.FC<CompanyFinancialsProps> = ({ accountantData, projectServices, isAr, resetFilters }) => {
     const [expandedCompanies, setExpandedCompanies] = useState<string[]>([]);
+    const normalizedData = accountantData as AccountantCompany[];
 
     const toggleCompany = (id: string) => {
         setExpandedCompanies(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
@@ -47,9 +92,9 @@ const CompanyFinancials: React.FC<CompanyFinancialsProps> = ({ accountantData, p
     // Compute all service consumption alerts across all companies/projects
     const alerts = useMemo<ServiceAlert[]>(() => {
         const result: ServiceAlert[] = [];
-        accountantData.forEach((company: any) => {
-            Object.values(company.projects).forEach((proj: any) => {
-                Object.values(proj.services).forEach((svc: any) => {
+        normalizedData.forEach((company: AccountantCompany) => {
+            Object.values(company.projects).forEach((proj: AccountantProject) => {
+                Object.values(proj.services).forEach((svc: AccountantService) => {
                     const key = `${proj.info.project_id}::${svc.info?.service_id}`;
                     const ps = psLookup[key];
                     if (!ps) return;
@@ -86,9 +131,9 @@ const CompanyFinancials: React.FC<CompanyFinancialsProps> = ({ accountantData, p
         const order = { EXCEEDED: 0, CRITICAL: 1, WARNING: 2 };
         result.sort((a, b) => order[a.level] - order[b.level]);
         return result;
-    }, [accountantData, psLookup]);
+    }, [normalizedData, psLookup]);
 
-    const getProjectTimeline = (project: any) => {
+    const getProjectTimeline = (project: ProjectInfo) => {
         const today = new Date();
         const startDate = project.start_date ? new Date(project.start_date) : null;
         const endDate = project.end_date ? new Date(project.end_date) : null;
@@ -237,33 +282,33 @@ const CompanyFinancials: React.FC<CompanyFinancialsProps> = ({ accountantData, p
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <StatCard
                     title={isAr ? 'إجمالي الكمية (مفلترة)' : 'Net Quantity (Filtered)'}
-                    value={formatNumber(accountantData.reduce((acc: any, c: any) => acc + (c.totalQty || 0), 0) as number)}
+                    value={formatNumber(normalizedData.reduce((acc: number, c: AccountantCompany) => acc + (c.totalQty || 0), 0))}
                     unit={isAr ? 'وحدة' : 'Qty'}
                     icon={Scale}
                     variant="primary"
                 />
                 <StatCard
                     title={isAr ? 'عدد الردود (مفلترة)' : 'Total Volume (Filtered)'}
-                    value={formatNumber(accountantData.reduce((acc: any, c: any) => acc + (c.totalTrips || 0), 0) as number)}
+                    value={formatNumber(normalizedData.reduce((acc: number, c: AccountantCompany) => acc + (c.totalTrips || 0), 0))}
                     unit={isAr ? 'رد' : 'Trips'}
                     icon={Truck}
                     variant="blue"
                 />
                 <StatCard
                     title={isAr ? 'العملاء النشطون (مفلترة)' : 'Active Portfolios (Filtered)'}
-                    value={formatNumber(accountantData.length)}
+                    value={formatNumber(normalizedData.length)}
                     icon={Building2}
                     variant="purple"
                 />
             </div>
 
             {/* COMPANIES LIST */}
-            {accountantData.map((company: any) => (
+            {normalizedData.map((company: AccountantCompany) => (
                 <Card key={company.info.company_id} className="overflow-hidden p-0">
                     <div onClick={() => toggleCompany(company.info.company_id)} className="p-8 md:p-10 flex flex-col md:flex-row md:items-center justify-between gap-8 cursor-pointer group hover:bg-surface-subtle transition-colors">
                         <div className="flex items-center gap-6">
-                            <div className="w-24 h-24 bg-surface-subtle rounded-xl flex items-center justify-center text-text-subtle group-hover:bg-purple-600 group-hover:text-white transition-all duration-500">
-                                {company.info.logo_url ? <img src={company.info.logo_url} className="w-12 h-12 object-contain" alt="" /> : <Building2 size={36} />}
+                            <div className="relative w-24 h-24 bg-surface-subtle rounded-xl flex items-center justify-center text-text-subtle group-hover:bg-purple-600 group-hover:text-white transition-all duration-500">
+                                {company.info.logo_url ? <Image src={company.info.logo_url} className="w-12 h-12 object-contain" alt="" width={48} height={48} unoptimized /> : <Building2 size={36} />}
                             </div>
                             <div>
                                 <h3 className="text-2xl font-bold text-text-main group-hover:text-purple-600 transition-colors tracking-tight">{company.info.company_name}</h3>
@@ -286,7 +331,7 @@ const CompanyFinancials: React.FC<CompanyFinancialsProps> = ({ accountantData, p
                         {expandedCompanies.includes(company.info.company_id) && (
                             <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="bg-surface-subtle border-t border-border">
                                 <div className="p-8 md:p-10 space-y-8">
-                                    {Object.values(company.projects).map((proj: any) => {
+                                    {Object.values(company.projects).map((proj: AccountantProject) => {
                                         const timeline = getProjectTimeline(proj.info);
                                         const hasMissingData = !proj.info.budget || !proj.info.start_date || !proj.info.end_date;
 
@@ -379,8 +424,8 @@ const CompanyFinancials: React.FC<CompanyFinancialsProps> = ({ accountantData, p
 
                                                 {/* Enhanced Services Table with Consumption Tracking */}
                                                 <div className="space-y-3">
-                                                    {Object.values(proj.services).map((svc: any) => {
-                                                        const consumption = getConsumption(proj.info.project_id, svc.info?.service_id, svc.trips || 0);
+                                                    {Object.values(proj.services).map((svc: AccountantService) => {
+                                                        const consumption = getConsumption(proj.info.project_id, svc.info?.service_id || '', svc.trips || 0);
                                                         const barColor = consumption
                                                             ? consumption.exceeded ? 'bg-red-500' : consumption.critical ? 'bg-orange-500' : consumption.atThreshold ? 'bg-amber-500' : 'bg-emerald-500'
                                                             : 'bg-gray-300';

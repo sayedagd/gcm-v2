@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import Image from 'next/image';
 import { useStore } from '@/context';
 import { Trip, TripStatus, NotificationType } from '@/types';
 import { Modal, Button, Input, Select, SearchableSelect, Card } from '@/components';
@@ -42,25 +43,33 @@ const DriverTripWizard: React.FC<DriverTripWizardProps> = ({ isOpen, onClose }) 
 
     // Reset when opened — auto-capture date, time, vehicle, driver
     useEffect(() => {
+        let timerId: number | undefined;
+
         if (isOpen) {
             const assignedDriver = drivers.find(d => d.user_id === currentUser.id || d.name === currentUser.name || d.driver_id === currentUser.id);
-            const assignedVehicleId = assignedDriver?.vehicle_id || (currentUser as any).vehicle_id || '';
+            const assignedVehicleId = assignedDriver?.vehicle_id || ((currentUser as { vehicle_id?: string }).vehicle_id || '');
             const now = new Date();
 
-            setStep(1);
-            setSizeType('CONTAINER');
-            setTripData({
-                date: formatDate(now.toISOString(), 'yyyy-MM-dd'),
-                time: formatDate(now.toISOString(), 'HH:mm'),
-                supplier_id: currentUser.supplier_id || '',
-                vehicle_id: assignedVehicleId,
-                driver_id: assignedDriver?.driver_id || currentUser.id || '',
-                unit: 'CBM',
-                quantity: '0',
-                priority: 'NORMAL',
-            });
-            setError('');
+            timerId = window.setTimeout(() => {
+                setStep(1);
+                setSizeType('CONTAINER');
+                setTripData({
+                    date: formatDate(now.toISOString(), 'yyyy-MM-dd'),
+                    time: formatDate(now.toISOString(), 'HH:mm'),
+                    supplier_id: currentUser.supplier_id || '',
+                    vehicle_id: assignedVehicleId,
+                    driver_id: assignedDriver?.driver_id || currentUser.id || '',
+                    unit: 'CBM',
+                    quantity: '0',
+                    priority: 'NORMAL',
+                });
+                setError('');
+            }, 0);
         }
+
+        return () => {
+            if (timerId !== undefined) window.clearTimeout(timerId);
+        };
     }, [isOpen, currentUser, drivers]);
 
     // Derived lists
@@ -88,11 +97,21 @@ const DriverTripWizard: React.FC<DriverTripWizardProps> = ({ isOpen, onClose }) 
 
     // Auto-select company if project is selected through OCR
     useEffect(() => {
+        let timerId: number | undefined;
+
         if (tripData.project_id && !tripData.company_id) {
             const p = projects.find(x => x.project_id === tripData.project_id);
-            if (p) setTripData(prev => ({ ...prev, company_id: p.company_id }));
+            if (p) {
+                timerId = window.setTimeout(() => {
+                    setTripData(prev => ({ ...prev, company_id: p.company_id }));
+                }, 0);
+            }
         }
-    }, [tripData.project_id, projects]);
+
+        return () => {
+            if (timerId !== undefined) window.clearTimeout(timerId);
+        };
+    }, [tripData.project_id, tripData.company_id, projects]);
 
     // Helper: detect if a service is sewage/water type
     const isSewageOrWater = React.useCallback((serviceId: string) => {
@@ -110,15 +129,19 @@ const DriverTripWizard: React.FC<DriverTripWizardProps> = ({ isOpen, onClose }) 
         const isTank = isSewageOrWater(tripData.service_id);
         const newType = isTank ? 'TANK' : 'CONTAINER';
 
-        setSizeType(newType);
-        // Auto-select size if only one option available
-        const sizes = inventorySizes.filter(sz => sz.type === newType);
-        const singleSize = sizes.length === 1 ? sizes[0] : undefined;
-        if (singleSize) {
-            setTripData(p => ({ ...p, container_size: singleSize.name, unit: 'CBM' }));
-        } else {
-            setTripData(p => ({ ...p, container_size: '', unit: 'CBM' }));
-        }
+        const timerId = window.setTimeout(() => {
+            setSizeType(newType);
+            // Auto-select size if only one option available
+            const sizes = inventorySizes.filter(sz => sz.type === newType);
+            const singleSize = sizes.length === 1 ? sizes[0] : undefined;
+            if (singleSize) {
+                setTripData(p => ({ ...p, container_size: singleSize.name, unit: 'CBM' }));
+            } else {
+                setTripData(p => ({ ...p, container_size: '', unit: 'CBM' }));
+            }
+        }, 0);
+
+        return () => window.clearTimeout(timerId);
     }, [tripData.service_id, isSewageOrWater, inventorySizes]);
 
     const validateStep = (s: number) => {
@@ -230,7 +253,7 @@ const DriverTripWizard: React.FC<DriverTripWizardProps> = ({ isOpen, onClose }) 
         };
 
         try {
-            await upsertTrip(finalData as any);
+            await upsertTrip(finalData as unknown as Trip);
 
             // [PERF] Close immediately — notifications are fire-and-forget
             onClose(finalData as Trip);
@@ -249,9 +272,10 @@ const DriverTripWizard: React.FC<DriverTripWizardProps> = ({ isOpen, onClose }) 
                 type: NotificationType.SUCCESS
             });
 
-        } catch (err: any) {
+        } catch (err: unknown) {
+            const errorData = (err as { message?: string; messageEn?: string }) || {};
             // Filter out backend validation errors for fields the driver doesn't control
-            const msg = err?.message || err?.messageEn || '';
+            const msg = errorData.message || errorData.messageEn || '';
             const irrelevantFields = ['quantity', 'الكمية', 'facility', 'المنشأة'];
             const isIrrelevantError = irrelevantFields.some(f => msg.toLowerCase().includes(f.toLowerCase()));
             
@@ -425,7 +449,7 @@ const DriverTripWizard: React.FC<DriverTripWizardProps> = ({ isOpen, onClose }) 
                                 />
                                 {tripData.request_container_image ? (
                                     <div className="relative w-full h-40 rounded-xl overflow-hidden shadow-sm border border-border">
-                                        <img src={tripData.request_container_image} alt="Proof" className="w-full h-full object-cover" />
+                                        <Image src={tripData.request_container_image} alt="Proof" className="w-full h-full object-cover" fill sizes="100vw" unoptimized />
                                         <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
                                             <p className="text-white text-xs font-bold">{isAr ? 'تغيير الصورة' : 'Change Image'}</p>
                                         </div>

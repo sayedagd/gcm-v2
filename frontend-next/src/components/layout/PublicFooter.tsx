@@ -1,12 +1,20 @@
 
 import React from 'react';
+import Image from 'next/image';
 import { Facebook, Twitter, Linkedin, Instagram, Youtube, MessageSquare, Globe } from 'lucide-react';
 import { useStore } from '@/context';
+
+type SocialLink = {
+    id: string;
+    url: string;
+    platform: string;
+};
 
 export const PublicFooter: React.FC = () => {
     const { saasConfig, darkMode } = useStore();
     const isAr = saasConfig.language === 'ar';
     const lp = saasConfig.landingPage;
+    const logoSrc = ((darkMode && saasConfig.logoDarkUrl) ? saasConfig.logoDarkUrl : saasConfig.logoUrl) || null;
 
     const getSocialIcon = (platform: string) => {
         switch (platform) {
@@ -26,11 +34,11 @@ export const PublicFooter: React.FC = () => {
                 {/* Column 1: Brand & About */}
                 <div className="lg:col-span-2 space-y-8">
                     <div className="flex items-center gap-4">
-                        {((darkMode && saasConfig.logoDarkUrl) || saasConfig.logoUrl) ? (
-                            <img src={(darkMode && saasConfig.logoDarkUrl) ? saasConfig.logoDarkUrl : saasConfig.logoUrl} className="w-14 h-14 rounded-2xl object-cover shadow-lg" alt="App Logo" />
+                        {logoSrc ? (
+                            <Image src={logoSrc} className="w-14 h-14 rounded-2xl object-cover shadow-lg" alt="App Logo" width={56} height={56} unoptimized />
                         ) : (
                             <div className="w-14 h-14 bg-surface rounded-2xl flex items-center justify-center overflow-hidden shadow-lg border border-border/50">
-                                <img src="/assets/logo_gcm.png" alt="GCM" className="w-full h-full object-contain" />
+                                <Image src="/assets/logo_gcm.png" alt="GCM" className="w-full h-full object-contain" width={56} height={56} />
                             </div>
                         )}
                         <div className="flex flex-col">
@@ -41,7 +49,7 @@ export const PublicFooter: React.FC = () => {
                     <p className="text-text-subtle font-medium leading-relaxed max-w-sm">{isAr ? lp?.footerAboutAr : lp?.footerAboutEn}</p>
                     
                     <div className="flex gap-3">
-                        {(lp?.socialLinks || []).map((link: any) => (
+                        {(lp?.socialLinks || []).map((link: SocialLink) => (
                             <a key={link.id} href={link.url} target="_blank" rel="noopener noreferrer" className="p-3 bg-surface-subtle rounded-xl text-text-subtle hover:text-primary-500 transition-all border border-border hover:shadow-lg">
                                 {getSocialIcon(link.platform)}
                             </a>
@@ -61,8 +69,8 @@ export const PublicFooter: React.FC = () => {
                                 {isAr ? 'المتجر الإلكتروني' : 'Online Store'}
                             </a>
                         )}
-                        <a href="#services" className="hover:text-primary-500 transition-colors">{isAr ? 'خدماتنا' : 'Our Services'}</a>
-                        <a href="#contact" className="hover:text-primary-500 transition-colors">{isAr ? 'تواصل معنا' : 'Contact'}</a>
+                        <a href="/landing#services" className="hover:text-primary-500 transition-colors">{isAr ? 'خدماتنا' : 'Our Services'}</a>
+                        <a href="/landing#contact" className="hover:text-primary-500 transition-colors">{isAr ? 'تواصل معنا' : 'Contact'}</a>
                     </div>
                 </div>
 

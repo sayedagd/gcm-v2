@@ -1,4 +1,5 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState } from 'react';
+import Image from 'next/image';
 import { useStore } from '@/context';
 import { Role, Trip, TripStatus, NotificationType } from '@/types';
 import { Modal, Button } from '@/components';
@@ -37,11 +38,11 @@ export const SignatureApproveModal: React.FC<SignatureApproveModalProps> = ({ is
     const [hasDrawn, setHasDrawn] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    // Data State
-    const [stampData, setStampData] = useState<string | undefined>(undefined);
-    const [signatureData, setSignatureData] = useState<string | undefined>(undefined);
-    const [selectedParentServiceId, setSelectedParentServiceId] = useState<string>('');
-    const [selectedServiceId, setSelectedServiceId] = useState<string>('');
+    // Data overrides (undefined = follow derived defaults, null = explicitly cleared)
+    const [stampOverride, setStampOverride] = useState<string | null | undefined>(undefined);
+    const [signatureOverride, setSignatureOverride] = useState<string | null | undefined>(undefined);
+    const [selectedParentServiceOverride, setSelectedParentServiceOverride] = useState<string | undefined>(undefined);
+    const [selectedServiceOverride, setSelectedServiceOverride] = useState<string | undefined>(undefined);
 
     // Scoped services — only those contracted for this trip's project
     const scopedServices = (projectServices || [])
@@ -58,6 +59,25 @@ export const SignatureApproveModal: React.FC<SignatureApproveModalProps> = ({ is
         return svc ? { value: svc.service_id, label: svc.service_name } : null;
     }).filter(Boolean) as { value: string; label: string }[];
 
+    const initialParentServiceId = (() => {
+        if (!trip?.service_id) return '';
+        const svc = services.find(s => s.service_id === trip.service_id);
+        return svc?.parent_id || trip.service_id;
+    })();
+
+    const selectedParentServiceId = selectedParentServiceOverride ?? initialParentServiceId;
+    const selectedServiceId = selectedServiceOverride ?? (trip?.service_id || '');
+
+    const stampData = stampOverride === undefined
+        ? (shouldPreFill ? currentUser?.stamp : undefined)
+        : (stampOverride || undefined);
+
+    const signatureData = signatureOverride === undefined
+        ? (shouldPreFill ? currentUser?.signature : undefined)
+        : (signatureOverride || undefined);
+
+    const effectiveHasDrawn = hasDrawn || !!signatureData;
+
     // Sub-services for the selected parent
     const subServicesForDropdown = selectedParentServiceId
         ? scopedServices.filter(s => s.parent_id === selectedParentServiceId)
@@ -66,27 +86,22 @@ export const SignatureApproveModal: React.FC<SignatureApproveModalProps> = ({ is
     // Check if we have a tree structure (parent → child)
     const hasServiceTree = parentServicesForDropdown.length > 0 && scopedServices.some(s => s.parent_id);
 
-    useEffect(() => {
-        if (!isOpen) return;
-
-        setStampData(shouldPreFill ? currentUser?.stamp : undefined);
-        setSignatureData(shouldPreFill ? currentUser?.signature : undefined);
-        setHasDrawn(shouldPreFill ? !!currentUser?.signature : false);
-        setSelectedServiceId(trip?.service_id || '');
-
-        // Auto-detect parent service from trip's current service
-        if (trip?.service_id) {
-            const svc = services.find(s => s.service_id === trip.service_id);
-            if (svc?.parent_id) {
-                setSelectedParentServiceId(svc.parent_id);
-            } else {
-                setSelectedParentServiceId(trip.service_id);
-            }
-        } else {
-            setSelectedParentServiceId('');
+    const resetTransientState = () => {
+        setHasDrawn(false);
+        setStampOverride(undefined);
+        setSignatureOverride(undefined);
+        setSelectedParentServiceOverride(undefined);
+        setSelectedServiceOverride(undefined);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+        if (canvasRef.current) {
+            canvasRef.current.getContext('2d')?.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
         }
+    };
 
-    }, [isOpen, currentUser, trip, services]);
+    const handleClose = () => {
+        resetTransientState();
+        onClose();
+    };
 
     const getCoordinates = (e: React.MouseEvent | React.TouchEvent, canvas: HTMLCanvasElement) => {
         const rect = canvas.getBoundingClientRect();
@@ -131,7 +146,7 @@ export const SignatureApproveModal: React.FC<SignatureApproveModalProps> = ({ is
 
     const clearSignature = () => {
         setHasDrawn(false);
-        setSignatureData(undefined);
+        setSignatureOverride(null);
         if (canvasRef.current) {
             canvasRef.current.getContext('2d')?.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
         }
@@ -141,17 +156,17 @@ export const SignatureApproveModal: React.FC<SignatureApproveModalProps> = ({ is
         const file = e.target.files?.[0];
         if (!file) return;
         const reader = new FileReader();
-        reader.onloadend = () => setStampData(reader.result as string);
+        reader.onloadend = () => setStampOverride(reader.result as string);
         reader.readAsDataURL(file);
     };
 
     const clearStamp = () => {
-        setStampData(undefined);
+        setStampOverride(null);
         if (fileInputRef.current) fileInputRef.current.value = '';
     };
 
     const handleApprove = async () => {
-        if (!trip || !hasDrawn) return;
+        if (!trip || !effectiveHasDrawn) return;
         if (isGcmSignature && !stampData) {
             addNotification({
                 title: 'Error',
@@ -206,7 +221,7 @@ export const SignatureApproveModal: React.FC<SignatureApproveModalProps> = ({ is
             });
 
             if (onApproveSuccess) onApproveSuccess();
-            onClose();
+            handleClose();
         } catch (error) {
             console.error('Failed to approve trip', error);
         } finally {
@@ -217,7 +232,7 @@ export const SignatureApproveModal: React.FC<SignatureApproveModalProps> = ({ is
     if (!trip) return null;
 
     return (
-        <Modal isOpen={isOpen} onClose={onClose} title={isGcmSignature ? (isAr ? 'الاعتماد النهائي للرحلة' : 'Final Trip Approval') : (isAr ? 'اعتماد العميل بالتوقيع' : 'Client Signature Approval')} size="md" zIndex={200}>
+        <Modal isOpen={isOpen} onClose={handleClose} title={isGcmSignature ? (isAr ? 'الاعتماد النهائي للرحلة' : 'Final Trip Approval') : (isAr ? 'اعتماد العميل بالتوقيع' : 'Client Signature Approval')} size="md" zIndex={200}>
             <div className="p-4 space-y-5">
 
                 {/* Trip Info Banner */}
@@ -252,8 +267,8 @@ export const SignatureApproveModal: React.FC<SignatureApproveModalProps> = ({ is
                                             <select
                                                 value={selectedParentServiceId}
                                                 onChange={e => {
-                                                    setSelectedParentServiceId(e.target.value);
-                                                    setSelectedServiceId(''); // reset sub-service
+                                                    setSelectedParentServiceOverride(e.target.value);
+                                                    setSelectedServiceOverride(''); // reset sub-service
                                                 }}
                                                 className="w-full p-3 bg-surface rounded-xl font-bold text-sm outline-none border-2 border-transparent focus:border-amber-400 shadow-sm text-text-main"
                                             >
@@ -273,7 +288,7 @@ export const SignatureApproveModal: React.FC<SignatureApproveModalProps> = ({ is
                                             </label>
                                             <select
                                                 value={selectedServiceId}
-                                                onChange={e => setSelectedServiceId(e.target.value)}
+                                                onChange={e => setSelectedServiceOverride(e.target.value)}
                                                 className="w-full p-3 bg-surface rounded-xl font-bold text-sm outline-none border-2 border-transparent focus:border-orange-400 shadow-sm text-text-main"
                                             >
                                                 <option value="">{isAr ? '--- اختر الخدمة الفرعية ---' : '--- Select Sub-Service ---'}</option>
@@ -293,7 +308,7 @@ export const SignatureApproveModal: React.FC<SignatureApproveModalProps> = ({ is
                                     </label>
                                     <select
                                         value={selectedServiceId}
-                                        onChange={e => setSelectedServiceId(e.target.value)}
+                                        onChange={e => setSelectedServiceOverride(e.target.value)}
                                         className="w-full p-3 bg-surface rounded-xl font-bold text-sm outline-none border-2 border-transparent focus:border-amber-400 shadow-sm text-text-main"
                                     >
                                         <option value="">{isAr ? '--- اختر المادة ---' : '--- Select Material ---'}</option>
@@ -326,7 +341,7 @@ export const SignatureApproveModal: React.FC<SignatureApproveModalProps> = ({ is
                                 className="border border-border rounded-xl p-4 flex items-center justify-center bg-surface cursor-pointer hover:bg-surface-subtle transition-colors"
                                 onClick={() => fileInputRef.current?.click()}
                             >
-                                <img src={stampData} alt="Stamp" className="h-20 object-contain" />
+                                <Image src={stampData} alt="Stamp" className="h-20 w-auto object-contain" width={240} height={80} unoptimized />
                             </div>
                         ) : (
                             <div
@@ -355,7 +370,7 @@ export const SignatureApproveModal: React.FC<SignatureApproveModalProps> = ({ is
 
                         <div className="border-2 border-dashed border-border rounded-xl overflow-hidden bg-white cursor-crosshair relative touch-none">
                             {signatureData ? (
-                                <img src={signatureData} alt="Signature" className="w-full h-[200px] object-contain mix-blend-multiply" />
+                                <Image src={signatureData} alt="Signature" className="w-full h-[200px] object-contain mix-blend-multiply" width={400} height={200} unoptimized />
                             ) : (
                                 <>
                                     <canvas
@@ -383,13 +398,13 @@ export const SignatureApproveModal: React.FC<SignatureApproveModalProps> = ({ is
                 </div>
 
                 <div className="flex gap-3 pt-2">
-                    <Button variant="ghost" onClick={onClose} disabled={isSubmitting}>
+                    <Button variant="ghost" onClick={handleClose} disabled={isSubmitting}>
                         {isAr ? 'إلغاء' : 'Cancel'}
                     </Button>
                     <Button
                         variant="primary"
                         onClick={handleApprove}
-                        disabled={!hasDrawn || (isGcmSignature && !stampData) || isSubmitting}
+                        disabled={!effectiveHasDrawn || (isGcmSignature && !stampData) || isSubmitting}
                         icon={CheckCircle}
                         className="flex-1"
                     >

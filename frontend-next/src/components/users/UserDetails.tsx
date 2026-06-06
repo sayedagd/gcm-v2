@@ -1,15 +1,16 @@
 import React, { useMemo } from 'react';
+import Image from 'next/image';
 import {
     Activity, Building2, Briefcase, UserCog, Mail, Key, Shield, Clock, MapPin, Truck, HardHat, Wallet, User as UserIcon
 } from 'lucide-react';
 import { Card, StatCard, Button } from '@/components';
-import { Role, Company, Project, UserPresence, Trip } from '@/types';
+import { Role, Company, Project, UserPresence, Trip, User } from '@/types';
 import { formatRole, resolveImagePath, formatDate, handleImageError } from '@/utils/helpers';
 import { formatDistanceToNow } from 'date-fns';
 import { ar } from 'date-fns/locale';
 
 interface UserDetailsProps {
-    user: any;
+    user: User | null;
     presence: UserPresence | undefined;
     isAr: boolean;
     companies: Company[];
@@ -40,15 +41,20 @@ const UserDetails: React.FC<UserDetailsProps> = ({
     trips,
     onEdit
 }) => {
-    if (!user) return null;
+    const isOnline = Boolean(presence?.lastActive);
 
-    const isOnline = presence && (Date.now() - new Date(presence.lastActive).getTime() < 60000);
-    const company = companies.find(c => c.company_id === user.company_id);
-    const project = projects.find(p => p.project_id === user.project_id);
+    const company = user ? companies.find(c => c.company_id === user.company_id) : undefined;
+    const project = user ? projects.find(p => p.project_id === user.project_id) : undefined;
+    const userId = user?.id ?? '';
+    const userName = user?.name ?? '';
 
     const userTrips = useMemo(() => {
-        return trips.filter(t => t.driver_id === user.id || t.supervisor_name === user.name || t.gcm_supervisor_name === user.name);
-    }, [trips, user.id, user.name]);
+        if (!userId || !userName) return [];
+        return trips.filter(t => t.driver_id === userId || t.supervisor_name === userName || t.gcm_supervisor_name === userName);
+    }, [trips, userId, userName]);
+
+    if (!user) return null;
+    const avatarSrc = resolveImagePath(user.avatar) || 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==';
 
     const onlineText = isOnline ? (isAr ? 'نشط الآن' : 'ONLINE') : (isAr ? 'غير متصل' : 'OFFLINE');
     const roleText = formatRole(user.role, isAr);
@@ -61,10 +67,13 @@ const UserDetails: React.FC<UserDetailsProps> = ({
 
                 <div className="flex items-center gap-6 relative z-10">
                     <div className="relative">
-                        <img
-                            src={resolveImagePath(user.avatar) || undefined}
+                        <Image
+                            src={avatarSrc}
                             className={`w-20 h-20 sm:w-28 sm:h-28 rounded-[2rem] border-4 border-surface shadow-2xl object-cover ${!user.avatar ? 'bg-surface-subtle p-2' : ''}`}
-                            alt={user.name}
+                            alt={user.name || 'User avatar'}
+                            width={112}
+                            height={112}
+                            unoptimized
                             onError={handleImageError}
                         />
                         <div className={`absolute -bottom-3 -right-3 p-3 rounded-2xl shadow-xl border-4 border-surface ${isOnline ? 'bg-emerald-500' : 'bg-primary'}`}>

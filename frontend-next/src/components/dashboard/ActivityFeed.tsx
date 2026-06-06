@@ -1,4 +1,5 @@
 import React from 'react';
+import Image from 'next/image';
 import Card from '@/components/ui/Card';
 import { Activity, MoreHorizontal, Clock } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
@@ -88,10 +89,13 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({ isAr }) => {
 
                                 <div className={`flex items-center gap-2 mt-1 ${isAr ? 'flex-row-reverse' : 'flex-row'}`}>
                                     <div className="flex items-center gap-2">
-                                        <img
+                                        <Image
                                             src={user?.avatar || '/logo.png'}
                                             className="w-5 h-5 rounded-md border border-border"
                                             alt=""
+                                            width={20}
+                                            height={20}
+                                            unoptimized
                                         />
                                         <span className="text-[10px] font-bold text-text-subtle capitalize">
                                             {user?.name || (log.user_id === 'SYSTEM' ? (isAr ? 'النظام' : 'System') : log.user_id)}

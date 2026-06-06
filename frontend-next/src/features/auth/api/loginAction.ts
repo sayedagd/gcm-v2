@@ -23,8 +23,69 @@ type BackendLoginResponse = {
   company_id?: string | null;
   project_id?: string | null;
   supplier_id?: string | null;
-  token?: string;
   tokenExpiresInSeconds?: number;
+};
+
+const extractCookieValueFromSetCookie = (setCookieHeader: string | null, cookieName: string): string | null => {
+  if (!setCookieHeader) {
+    return null;
+  }
+
+  const cookies = setCookieHeader.split(/,(?=[^;]+?=)/g);
+  for (const cookieEntry of cookies) {
+    const firstSegment = cookieEntry.split(";")[0]?.trim() || "";
+    const separatorIndex = firstSegment.indexOf("=");
+    if (separatorIndex <= 0) {
+      continue;
+    }
+
+    const name = firstSegment.slice(0, separatorIndex).trim();
+    if (name !== cookieName) {
+      continue;
+    }
+
+    return firstSegment.slice(separatorIndex + 1).trim() || null;
+  }
+
+  return null;
+};
+
+const getAuthBackendCookieName = () => process.env.AUTH_COOKIE_NAME || "gcm_jwt";
+const getCsrfBackendCookieName = () => process.env.AUTH_CSRF_COOKIE_NAME || "gcm_csrf";
+
+const getCookieSecurityProfile = () => {
+  const sameSiteRaw = (process.env.AUTH_COOKIE_SAMESITE || "lax").toLowerCase();
+  const sameSite = sameSiteRaw === "strict" || sameSiteRaw === "none" ? sameSiteRaw : "lax";
+  const secure = process.env.AUTH_COOKIE_SECURE === "true" || process.env.NODE_ENV === "production" || sameSite === "none";
+
+  return {
+    sameSite,
+    secure,
+  };
+};
+
+const resolveBackendCookieOptions = (maxAge: number) => {
+  const { sameSite, secure } = getCookieSecurityProfile();
+
+  return {
+    httpOnly: true as const,
+    sameSite: sameSite as "lax" | "strict" | "none",
+    secure,
+    path: "/",
+    maxAge,
+  };
+};
+
+const resolveAppCookieOptions = (maxAge: number) => {
+  const { sameSite, secure } = getCookieSecurityProfile();
+
+  return {
+    httpOnly: true as const,
+    sameSite: sameSite as "lax" | "strict" | "none",
+    secure,
+    path: "/",
+    maxAge,
+  };
 };
 
 const getApiBaseUrl = () => {
@@ -60,6 +121,8 @@ export async function loginAction(_: LoginActionState, formData: FormData): Prom
   let role: string | undefined;
   let expiresInSeconds = SESSION_MAX_AGE_SECONDS;
   let payload: BackendLoginResponse | null = null;
+  let backendSessionToken: string | null = null;
+  let csrfToken: string | null = null;
 
   try {
     const response = await fetch(`${apiBaseUrl}/api/v1/auth/login`, {
@@ -81,6 +144,14 @@ export async function loginAction(_: LoginActionState, formData: FormData): Prom
     }
 
     payload = (await response.json().catch(() => null)) as BackendLoginResponse | null;
+    backendSessionToken = extractCookieValueFromSetCookie(
+      response.headers.get("set-cookie"),
+      getAuthBackendCookieName(),
+    );
+    csrfToken = extractCookieValueFromSetCookie(
+      response.headers.get("set-cookie"),
+      getCsrfBackendCookieName(),
+    );
     role = payload?.role;
     if (!isGcmRole(role)) {
       return { error: "Your account role is not supported." };
@@ -100,16 +171,25 @@ export async function loginAction(_: LoginActionState, formData: FormData): Prom
 
   const expiresAtMs = Date.now() + expiresInSeconds * 1000;
   const cookieStore = await cookies();
-  const cookieOptions = {
-    httpOnly: true as const,
-    sameSite: "lax" as const,
-    path: "/",
-    maxAge: expiresInSeconds,
-  };
+  const appCookieOptions = resolveAppCookieOptions(expiresInSeconds);
 
-  cookieStore.set(AUTH_COOKIE, "true", cookieOptions);
-  cookieStore.set(ROLE_COOKIE, role, cookieOptions);
-  cookieStore.set(SESSION_EXP_COOKIE, String(expiresAtMs), cookieOptions);
+  if (!backendSessionToken) {
+    return { error: "Unable to establish authenticated session. Please try again." };
+  }
+
+  cookieStore.set(getAuthBackendCookieName(), backendSessionToken, resolveBackendCookieOptions(expiresInSeconds));
+  if (csrfToken) {
+    cookieStore.set(getCsrfBackendCookieName(), csrfToken, {
+      sameSite: appCookieOptions.sameSite,
+      secure: appCookieOptions.secure,
+      path: "/",
+      maxAge: expiresInSeconds,
+    });
+  }
+
+  cookieStore.set(AUTH_COOKIE, "true", appCookieOptions);
+  cookieStore.set(ROLE_COOKIE, role, appCookieOptions);
+  cookieStore.set(SESSION_EXP_COOKIE, String(expiresAtMs), appCookieOptions);
 
   const bootstrapPayload = {
     id: payload?.id || "",
@@ -119,12 +199,12 @@ export async function loginAction(_: LoginActionState, formData: FormData): Prom
     company_id: payload?.company_id || null,
     project_id: payload?.project_id || null,
     supplier_id: payload?.supplier_id || null,
-    token: payload?.token || "",
     expiresAtMs,
   };
 
   cookieStore.set(LEGACY_BOOTSTRAP_COOKIE, encodeURIComponent(JSON.stringify(bootstrapPayload)), {
-    sameSite: "lax",
+    sameSite: appCookieOptions.sameSite,
+    secure: appCookieOptions.secure,
     path: "/",
     maxAge: expiresInSeconds,
   });

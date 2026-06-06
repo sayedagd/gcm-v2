@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import {
     Truck, Scale, Activity, Briefcase,
     Shield, DownloadCloud, Edit2, Zap, Building2, History,
@@ -32,10 +33,10 @@ const VehicleDetails: React.FC<VehicleDetailsProps> = ({
     isAr,
     onEdit
 }) => {
-    const { saasConfig, services, assetServiceLinks } = useStore();
+    const { saasConfig, services, assetServiceLinks, drivers } = useStore();
     const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#ef4444'];
 
-    const analyticsData = useMemo(() => {
+    const analyticsData = (() => {
         if (!vehicle?.vehicle_id) return {
             trips: [], tonnage: 0, projectsCount: 0,
             avgLoad: 0, chartData: [], utilizationData: [], primaryServiceName: ''
@@ -74,7 +75,7 @@ const VehicleDetails: React.FC<VehicleDetailsProps> = ({
             avgLoad, chartData: dayTrend, utilizationRate,
             primaryServiceName: primaryService?.service_name || ''
         };
-    }, [trips, vehicle?.vehicle_id, isAr, services, assetServiceLinks]);
+    })();
 
     const permits: PermitEntry[] = useMemo(() => {
         try {
@@ -97,9 +98,10 @@ const VehicleDetails: React.FC<VehicleDetailsProps> = ({
 
     const documents = useMemo(() => {
         if (Array.isArray(vehicle.documents)) return vehicle.documents;
-        if (typeof (vehicle as any).documents === 'string') {
+        const documentsValue = (vehicle as { documents?: unknown }).documents;
+        if (typeof documentsValue === 'string') {
             try {
-                const parsed = JSON.parse((vehicle as any).documents);
+                const parsed = JSON.parse(documentsValue);
                 return Array.isArray(parsed) ? parsed : [];
             } catch { return []; }
         }
@@ -167,7 +169,6 @@ const VehicleDetails: React.FC<VehicleDetailsProps> = ({
                                 </>
                             )}
                             {(() => {
-                                const { drivers, services, assetServiceLinks } = useStore();
                                 const linkedDriver = drivers.find(d => d.vehicle_id === vehicle.vehicle_id && d.status === 'ACTIVE');
                                 const linkedLinks = assetServiceLinks.filter(l => l.asset_type === 'VEHICLE' && l.asset_id === vehicle.vehicle_id);
                                 const primaryService = services.find(s => s.service_id === linkedLinks[0]?.service_id);
@@ -202,7 +203,7 @@ const VehicleDetails: React.FC<VehicleDetailsProps> = ({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8 animate-in slide-in-from-bottom-4 duration-700">
                     {vehicle.photo_front && (
                         <div className="relative group rounded-[2.5rem] overflow-hidden border-2 border-border shadow-md aspect-video bg-surface">
-                            <img src={vehicle.photo_front} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                            <Image src={vehicle.photo_front} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" alt={isAr ? 'مشهد أمامي للمعدة' : 'Vehicle front view'} fill sizes="(max-width: 768px) 100vw, 50vw" unoptimized />
                             <div className="absolute top-6 left-6 px-4 py-2 bg-black/40 backdrop-blur-md rounded-full border border-white/10">
                                 <p className="text-[10px] font-black text-white uppercase tracking-widest">{isAr ? 'مشهد أمامي' : 'Front Viewport'}</p>
                             </div>
@@ -211,7 +212,7 @@ const VehicleDetails: React.FC<VehicleDetailsProps> = ({
                     )}
                     {vehicle.photo_back && (
                         <div className="relative group rounded-[2.5rem] overflow-hidden border-2 border-border shadow-md aspect-video bg-surface">
-                            <img src={vehicle.photo_back} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                            <Image src={vehicle.photo_back} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" alt={isAr ? 'مشهد خلفي للمعدة' : 'Vehicle rear view'} fill sizes="(max-width: 768px) 100vw, 50vw" unoptimized />
                             <div className="absolute top-6 left-6 px-4 py-2 bg-black/40 backdrop-blur-md rounded-full border border-white/10">
                                 <p className="text-[10px] font-black text-white uppercase tracking-widest">{isAr ? 'مشهد خلفي' : 'Rear Viewport'}</p>
                             </div>
@@ -512,7 +513,7 @@ const VehicleDetails: React.FC<VehicleDetailsProps> = ({
                                     <h5 className="text-xs font-black uppercase tracking-widest text-text-subtle">{doc.type} {doc.number ? `- ${doc.number}` : ''}</h5>
                                     <div className="border border-border rounded-3xl overflow-hidden shadow-sm bg-surface-subtle p-2">
                                         {!isPdf ? (
-                                            <img src={doc.fileData} alt={doc.type} className="w-full h-auto rounded-2xl" />
+                                            <Image src={doc.fileData || 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw=='} alt={doc.type} className="w-full h-auto rounded-2xl" width={1200} height={900} unoptimized />
                                         ) : (
                                             <div className="flex flex-col items-center justify-center p-8 bg-surface rounded-2xl border-2 border-dashed border-border min-h-[200px]">
                                                 <FileText size={48} className="text-primary-400 mb-4" />

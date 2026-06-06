@@ -1,15 +1,20 @@
 /**
  * JWT Authentication Middleware
  * Protects endpoints from unauthorized access by verifying the JWT token.
- * Supports: Bearer header, HttpOnly cookie (gcm_jwt), query param (?token= for SSE only).
+ * Supports: Bearer header, HttpOnly cookie (gcm_jwt).
  */
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 const { log } = require('../utils/logger');
 const { sendError } = require('../utils/apiError');
 const { recordAuthFailure } = require('../services/metricsService');
+const { getJwtSecret } = require('../config/auth');
 
-const isSseEndpointPath = (path) => path === '/api/events' || path === '/api/v1/events';
 const COOKIE_NAME = process.env.AUTH_COOKIE_NAME || 'gcm_jwt';
+const CSRF_COOKIE_NAME = process.env.AUTH_CSRF_COOKIE_NAME || 'gcm_csrf';
+const CSRF_HEADER_NAME = 'x-csrf-token';
+
+const isUnsafeMethod = (method = 'GET') => !['GET', 'HEAD', 'OPTIONS'].includes(String(method).toUpperCase());
 
 const parseCookieHeader = (cookieHeader = '') => {
     return cookieHeader
@@ -38,22 +43,62 @@ const getCookieToken = (req) => {
     return parsed[COOKIE_NAME] || null;
 };
 
+const getCookieValue = (req, cookieName) => {
+    if (req.cookies && req.cookies[cookieName]) {
+        return req.cookies[cookieName];
+    }
+
+    const cookieHeader = req.headers.cookie;
+    if (!cookieHeader) return null;
+
+    const parsed = parseCookieHeader(cookieHeader);
+    return parsed[cookieName] || null;
+};
+
+const isMatchingCsrfToken = (cookieToken, headerToken) => {
+    if (typeof cookieToken !== 'string' || typeof headerToken !== 'string') {
+        return false;
+    }
+
+    const cookieBuffer = Buffer.from(cookieToken);
+    const headerBuffer = Buffer.from(headerToken);
+    if (cookieBuffer.length !== headerBuffer.length) {
+        return false;
+    }
+
+    return crypto.timingSafeEqual(cookieBuffer, headerBuffer);
+};
+
 const protect = (req, res, next) => {
     let token = null;
     const cookieToken = getCookieToken(req);
+    let authSource = null;
 
     // 1. Bearer header (standard API calls)
     const authHeader = req.headers.authorization || '';
     if (authHeader.startsWith('Bearer ')) {
         token = authHeader.slice(7);
+        authSource = 'bearer';
     }
-    // 2. HttpOnly cookie (future default once TASK-19 lands)
+    // 2. HttpOnly cookie auth
     else if (cookieToken) {
         token = cookieToken;
+        authSource = 'cookie';
     }
-    // 3. Query param — allowed only for the SSE endpoint (EventSource can't set headers)
-    else if (req.query && req.query.token && isSseEndpointPath(req.path)) {
-        token = req.query.token;
+
+    if (authSource === 'cookie' && isUnsafeMethod(req.method)) {
+        const csrfCookieToken = getCookieValue(req, CSRF_COOKIE_NAME);
+        const csrfHeaderToken = (req.headers[CSRF_HEADER_NAME] || '').toString();
+
+        if (!isMatchingCsrfToken(csrfCookieToken, csrfHeaderToken)) {
+            recordAuthFailure({ code: 'AUTH_CSRF_INVALID' });
+            return sendError(res, 403, {
+                code: 'AUTH_CSRF_INVALID',
+                error: 'Invalid CSRF token',
+                errorEn: 'Invalid CSRF token',
+                errorAr: 'رمز CSRF غير صالح'
+            });
+        }
     }
 
     if (!token) {
@@ -67,7 +112,8 @@ const protect = (req, res, next) => {
         });
     }
 
-    if (!process.env.JWT_SECRET) {
+    const jwtSecret = getJwtSecret();
+    if (!jwtSecret) {
         console.error('[CRITICAL] JWT_SECRET not set in environment!');
         recordAuthFailure({ code: 'SERVER_CONFIG_ERROR' });
         return sendError(res, 500, {
@@ -79,21 +125,10 @@ const protect = (req, res, next) => {
     }
 
     try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ['HS256'] });
-
-        // Query-token auth is reserved for short-lived SSE-scoped tokens only.
-        if (req.query && req.query.token && isSseEndpointPath(req.path) && decoded.purpose !== 'sse') {
-            log('[Auth/Protect] Not authorized, SSE query token is not purpose-scoped');
-            recordAuthFailure({ code: 'AUTH_INVALID_SSE_TOKEN' });
-            return sendError(res, 401, {
-                code: 'AUTH_INVALID_SSE_TOKEN',
-                error: 'Not authorized, invalid SSE token',
-                errorEn: 'Not authorized, invalid SSE token',
-                errorAr: 'غير مصرح: رمز SSE غير صالح'
-            });
-        }
+        const decoded = jwt.verify(token, jwtSecret, { algorithms: ['HS256'] });
 
         req.user = decoded;
+        req.authSource = authSource;
         return next();
     } catch (error) {
         if (error && error.name === 'TokenExpiredError') {

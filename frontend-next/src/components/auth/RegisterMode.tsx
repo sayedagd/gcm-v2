@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useStore } from '../../context';
 import { ArrowLeft, Send, CheckCircle2, MapPin, Building2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { resolveLocalizedError } from '@/lib/errorMessages';
 
 interface RegisterModeProps {
     onBackToLogin: () => void;
@@ -25,14 +26,10 @@ const RegisterMode: React.FC<RegisterModeProps> = ({ onBackToLogin, initialRole 
     const [mobile, setMobile] = useState('');
     const [error, setError] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const isFormLocked = isSubmitting;
     const [isSuccess, setIsSuccess] = useState(false);
 
     const tabs = ['STAFF', 'CLIENT', 'SUBCONTRACTOR'] as const;
-
-    // Optional: If initialRole changes while mounted, update it (though usually we remount)
-    useEffect(() => {
-        setReqRole(initialRole);
-    }, [initialRole]);
 
     const changeReqTab = (newRole: typeof reqRole) => {
         const newIndex = tabs.indexOf(newRole);
@@ -65,6 +62,7 @@ const RegisterMode: React.FC<RegisterModeProps> = ({ onBackToLogin, initialRole 
 
     const handleRequest = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (isSubmitting) return;
         setError('');
 
         if (!email) {
@@ -103,8 +101,8 @@ const RegisterMode: React.FC<RegisterModeProps> = ({ onBackToLogin, initialRole 
             setTimeout(() => {
                 onBackToLogin();
             }, 3000);
-        } catch (err: any) {
-            setError(isAr ? 'حدث خطأ أثناء إرسال الطلب' : 'An error occurred while sending your request');
+        } catch (error: unknown) {
+            setError(resolveLocalizedError(error, isAr, 'حدث خطأ أثناء إرسال الطلب', 'An error occurred while sending your request'));
         } finally {
             setIsSubmitting(false);
         }
@@ -153,6 +151,7 @@ const RegisterMode: React.FC<RegisterModeProps> = ({ onBackToLogin, initialRole 
                     <button
                         key={type}
                         type="button"
+                        disabled={isFormLocked}
                         onClick={() => changeReqTab(type)}
                         className={`flex-1 py-2 rounded-lg text-xs font-medium transition-colors relative z-10 ${reqRole === type ? 'text-text-main' : 'text-text-subtle hover:text-text-main'}`}
                     >
@@ -175,11 +174,11 @@ const RegisterMode: React.FC<RegisterModeProps> = ({ onBackToLogin, initialRole 
                     <div className="grid grid-cols-2 gap-4">
                         <div className={`p-4 bg-surface-subtle rounded-[1.5rem] border transition-all ${error && !email ? 'border-danger' : 'border-transparent focus-within:border-primary'}`}>
                             <label className="text-[9px] font-bold uppercase text-text-subtle tracking-widest block mb-1.5">{isAr ? 'البريد الإلكتروني' : 'Email'}</label>
-                            <input required type="email" className="bg-transparent border-none outline-none font-bold text-xs w-full text-text-main" value={email} onChange={e => setEmail(e.target.value)} />
+                            <input required disabled={isFormLocked} type="email" className="bg-transparent border-none outline-none font-bold text-xs w-full text-text-main" value={email} onChange={e => setEmail(e.target.value)} />
                         </div>
                         <div className="p-4 bg-surface-subtle rounded-[1.5rem] border border-transparent focus-within:border-primary">
                             <label className="text-[9px] font-bold uppercase text-text-subtle tracking-widest block mb-1.5">{isAr ? 'رقم الجوال' : 'Mobile'}</label>
-                            <input className="bg-transparent border-none outline-none font-bold text-xs w-full text-text-main" placeholder="05..." value={mobile} onChange={e => setMobile(e.target.value)} />
+                            <input disabled={isFormLocked} className="bg-transparent border-none outline-none font-bold text-xs w-full text-text-main" placeholder="05..." value={mobile} onChange={e => setMobile(e.target.value)} />
                         </div>
                     </div>
 
@@ -187,7 +186,7 @@ const RegisterMode: React.FC<RegisterModeProps> = ({ onBackToLogin, initialRole 
                         <label className="text-[9px] font-bold uppercase text-text-subtle tracking-widest block mb-1.5">{isAr ? 'اسم الشركة / الجهة التابعة' : 'Company / Organization'}</label>
                         <div className="flex items-center gap-2">
                             <Building2 size={14} className="text-text-subtle" />
-                            <input required className="bg-transparent border-none outline-none font-bold text-xs w-full text-text-main" value={reqCompany} onChange={e => setReqCompany(e.target.value)} placeholder={isAr ? 'اسم الشركة الرسمي' : 'Official Company Name'} />
+                            <input required disabled={isFormLocked} className="bg-transparent border-none outline-none font-bold text-xs w-full text-text-main" value={reqCompany} onChange={e => setReqCompany(e.target.value)} placeholder={isAr ? 'اسم الشركة الرسمي' : 'Official Company Name'} />
                         </div>
                     </div>
 
@@ -195,13 +194,14 @@ const RegisterMode: React.FC<RegisterModeProps> = ({ onBackToLogin, initialRole 
                         <label className="text-[9px] font-bold uppercase text-text-subtle tracking-widest block mb-1.5">{isAr ? 'الموقع / المدينة' : 'Location / City'}</label>
                         <div className="flex items-center gap-2">
                             <MapPin size={14} className="text-text-subtle" />
-                            <input required className="bg-transparent border-none outline-none font-bold text-xs w-full text-text-main" value={location} onChange={e => setLocation(e.target.value)} />
+                            <input required disabled={isFormLocked} className="bg-transparent border-none outline-none font-bold text-xs w-full text-text-main" value={location} onChange={e => setLocation(e.target.value)} />
                         </div>
                     </div>
 
                     <div className="p-4 bg-surface-subtle rounded-[1.5rem] border border-transparent focus-within:border-primary">
                         <label className="text-[9px] font-bold uppercase text-text-subtle tracking-widest block mb-1.5">{isAr ? 'وصف الطلب / نبذة تعريفية' : 'Request Description'}</label>
                         <textarea
+                            disabled={isFormLocked}
                             className="bg-transparent border-none outline-none font-bold text-xs w-full text-text-main h-16 resize-none"
                             value={reqNotes}
                             onChange={e => setReqNotes(e.target.value)}
@@ -213,11 +213,11 @@ const RegisterMode: React.FC<RegisterModeProps> = ({ onBackToLogin, initialRole 
 
             {error && <p className="text-danger text-[10px] font-bold text-center bg-danger-muted p-3 rounded-lg border border-danger/20">{error}</p>}
 
-            <button type="submit" disabled={isSubmitting} className={`w-full py-3.5 bg-primary text-white rounded-xl font-semibold text-xs flex items-center gap-2 justify-center shadow-lg active:scale-[0.97] transition-all ${isSubmitting ? 'opacity-70 cursor-wait' : ''}`}>
+            <button type="submit" disabled={isFormLocked} className={`w-full py-3.5 bg-primary text-white rounded-xl font-semibold text-xs flex items-center gap-2 justify-center shadow-lg active:scale-[0.97] transition-all ${isSubmitting ? 'opacity-70 cursor-wait' : ''}`}>
                 {isSubmitting ? (isAr ? 'جاري الإرسال...' : 'Sending...') : (isAr ? 'إرسال طلب الانضمام' : 'Submit Access Request')}
                 {!isSubmitting && <Send size={16} />}
             </button>
-            <button type="button" onClick={onBackToLogin} className="w-full py-2 text-text-subtle font-medium text-xs hover:text-primary transition-colors flex items-center justify-center gap-2">
+            <button type="button" disabled={isFormLocked} onClick={onBackToLogin} className="w-full py-2 text-text-subtle font-medium text-xs hover:text-primary transition-colors flex items-center justify-center gap-2">
                 <ArrowLeft size={14} className={isAr ? 'rotate-180' : ''} />
                 {isAr ? 'العودة لتسجيل الدخول' : 'Back to Login'}
             </button>

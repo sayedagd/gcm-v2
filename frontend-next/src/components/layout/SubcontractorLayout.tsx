@@ -1,3 +1,5 @@
+"use client";
+
 import React from 'react';
 import { MainLayout } from './MainLayout';
 import { useLiveStream } from '@/hooks/useLiveStream';

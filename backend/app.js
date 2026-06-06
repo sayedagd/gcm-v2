@@ -15,6 +15,7 @@ const fs = require('fs');
 const dotenv = require('dotenv');
 const http = require('http');
 const jwt = require('jsonwebtoken');
+const { getJwtSecret } = require('./src/shared/config/auth');
 
 // Environment Setup (load backend/.env FIRST before anything else)
 const findEnv = () => {
@@ -222,6 +223,10 @@ if (helmet) {
 }
 const allowedOrigins = [
     process.env.CORS_ORIGIN || null,
+    process.env.FRONTEND_URL || null,
+    process.env.NEXT_PUBLIC_APP_URL || null,
+    process.env.NODE_ENV !== 'production' ? 'http://localhost:3000' : null,
+    process.env.NODE_ENV !== 'production' ? 'http://127.0.0.1:3000' : null,
     process.env.NODE_ENV !== 'production' ? 'http://localhost:5173' : null,
     process.env.NODE_ENV !== 'production' ? 'http://127.0.0.1:5173' : null,
 ].filter(Boolean);
@@ -384,7 +389,8 @@ mountApiUse('/api/login', authLimiter, loginRoutes);
 // Issue short-lived SSE token so URL never carries long-lived session JWT.
 mountApiGet('/api/auth/sse-token', sseTokenLimiter, protect, (req, res) => {
     try {
-        if (!process.env.JWT_SECRET) {
+        const jwtSecret = getJwtSecret();
+        if (!jwtSecret) {
             return res.status(500).json({ error: 'Server configuration error' });
         }
 
@@ -397,7 +403,7 @@ mountApiGet('/api/auth/sse-token', sseTokenLimiter, protect, (req, res) => {
                 supplier_id: req.user.supplier_id,
                 purpose: 'sse'
             },
-            process.env.JWT_SECRET,
+            jwtSecret,
             { expiresIn: '2m' }
         );
 

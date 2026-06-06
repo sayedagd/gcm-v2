@@ -2,6 +2,7 @@
 
 
 import React, { useState } from 'react';
+import Image from 'next/image';
 import { useStore } from '@/context';
 import { Mail, Shield, Calendar, Clock, Edit3, Camera, Save, X } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
@@ -51,7 +52,7 @@ const Profile: React.FC = () => {
         <div className="px-8 pb-8">
           <div className="relative flex justify-between items-end -mt-12">
             <div className="relative group">
-              <img src={isEditing ? editedAvatar : currentUser.avatar} onError={handleImageError} className="w-24 h-24 rounded-2xl border-4 border-surface bg-surface-subtle shadow-lg object-cover" alt="" />
+              <Image src={(isEditing ? editedAvatar : currentUser.avatar) || '/logo.png'} onError={handleImageError} className="w-24 h-24 rounded-2xl border-4 border-surface bg-surface-subtle shadow-lg object-cover" alt="" width={96} height={96} unoptimized />
               {isEditing && (
                 <label className="absolute bottom-0 right-0 p-1.5 bg-emerald-500 text-white rounded-lg shadow-md cursor-pointer hover:scale-110 transition-transform">
                   <Camera size={14} />

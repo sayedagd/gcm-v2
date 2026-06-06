@@ -8,7 +8,8 @@ import {
 import {
   INITIAL_USER
 } from '@/constants';
-import { createApiClient, ApiError } from '@/api/client';
+import { createApiClient } from '@/api/client';
+import { buildEntityLink, getBilingualError } from '@/store/helpers';
 import { toast } from '@/utils/toast';
 import {
   validateCompany, validateProject, validateTrip, validateVehicle,
@@ -16,16 +17,6 @@ import {
   validateDriverForTrip, validateVehicleForTrip,
   validateProjectHasCompany, validateFacilityAcceptsService
 } from '@/utils/validationSchemas';
-
-/**
- * [AR] استخراج رسالة الخطأ ثنائية اللغة من الخطأ
- */
-const getBilingualError = (err: unknown, isAr: boolean, fallbackAr: string, fallbackEn: string): string => {
-  if (err instanceof ApiError) {
-    return isAr ? err.messageAr : err.messageEn;
-  }
-  return isAr ? fallbackAr : fallbackEn;
-};
 
 const DEFAULT_SAAS_CONFIG: SaaSConfig = {
   appNameAr: 'GCM - GLOBAL CLEAR MISSION',
@@ -309,32 +300,6 @@ interface GCMStoreActions {
 
 export type GCMStore = GCMStoreState & GCMStoreActions;
 
-/**
- * Entity type → frontend route mapping for notification deep links
- */
-const ENTITY_ROUTE_MAP: Record<string, string> = {
-  [EntityType.TRIP]: '/trips',
-  [EntityType.COMPANY]: '/companies',
-  [EntityType.PROJECT]: '/projects',
-  [EntityType.SERVICE]: '/services',
-  [EntityType.VEHICLE]: '/fleet',
-  [EntityType.DRIVER]: '/drivers',
-  [EntityType.SUPPLIER]: '/suppliers',
-  [EntityType.FACILITY]: '/facilities',
-  [EntityType.CONTAINER]: '/inventory',
-  [EntityType.TANK]: '/inventory',
-  [EntityType.SCALE]: '/inventory',
-  [EntityType.SIZE]: '/inventory',
-  [EntityType.USER]: '/user-management',
-  [EntityType.LANDING]: '/landing-settings',
-};
-
-const buildEntityLink = (entityType: EntityType | string, entityId: string): string | undefined => {
-  const route = ENTITY_ROUTE_MAP[entityType];
-  if (!route || !entityId) return undefined;
-  return `${route}?highlight=${encodeURIComponent(entityId)}`;
-};
-
 export const useGCMStore = create<GCMStore>((set, get) => ({
   darkMode: getStoredDarkMode(),
   booting: true,
@@ -395,7 +360,7 @@ export const useGCMStore = create<GCMStore>((set, get) => ({
     resourceErrors: {},
   }),
 
-  api: createApiClient(getApiBaseUrl()),
+  api: createApiClient(getApiBaseUrl),
 
   setDarkMode: (darkMode) => {
     localStorage.setItem('gcm_dark_mode', darkMode.toString());
@@ -482,9 +447,6 @@ export const useGCMStore = create<GCMStore>((set, get) => ({
       localStorage.setItem('gcm_current_user', JSON.stringify(user));
       localStorage.setItem('gcm_last_active', Date.now().toString());
     }
-    if (user.token) {
-      localStorage.setItem('gcm_jwt_token', user.token);
-    }
 
     await loadAllData();
     await dispatchSystemEvent(ActionType.LOGIN, EntityType.USER, user.id, user.name, `User session started`, NotificationType.SUCCESS);
@@ -495,7 +457,6 @@ export const useGCMStore = create<GCMStore>((set, get) => ({
     // or the backend throws 400 Bad Request due to missing/invalidated token.
     localStorage.removeItem('gcm_auth_session');
     localStorage.removeItem('gcm_current_user');
-    localStorage.removeItem('gcm_jwt_token');
     get().resetData();
     set({ isAuthenticated: false, currentUser: INITIAL_USER });
   },
@@ -1719,29 +1680,23 @@ export const StoreInitializer: React.FC = () => {
 
         if (session && savedUserStr) {
           console.log("🔑 [GCM] Restoring Session...");
-          const token = localStorage.getItem('gcm_jwt_token');
-          if (token) {
-            try {
-              const u = JSON.parse(savedUserStr);
-              store.setCurrentUser(u);
-              store.setIsAuthenticated(true);
-              console.log("📊 [GCM] Loading Global Data...");
-              await store.loadAllData();
+          try {
+            const u = JSON.parse(savedUserStr);
+            store.setCurrentUser(u);
+            store.setIsAuthenticated(true);
+            console.log("📊 [GCM] Loading Global Data...");
+            await store.loadAllData();
 
-              // [AR] تحديث بيانات الملف الشخصي لضمان الـ Role الحالية من السيرفر
-              // [EN] Refresh profile data to ensure current Role from server
-              const freshUser = store.users.find((user: any) => user.id === u.id);
-              if (freshUser) {
-                console.log("👤 [GCM] Profile Refreshed from Server");
-                store.setCurrentUser({ ...u, ...freshUser });
-                localStorage.setItem('gcm_current_user', JSON.stringify({ ...u, ...freshUser }));
-              }
-            } catch (e) {
-              console.error("❌ [GCM] Session Restoration Failed:", e);
-              localStorage.removeItem('gcm_auth_session');
+            // [AR] تحديث بيانات الملف الشخصي لضمان الـ Role الحالية من السيرفر
+            // [EN] Refresh profile data to ensure current Role from server
+            const freshUser = store.users.find((user: any) => user.id === u.id);
+            if (freshUser) {
+              console.log("👤 [GCM] Profile Refreshed from Server");
+              store.setCurrentUser({ ...u, ...freshUser });
+              localStorage.setItem('gcm_current_user', JSON.stringify({ ...u, ...freshUser }));
             }
-          } else {
-            console.warn("⚠️ [GCM] Token missing, session aborted");
+          } catch (e) {
+            console.error("❌ [GCM] Session Restoration Failed:", e);
             localStorage.removeItem('gcm_auth_session');
             localStorage.removeItem('gcm_current_user');
           }

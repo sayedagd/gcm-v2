@@ -35,4 +35,20 @@ describe('metricsService', () => {
     expect(snapshot.metrics.backupFailures24h).toBe(1);
     expect(snapshot.metrics.sseDisconnects15m).toBe(1);
   });
+
+  test('triggers sse disconnect alert when threshold is exceeded', () => {
+    const threshold = metricsService._internal.thresholds.sseDisconnects15m;
+
+    for (let index = 0; index < threshold; index += 1) {
+      metricsService.recordSseDisconnect();
+    }
+
+    const snapshot = metricsService.getMetricsSnapshot();
+
+    const sseAlert = snapshot.activeAlerts.find((alert) => alert.name === 'sse_disconnects_15m');
+    expect(sseAlert).toBeDefined();
+    expect(sseAlert.value).toBe(threshold);
+    expect(sseAlert.threshold).toBe(threshold);
+    expect(sseAlert.window).toBe('15m');
+  });
 });

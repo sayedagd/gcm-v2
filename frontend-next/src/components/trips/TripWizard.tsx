@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import NextImage from 'next/image';
 import { useStore } from '@/context';
 import {
     Building2, MapPin, ArrowRight, UserCheck, Truck, HardHat,
@@ -54,7 +55,7 @@ const TripWizard: React.FC<TripWizardProps> = ({ isOpen, onClose, tripToEdit, in
     // Creates a cropped version of the top X% of the image to avoid scanning tables/irrelevant numbers
     const cropImageTop = (base64: string, heightRatio: number = 0.25): Promise<string> => {
         return new Promise((resolve) => {
-            const img = new Image();
+            const img = new globalThis.Image();
             img.onload = () => {
                 const canvas = document.createElement('canvas');
                 const ctx = canvas.getContext('2d');
@@ -148,7 +149,7 @@ const TripWizard: React.FC<TripWizardProps> = ({ isOpen, onClose, tripToEdit, in
 
             console.log('[AI Full Scan] Extracted data:', data);
 
-            let matched: string[] = [];
+            const matched: string[] = [];
             const updates: Partial<typeof currentTrip> = {};
 
             // --- Extract Exact Match Data ---
@@ -299,11 +300,27 @@ const TripWizard: React.FC<TripWizardProps> = ({ isOpen, onClose, tripToEdit, in
         save: t('wizard.save'),
     };
 
+    const resetForm = () => {
+        setWizardStep(1);
+        setSubmissionError('');
+        setSelectedCompanyId('');
+        setSelectedSupplierId('');
+        setTripOwnership('INTERNAL');
+        setCurrentTrip({
+            unit: 'TON', proof_images: [], date: formatDate(new Date().toISOString(), 'yyyy-MM-dd'), time: formatDate(new Date().toISOString(), 'HH:mm'),
+            recycle_receipt_no: '', trip_location_url: '', container_size: '', inventory_item_id: '',
+            manifest_file: '', delivery_note_file: '', recycle_file: '',
+            status: currentUser?.role === Role.DATA_ENTRY ? TripStatus.PENDING_REVIEW : TripStatus.IN_PROGRESS,
+            project_id: '', supervisor_name: '', gcm_supervisor_name: '', driver_id: '', vehicle_id: '', service_id: '', facility_id: '',
+            is_manifest_generated: false, is_delivery_note_generated: false
+        });
+    };
+
     // Initialize form when opening
     useEffect(() => {
-        if (isOpen) {
+        if (!isOpen) return;
+        const timerId = window.setTimeout(() => {
             if (tripToEdit) {
-                setCurrentTrip(tripToEdit);
                 const project = projectMap[tripToEdit.project_id];
                 if (project) setSelectedCompanyId(project.company_id);
                 let loadedProofImages = safeParseArray(tripToEdit.proof_images);
@@ -321,7 +338,7 @@ const TripWizard: React.FC<TripWizardProps> = ({ isOpen, onClose, tripToEdit, in
                 if (tripToEdit.vehicle_id) {
                     const v = vehicleMap[tripToEdit.vehicle_id];
                     if (v) {
-                        setTripOwnership(v.ownership_type as any || 'INTERNAL');
+                        setTripOwnership(v.ownership_type === 'SUPPLIER' ? 'SUPPLIER' : 'INTERNAL');
                         if (v.supplier_id) setSelectedSupplierId(v.supplier_id);
                     }
                 } else {
@@ -338,24 +355,10 @@ const TripWizard: React.FC<TripWizardProps> = ({ isOpen, onClose, tripToEdit, in
             } else {
                 resetForm();
             }
-        }
-    }, [isOpen, tripToEdit, projects, initialStep, initialWarnings]);
+        }, 0);
 
-    const resetForm = () => {
-        setWizardStep(1);
-        setSubmissionError('');
-        setSelectedCompanyId('');
-        setSelectedSupplierId('');
-        setTripOwnership('INTERNAL');
-        setCurrentTrip({
-            unit: 'TON', proof_images: [], date: formatDate(new Date().toISOString(), 'yyyy-MM-dd'), time: formatDate(new Date().toISOString(), 'HH:mm'),
-            recycle_receipt_no: '', trip_location_url: '', container_size: '', inventory_item_id: '',
-            manifest_file: '', delivery_note_file: '', recycle_file: '',
-            status: currentUser?.role === Role.DATA_ENTRY ? TripStatus.PENDING_REVIEW : TripStatus.IN_PROGRESS,
-            project_id: '', supervisor_name: '', gcm_supervisor_name: '', driver_id: '', vehicle_id: '', service_id: '', facility_id: '',
-            is_manifest_generated: false, is_delivery_note_generated: false
-        });
-    };
+        return () => window.clearTimeout(timerId);
+    }, [isOpen, tripToEdit, initialStep, initialWarnings, projectMap, vehicleMap]);
 
     const getNextNumber = (prefix: 'M-' | 'DN-') => {
         const existingTrips = trips || [];
@@ -375,11 +378,9 @@ const TripWizard: React.FC<TripWizardProps> = ({ isOpen, onClose, tripToEdit, in
         return serviceMap[currentTrip.service_id!];
     }, [serviceMap, currentTrip.service_id]);
 
-    const reqRecycle: any = selectedService?.requires_recycle_receipt;
-    const requiresRecycleReceipt = reqRecycle === true || 
-                                   reqRecycle === 1 || 
-                                   String(reqRecycle).toLowerCase() === 'true' || 
-                                   reqRecycle === '1';
+    const reqRecycle = selectedService?.requires_recycle_receipt as unknown;
+    const reqRecycleStr = String(reqRecycle).toLowerCase();
+    const requiresRecycleReceipt = reqRecycle === true || reqRecycleStr === 'true' || reqRecycleStr === '1';
 
 
     const nearDuplicates = useMemo(() => {
@@ -549,7 +550,7 @@ const TripWizard: React.FC<TripWizardProps> = ({ isOpen, onClose, tripToEdit, in
             // The flags (is_manifest_generated, is_delivery_note_generated) are still saved,
             // so the system knows to auto-generate when the user views/prints the document.
             // Manual uploads (manifest_file, delivery_note_file) are still passed through as-is.
-            const tripDataForSave = { ...currentTrip } as any;
+            const tripDataForSave: Partial<Trip> = { ...currentTrip };
 
             const resolvedProject = currentTrip.project_id ? projectMap[currentTrip.project_id] : undefined;
             const resolvedCompanyId = resolvedProject?.company_id || selectedCompanyId || '';
@@ -566,7 +567,7 @@ const TripWizard: React.FC<TripWizardProps> = ({ isOpen, onClose, tripToEdit, in
                 proof_images: JSON.stringify(currentTrip.proof_images || [])
             };
 
-            await upsertTrip(finalSavedTrip as any);
+            await upsertTrip(finalSavedTrip as unknown as Trip);
 
             // Clone Mode: save and prepare a new similar trip
             if (pendingSaveMode === 'clone') {
@@ -593,11 +594,13 @@ const TripWizard: React.FC<TripWizardProps> = ({ isOpen, onClose, tripToEdit, in
                 addNotification({ title: isAr ? 'استنساخ' : 'Cloned', message: isAr ? 'تم الحفظ — أدخل بيانات السائق والمركبة للرحلة التالية' : 'Saved — enter driver & vehicle for the next trip', type: NotificationType.INFO });
             } else {
                 // Close wizard and pass saved trip to parent (Trips.tsx handles SignatureApproveModal)
-                onClose(finalSavedTrip as Trip);
+                const savedTripForUi = { ...finalSavedTrip, proof_images: currentTrip.proof_images || [] };
+                onClose(savedTripForUi as unknown as Trip);
                 addNotification({ title: t('common.success'), message: isAr ? 'تم حفظ الرحلة بنجاح' : 'Trip saved successfully', type: NotificationType.SUCCESS });
             }
-        } catch (err: any) {
-            const msg = err?.response?.data?.errorAr || err?.response?.data?.errorEn || err?.message || '';
+        } catch (err: unknown) {
+            const errorData = (err as { response?: { data?: { errorAr?: string; errorEn?: string } }; message?: string }) || {};
+            const msg = errorData.response?.data?.errorAr || errorData.response?.data?.errorEn || errorData.message || '';
             setSubmissionError(isAr ? `خطأ: ${msg || 'فشل الاتصال بالسيرفر'}` : `Error: ${msg || 'Server connection failed'}`);
         } finally {
             setIsSubmitting(false);
@@ -900,7 +903,7 @@ const TripWizard: React.FC<TripWizardProps> = ({ isOpen, onClose, tripToEdit, in
                                                 const isWater = s?.service_name?.toLowerCase().includes('water') || (parent && parent.service_name.toLowerCase().includes('water')) || false;
                                                 const availableUnits = (isSewage || isWater) ? ['CBM'] : (isHazardous ? ['KG'] : ['TON', 'CBM', 'KG']);
 
-                                                return availableUnits.map((u: any) => (
+                                                return availableUnits.map((u: 'TON' | 'KG' | 'CBM') => (
                                                     <Button
                                                         key={u}
                                                         variant={currentTrip.unit === u ? 'primary' : 'ghost'}
@@ -980,7 +983,7 @@ const TripWizard: React.FC<TripWizardProps> = ({ isOpen, onClose, tripToEdit, in
                                                     const validUnits = (isSewage || isWater) ? ['CBM'] : (isHazardous ? ['KG'] : ['TON', 'CBM', 'KG']);
                                                     
                                                     if (!validUnits.includes(newUnit)) {
-                                                        newUnit = validUnits[0] as any;
+                                                        newUnit = validUnits[0] || 'TON';
                                                     }
                                                     return {
                                                         ...p,
@@ -1083,15 +1086,15 @@ const TripWizard: React.FC<TripWizardProps> = ({ isOpen, onClose, tripToEdit, in
                                                                 return size?.name === currentTrip.container_size;
                                                             }).sort((a, b) => {
                                                                 if (!currentTrip.service_id) return 0;
-                                                                const aId = (a as any).container_id || (a as any).tank_id;
-                                                                const bId = (b as any).container_id || (b as any).tank_id;
+                                                                const aId = ('container_id' in a ? a.container_id : a.tank_id);
+                                                                const bId = ('container_id' in b ? b.container_id : b.tank_id);
                                                                 const aLinked = assetServiceLinks.some(l => l.asset_id === aId && l.service_id === currentTrip.service_id);
                                                                 const bLinked = assetServiceLinks.some(l => l.asset_id === bId && l.service_id === currentTrip.service_id);
                                                                 if (aLinked && !bLinked) return -1;
                                                                 if (!aLinked && bLinked) return 1;
                                                                 return 0;
                                                             }).map(c => {
-                                                                const id = (c as any).container_id || (c as any).tank_id;
+                                                                const id = ('container_id' in c ? c.container_id : c.tank_id);
                                                                 const isLinked = currentTrip.service_id ? assetServiceLinks.some(l => l.asset_id === id && l.service_id === currentTrip.service_id) : false;
                                                                 return <option key={id} value={id}>{c.code} {isLinked ? '(Matched)' : ''}</option>
                                                             })}
@@ -1284,7 +1287,7 @@ const TripWizard: React.FC<TripWizardProps> = ({ isOpen, onClose, tripToEdit, in
                                 <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
                                     {(currentTrip.proof_images || []).map((img, idx) => (
                                         <div key={idx} className="aspect-square rounded-xl overflow-hidden relative group border border-border">
-                                            <img src={resolveImagePath(img)} alt="" className="w-full h-full object-cover" />
+                                            <NextImage src={resolveImagePath(img)} alt="" className="w-full h-full object-cover" fill sizes="(max-width: 640px) 25vw, 16vw" unoptimized />
                                             <button
                                                 onClick={() => setCurrentTrip(p => ({ ...p, proof_images: (p.proof_images || []).filter((_, i) => i !== idx) }))}
                                                 className="absolute top-1 right-1 p-1 bg-rose-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"

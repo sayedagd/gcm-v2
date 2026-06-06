@@ -5,16 +5,34 @@
  */
 import { useEffect, useRef } from 'react';
 import { useGCMStore } from '@/store';
-import { Trip, Project, Company, Vehicle, Driver, NotificationType } from '@/types';
+import {
+    Trip,
+    Project,
+    Company,
+    Vehicle,
+    Driver,
+    NotificationType,
+    AssetRequest,
+    AppNotification,
+    Container,
+    Tank,
+    Scale,
+} from '@/types';
 
 const getEventsUrl = (): string => {
-    // In both prod and dev (Vite proxy), /api routes reach the backend
-    const token = localStorage.getItem('gcm_jwt_token');
-    if (token) return `/api/events?token=${encodeURIComponent(token)}`;
-    return '/api/events';
+    // In both prod and dev, /api routes are same-origin and carry auth cookies.
+    return '/api/v1/events';
 };
 
-type Handler = (data: any) => void;
+type GenericRecord = Record<string, unknown>;
+type NotificationEvent = GenericRecord & { read?: boolean };
+type InventoryEvent = GenericRecord & {
+    container_id?: string;
+    tank_id?: string;
+    scale_id?: string;
+};
+
+type Handler = (data: unknown) => void;
 
 const buildHandlers = (): Record<string, Handler> => {
     const set = useGCMStore.setState;
@@ -29,7 +47,7 @@ const buildHandlers = (): Record<string, Handler> => {
         return next;
     };
 
-    const removeById = <T,>(arr: T[], id: any, key: keyof T): T[] =>
+    const removeById = <T, K extends keyof T>(arr: T[], id: T[K], key: K): T[] =>
         arr.filter((x) => x[key] !== id);
 
     return {
@@ -72,18 +90,36 @@ const buildHandlers = (): Record<string, Handler> => {
         'driver:deleted': (d: { driver_id: string }) => set((s) => ({ drivers: removeById(s.drivers, d.driver_id, 'driver_id') })),
 
         // ── Asset requests (subcontractor portal) ─────
-        'asset_req:created': (r: any) => set((s) => ({ assetRequests: upsertById(s.assetRequests, r, 'id') })),
-        'asset_req:updated': (r: any) => set((s) => ({ assetRequests: upsertById(s.assetRequests, r, 'id') })),
-        'asset_req:deleted': (d: { id: any }) => set((s) => ({ assetRequests: removeById(s.assetRequests, d.id, 'id') })),
+        'asset_req:created': (r: unknown) => set((s) => ({ assetRequests: upsertById(s.assetRequests, r as AssetRequest, 'id') })),
+        'asset_req:updated': (r: unknown) => set((s) => ({ assetRequests: upsertById(s.assetRequests, r as AssetRequest, 'id') })),
+        'asset_req:deleted': (d: { id: string | number }) => set((s) => ({ assetRequests: removeById(s.assetRequests, d.id, 'id') })),
 
         // ── Notifications ─────────────────────────────
-        'notif:new': (n: any) => set((s) => ({ notifications: [{ ...n, isRead: n.read }, ...s.notifications] })),
+        'notif:new': (n: NotificationEvent) => set((s) => {
+            const incoming = n as Partial<AppNotification> & { read?: boolean };
+            const normalized: AppNotification = {
+                id: incoming.id || `notif-${Date.now()}`,
+                type: incoming.type || NotificationType.INFO,
+                title: incoming.title || '',
+                message: incoming.message || '',
+                timestamp: incoming.timestamp || new Date().toISOString(),
+                isRead: incoming.isRead ?? incoming.read ?? false,
+                userId: incoming.userId || '',
+                ...(incoming.targetUserId ? { targetUserId: incoming.targetUserId } : {}),
+                ...(incoming.companyId ? { companyId: incoming.companyId } : {}),
+                ...(incoming.projectId ? { projectId: incoming.projectId } : {}),
+                ...(incoming.actionUrl ? { actionUrl: incoming.actionUrl } : {}),
+                ...(incoming.link ? { link: incoming.link } : {}),
+            };
+
+            return { notifications: [normalized, ...s.notifications] };
+        }),
 
         // ── Inventory ─────────────────────────────────
-        'inventory:updated': (i: any) => {
-            if (i.container_id) set((s) => ({ containers: upsertById(s.containers, i, 'container_id') }));
-            else if (i.tank_id) set((s) => ({ tanks: upsertById(s.tanks, i, 'tank_id') }));
-            else if (i.scale_id) set((s) => ({ scales: upsertById(s.scales, i, 'scale_id') }));
+        'inventory:updated': (i: InventoryEvent) => {
+            if (i.container_id) set((s) => ({ containers: upsertById(s.containers, i as unknown as Container, 'container_id') }));
+            else if (i.tank_id) set((s) => ({ tanks: upsertById(s.tanks, i as unknown as Tank, 'tank_id') }));
+            else if (i.scale_id) set((s) => ({ scales: upsertById(s.scales, i as unknown as Scale, 'scale_id') }));
         },
     };
 };

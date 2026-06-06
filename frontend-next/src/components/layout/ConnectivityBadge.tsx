@@ -8,6 +8,7 @@
 import React, { useState, useEffect } from 'react';
 import { useStore } from '../../context';
 import { useTranslation } from '../../hooks/useTranslation';
+import { createApiClient } from '@/api/client';
 
 const ConnectivityBadge: React.FC = () => {
     const { saasConfig } = useStore();
@@ -15,12 +16,12 @@ const ConnectivityBadge: React.FC = () => {
     const [status, setStatus] = useState<'online' | 'offline' | 'checking'>('checking');
 
     useEffect(() => {
+        const api = createApiClient();
         const check = async () => {
             try {
-                const res = await fetch('/api/config');
-                if (res.ok) setStatus('online');
-                else setStatus('offline');
-            } catch (e) {
+                await api.getConfig();
+                setStatus('online');
+            } catch {
                 setStatus('offline');
             }
         };

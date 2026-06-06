@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Cairo, Geist, Geist_Mono } from "next/font/google";
 import { AppProviders } from "@/providers/AppProviders";
 import ErrorBoundary from "@/components/common/ErrorBoundary";
+import { APP_DEFAULT_DESCRIPTION, APP_NAME, APP_TITLE_TEMPLATE } from "@/lib/metadata";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -14,9 +15,18 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const cairo = Cairo({
+  variable: "--font-cairo",
+  subsets: ["arabic", "latin"],
+  display: "swap",
+});
+
 export const metadata: Metadata = {
-  title: "GCM Frontend Migration",
-  description: "Next.js App Router baseline for GCM frontend migration",
+  title: {
+    default: APP_NAME,
+    template: APP_TITLE_TEMPLATE,
+  },
+  description: APP_DEFAULT_DESCRIPTION,
 };
 
 export default function RootLayout({
@@ -27,7 +37,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${cairo.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
         <ErrorBoundary moduleName="RootLayout">

@@ -2,6 +2,7 @@
 
 
 import React, { useState } from 'react';
+import Image from 'next/image';
 import { useStore } from '@/context';
 import {
     Package, Plus, Edit2, Trash2, Search,
@@ -9,6 +10,35 @@ import {
     Image as ImageIcon, Phone
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+
+type EquipmentItem = {
+    equipment_id: string;
+    name_ar: string;
+    name_en: string;
+    description_ar?: string;
+    description_en?: string;
+    status: 'AVAILABLE' | 'OUT_OF_STOCK' | 'DISCONTINUED' | string;
+    additional_images?: string[];
+    image_url?: string;
+    catalog_url?: string;
+    data_sheet_url?: string;
+    share_count?: number;
+};
+
+type EquipmentInquiryItem = {
+    id: string | number;
+    customer_name: string;
+    company?: string;
+    email?: string;
+    phone?: string;
+    equipment_id: string;
+    product_name_snapshot?: string;
+    message?: string;
+    status: 'PENDING' | 'REPLIED' | string;
+    admin_reply?: string;
+    created_at?: string;
+    timestamp?: string;
+};
 
 const EquipmentAdmin: React.FC = () => {
     const {
@@ -19,9 +49,9 @@ const EquipmentAdmin: React.FC = () => {
     const [tab, setTab] = useState<'EQUIPMENT' | 'INQUIRIES' | 'SETTINGS'>('EQUIPMENT');
     const [search, setSearch] = useState('');
 
-    const [editingEquipment, setEditingEquipment] = useState<any>(null);
-    const [replyingInquiry, setReplyingInquiry] = useState<any>(null);
-    const [viewingInquiry, setViewingInquiry] = useState<any>(null);
+    const [editingEquipment, setEditingEquipment] = useState<EquipmentItem | null>(null);
+    const [replyingInquiry, setReplyingInquiry] = useState<EquipmentInquiryItem | null>(null);
+    const [viewingInquiry, setViewingInquiry] = useState<EquipmentInquiryItem | null>(null);
     const [replyText, setReplyText] = useState('');
 
     // [EN] Export products to JSON
@@ -179,7 +209,7 @@ const EquipmentAdmin: React.FC = () => {
                                     <tr key={e.equipment_id} className="hover:bg-surface-subtle transition-colors group">
                                         <td className="p-6">
                                             <div className="flex items-center gap-4">
-                                                <img src={e.image_url || 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&q=80'} className="w-12 h-12 rounded-xl object-cover" />
+                                                <Image src={e.image_url || 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&q=80'} className="w-12 h-12 rounded-xl object-cover" alt={isAr ? `صورة ${e.name_ar}` : `${e.name_en} image`} width={48} height={48} unoptimized />
                                                 <div>
                                                     <p className="font-bold text-text-main">{isAr ? e.name_ar : e.name_en}</p>
                                                     <p className="text-[10px] text-text-subtle">{e.equipment_id}</p>
@@ -242,7 +272,7 @@ const EquipmentAdmin: React.FC = () => {
                                             </td>
                                             <td className="p-6">
                                                 <div className="flex items-center gap-3">
-                                                    {eq && <img src={eq.image_url} className="w-8 h-8 rounded-lg object-cover bg-surface-subtle" />}
+                                                    {eq && <Image src={eq.image_url || 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&q=80'} className="w-8 h-8 rounded-lg object-cover bg-surface-subtle" alt={isAr ? 'صورة الجهاز' : 'Equipment image'} width={32} height={32} unoptimized />}
                                                     <p className="font-bold text-sm text-primary-600">
                                                         {eq ? (isAr ? eq.name_ar : eq.name_en) : (i.product_name_snapshot || 'Deleted Equipment')}
                                                     </p>
@@ -389,7 +419,7 @@ const EquipmentAdmin: React.FC = () => {
                             <h2 className="text-2xl font-bold mb-4">{isAr ? 'الرد على الاستفسار' : 'Reply to Inquiry'}</h2>
                             <div className="mb-6 p-4 bg-surface-subtle rounded-2xl border border-border">
                                 <p className="text-xs font-bold text-text-subtle mb-1">{isAr ? 'رسالة العميل' : 'Customer Message'}</p>
-                                <p className="text-sm font-medium text-text-main italic">"{replyingInquiry.message || 'No message provided'}"</p>
+                                <p className="text-sm font-medium text-text-main italic">&quot;{replyingInquiry.message || 'No message provided'}&quot;</p>
                             </div>
                             <div className="space-y-4">
                                 <label className="text-[10px] uppercase font-bold text-text-subtle ml-2 tracking-widest">{isAr ? 'نص الرد' : 'Your Reply'}</label>
@@ -463,7 +493,7 @@ const EquipmentAdmin: React.FC = () => {
                                         {isAr ? 'الرسالة' : 'Message'}
                                     </label>
                                     <p className="text-text-main font-medium leading-relaxed italic">
-                                        "{viewingInquiry.message || 'No message provided'}"
+                                        &quot;{viewingInquiry.message || 'No message provided'}&quot;
                                     </p>
                                 </div>
 

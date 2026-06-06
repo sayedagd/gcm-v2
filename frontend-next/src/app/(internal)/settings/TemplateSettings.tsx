@@ -8,6 +8,7 @@
  */
 
 import React, { useState, useMemo } from 'react';
+import Image from 'next/image';
 import { useStore } from '@/context';
 import { Eye, Save, RotateCcw, Image as ImageIcon, Type, AlignLeft, CheckSquare, Upload, Palette } from 'lucide-react';
 import { Card, Button, Input } from '@/components';
@@ -26,6 +27,27 @@ const sanitize = (val: string) => {
 };
 
 type ActiveTab = 'manifest' | 'deliveryNote' | 'reports';
+
+type GlobalTemplateConfig = {
+    headerTextAr: string;
+    headerTextEn: string;
+    footerTextAr: string;
+    footerTextEn: string;
+    logoOverride: string;
+    gcmStampOverride: string;
+    accentColor: string;
+};
+
+type TemplateEditorConfig = {
+    headerTextAr?: string | undefined;
+    headerTextEn?: string | undefined;
+    footerTextAr?: string | undefined;
+    footerTextEn?: string | undefined;
+    logoOverride?: string | undefined;
+    showLogo?: boolean;
+    showSignatures?: boolean;
+    showQR?: boolean;
+};
 
 const TemplateSettings: React.FC = () => {
     const { saasConfig, updateSaaS, addNotification } = useStore();
@@ -59,7 +81,7 @@ const TemplateSettings: React.FC = () => {
     }));
 
     // Local state for global reports config
-    const [globalConfig, setGlobalConfig] = useState(() => ({
+    const [globalConfig, setGlobalConfig] = useState<GlobalTemplateConfig>(() => ({
         headerTextAr: saasConfig.templateConfig?.global?.headerTextAr || '',
         headerTextEn: saasConfig.templateConfig?.global?.headerTextEn || '',
         footerTextAr: saasConfig.templateConfig?.global?.footerTextAr || '',
@@ -84,7 +106,7 @@ const TemplateSettings: React.FC = () => {
                 title: isAr ? 'تم الحفظ' : 'Saved',
                 message: isAr ? 'تم حفظ إعدادات القوالب بنجاح' : 'Template settings saved successfully',
             });
-        } catch (err) {
+        } catch {
             addNotification({
                 type: NotificationType.ERROR,
                 title: isAr ? 'خطأ' : 'Error',
@@ -100,7 +122,7 @@ const TemplateSettings: React.FC = () => {
         if (file) {
             const reader = new FileReader();
             reader.onloadend = () => {
-                setCurrentConfig((prev: any) => ({ ...prev, logoOverride: reader.result as string }));
+                updateCurrentConfig({ logoOverride: reader.result as string });
             };
             reader.readAsDataURL(file);
         }
@@ -111,7 +133,7 @@ const TemplateSettings: React.FC = () => {
         if (file) {
             const reader = new FileReader();
             reader.onloadend = () => {
-                setGlobalConfig((prev: any) => ({ ...prev, gcmStampOverride: reader.result as string }));
+                setGlobalConfig((prev) => ({ ...prev, gcmStampOverride: reader.result as string }));
             };
             reader.readAsDataURL(file);
         }
@@ -162,9 +184,10 @@ const TemplateSettings: React.FC = () => {
         const headerAr = sanitize((isManifest ? (config as ManifestTemplateConfig).headerTextAr : config.headerTextAr) || '');
         const footerEn = sanitize(config.footerTextEn || '');
         const footerAr = sanitize(config.footerTextAr || '');
-        const showLogo = isReports ? true : (config as any).showLogo !== false;
-        const showSignatures = isReports ? false : (config as any).showSignatures !== false;
-        const logoUrl = (config as any).logoOverride || saasConfig.logoUrl || '';
+        const editorConfig = config as TemplateEditorConfig;
+        const showLogo = isReports ? true : editorConfig.showLogo !== false;
+        const showSignatures = isReports ? false : editorConfig.showSignatures !== false;
+        const logoUrl = editorConfig.logoOverride || saasConfig.logoUrl || '';
 
         return `
         <div style="width: 100%; padding: 24px 28px; font-family: 'Segoe UI', Arial, sans-serif; background: #fff; color: #1a1a1a; box-sizing: border-box;">
@@ -180,7 +203,7 @@ const TemplateSettings: React.FC = () => {
                 <div style="flex: 1; text-align: right; display: flex; flex-direction: column; align-items: flex-end;">
                     <div style="font-size: 10px; font-weight: 700; color: #334155;">${isManifest ? 'Manifest No.' : 'Ref No.'}</div>
                     <div style="font-size: 14px; font-weight: 800; color: ${accentColor}; border: 2px solid ${accentColor}; display: inline-block; padding: 3px 12px; border-radius: 6px; margin-top: 3px;">MNF-0001</div>
-                    ${!isManifest && (config as any).showQR ? `
+                    ${!isManifest && editorConfig.showQR ? `
                     <div style="margin-top: 8px; border: 1px solid #e2e8f0; padding: 2px; border-radius: 4px; background: white;">
                         <img src="https://api.qrserver.com/v1/create-qr-code/?size=40x40&data=PREVIEW" style="width:40px;height:40px;display:block;" />
                     </div>` : ''}
@@ -244,14 +267,20 @@ const TemplateSettings: React.FC = () => {
             </div>` : ''}
         </div>
         `;
-    }, [activeTab, manifestConfig, deliveryNoteConfig, saasConfig.logoUrl]);
+    }, [activeTab, manifestConfig, deliveryNoteConfig, globalConfig, saasConfig.logoUrl]);
 
-    const currentConfig = activeTab === 'manifest' ? manifestConfig : activeTab === 'deliveryNote' ? deliveryNoteConfig : globalConfig;
-    const setCurrentConfig = activeTab === 'manifest'
-        ? (fn: (prev: ManifestTemplateConfig) => ManifestTemplateConfig) => setManifestConfig(fn)
-        : activeTab === 'deliveryNote'
-            ? (fn: (prev: DeliveryNoteTemplateConfig) => DeliveryNoteTemplateConfig) => setDeliveryNoteConfig(fn as any)
-            : (fn: (prev: any) => any) => setGlobalConfig(fn);
+    const currentConfig: TemplateEditorConfig | GlobalTemplateConfig = activeTab === 'manifest' ? manifestConfig : activeTab === 'deliveryNote' ? deliveryNoteConfig : globalConfig;
+    const updateCurrentConfig = (patch: Partial<TemplateEditorConfig>) => {
+        if (activeTab === 'manifest') {
+            setManifestConfig(prev => ({ ...prev, ...patch } as ManifestTemplateConfig));
+            return;
+        }
+        if (activeTab === 'deliveryNote') {
+            setDeliveryNoteConfig(prev => ({ ...prev, ...patch } as DeliveryNoteTemplateConfig));
+            return;
+        }
+        setGlobalConfig(prev => ({ ...prev, ...patch } as GlobalTemplateConfig));
+    };
 
     const tabs: { key: ActiveTab; labelEn: string; labelAr: string; color: string }[] = [
         { key: 'manifest', labelEn: 'Waste Manifest', labelAr: 'المانفيست', color: '#0f766e' },
@@ -322,13 +351,13 @@ const TemplateSettings: React.FC = () => {
                             <Input
                                 label={isAr ? 'العنوان (إنجليزي)' : 'Header (English)'}
                                 value={currentConfig.headerTextEn || ''}
-                                onChange={(val) => setCurrentConfig((prev: any) => ({ ...prev, headerTextEn: val }))}
+                                onChange={(val) => updateCurrentConfig({ headerTextEn: val })}
                                 placeholder="WASTE MANAGEMENT MANIFEST"
                             />
                             <Input
                                 label={isAr ? 'العنوان (عربي)' : 'Header (Arabic)'}
                                 value={currentConfig.headerTextAr || ''}
-                                onChange={(val) => setCurrentConfig((prev: any) => ({ ...prev, headerTextAr: val }))}
+                                onChange={(val) => updateCurrentConfig({ headerTextAr: val })}
                                 placeholder="بيان إدارة النفايات"
                                 dir="rtl"
                             />
@@ -350,13 +379,13 @@ const TemplateSettings: React.FC = () => {
                             <Input
                                 label={isAr ? 'التذييل (إنجليزي)' : 'Footer (English)'}
                                 value={currentConfig.footerTextEn || ''}
-                                onChange={(val) => setCurrentConfig((prev: any) => ({ ...prev, footerTextEn: val }))}
+                                onChange={(val) => updateCurrentConfig({ footerTextEn: val })}
                                 placeholder="All rights reserved © 2024"
                             />
                             <Input
                                 label={isAr ? 'التذييل (عربي)' : 'Footer (Arabic)'}
                                 value={currentConfig.footerTextAr || ''}
-                                onChange={(val) => setCurrentConfig((prev: any) => ({ ...prev, footerTextAr: val }))}
+                                onChange={(val) => updateCurrentConfig({ footerTextAr: val })}
                                 placeholder="جميع الحقوق محفوظة"
                                 dir="rtl"
                             />
@@ -409,8 +438,8 @@ const TemplateSettings: React.FC = () => {
                         <div className="flex flex-col md:flex-row items-center gap-6 bg-surface-subtle p-4 rounded-2xl border border-dashed border-border hover:border-primary transition-colors">
                             <div className="relative group">
                                 <div className="w-24 h-24 bg-surface rounded-xl border border-border flex items-center justify-center overflow-hidden">
-                                    {(currentConfig as any).logoOverride || saasConfig.logoUrl ? (
-                                        <img src={(currentConfig as any).logoOverride || saasConfig.logoUrl} className="w-full h-full object-contain" alt="Template Logo" />
+                                    {currentConfig.logoOverride || saasConfig.logoUrl ? (
+                                        <Image src={currentConfig.logoOverride || saasConfig.logoUrl || '/logo-light.png'} className="w-full h-full object-contain" alt="Template Logo" width={96} height={96} unoptimized />
                                     ) : (
                                         <ImageIcon className="text-text-subtle opacity-30" size={30} />
                                     )}
@@ -428,7 +457,7 @@ const TemplateSettings: React.FC = () => {
                                 <Input
                                     label={isAr ? 'رابط الشعار' : 'Logo URL'}
                                     value={currentConfig.logoOverride || ''}
-                                    onChange={(val) => setCurrentConfig((prev: any) => ({ ...prev, logoOverride: val }))}
+                                    onChange={(val) => updateCurrentConfig({ logoOverride: val })}
                                     placeholder="https://..."
                                     className="!py-2"
                                 />
@@ -449,7 +478,7 @@ const TemplateSettings: React.FC = () => {
                                 <div className="relative group">
                                     <div className="w-24 h-24 bg-surface rounded-xl border border-border flex items-center justify-center overflow-hidden">
                                         {globalConfig.gcmStampOverride ? (
-                                            <img src={globalConfig.gcmStampOverride} className="w-full h-full object-contain mix-blend-multiply" alt="GCM Stamp" />
+                                            <Image src={globalConfig.gcmStampOverride} className="w-full h-full object-contain mix-blend-multiply" alt="GCM Stamp" width={96} height={96} unoptimized />
                                         ) : (
                                             <ImageIcon className="text-text-subtle opacity-30" size={30} />
                                         )}
@@ -509,19 +538,19 @@ const TemplateSettings: React.FC = () => {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
                         <ToggleOption
                             label={isAr ? 'إظهار الشعار' : 'Show Logo'}
-                            checked={(currentConfig as any).showLogo !== false}
-                            onChange={(v) => setCurrentConfig((prev: any) => ({ ...prev, showLogo: v }))}
+                            checked={(currentConfig as TemplateEditorConfig).showLogo !== false}
+                            onChange={(v) => updateCurrentConfig({ showLogo: v })}
                         />
                         <ToggleOption
                             label={isAr ? 'إظهار التوقيعات' : 'Show Signatures'}
-                            checked={(currentConfig as any).showSignatures !== false}
-                            onChange={(v) => setCurrentConfig((prev: any) => ({ ...prev, showSignatures: v }))}
+                            checked={(currentConfig as TemplateEditorConfig).showSignatures !== false}
+                            onChange={(v) => updateCurrentConfig({ showSignatures: v })}
                         />
                         {activeTab === 'deliveryNote' && (
                             <ToggleOption
                                 label={isAr ? 'إظهار QR Code' : 'Show QR Code'}
-                                checked={(currentConfig as any).showQR === true}
-                                onChange={(v) => setCurrentConfig((prev: any) => ({ ...prev, showQR: v }))}
+                                checked={(currentConfig as TemplateEditorConfig).showQR === true}
+                                onChange={(v) => updateCurrentConfig({ showQR: v })}
                             />
                         )}
                     </div>

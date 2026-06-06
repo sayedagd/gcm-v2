@@ -76,4 +76,29 @@ describe('requestValidationMiddleware', () => {
     expect(req.body.description).toBe('Safe');
     expect(next).toHaveBeenCalledTimes(1);
   });
+
+  test('middleware remains final authority even when x-skip-validation is sent', () => {
+    const req = {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-skip-validation': 'true',
+      },
+      body: { notes: '<script>alert(1)</script>Needs sanitize' },
+    };
+    const res = {
+      status() {
+        return this;
+      },
+      json() {
+        return this;
+      },
+    };
+    const next = jest.fn();
+
+    validateAndSanitizeWritePayload(req, res, next);
+
+    expect(req.body.notes).toBe('Needs sanitize');
+    expect(next).toHaveBeenCalledTimes(1);
+  });
 });

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 export default function GlobalError({
   error,
@@ -9,6 +10,8 @@ export default function GlobalError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const router = useRouter();
+
   useEffect(() => {
     console.error("[AppErrorBoundary]", error);
   }, [error]);
@@ -26,6 +29,12 @@ export default function GlobalError({
             className="px-5 py-2.5 rounded-xl bg-primary text-surface font-bold text-sm"
           >
             Try again
+          </button>
+          <button
+            onClick={() => router.push("/dashboard")}
+            className="px-5 py-2.5 rounded-xl border border-border text-text-main font-bold text-sm"
+          >
+            Go to dashboard
           </button>
           <button
             onClick={() => window.location.reload()}

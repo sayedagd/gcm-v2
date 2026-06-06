@@ -18,6 +18,9 @@
     { "name": "Projects" },
     { "name": "Trips" },
     { "name": "Services" },
+    { "name": "Drivers" },
+    { "name": "Vehicles" },
+    { "name": "Suppliers" },
     { "name": "Facilities" },
     { "name": "Backup" },
     { "name": "Config" }
@@ -453,6 +456,207 @@
         }
       }
     },
+    "/api/v1/drivers": {
+      "get": {
+        "tags": ["Drivers"],
+        "summary": "List drivers",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Drivers list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": true
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Drivers"],
+        "summary": "Create or update driver",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Upsert success",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/UpsertSuccess" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/drivers/{id}": {
+      "delete": {
+        "tags": ["Drivers"],
+        "summary": "Delete driver",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/IdPath" }],
+        "responses": {
+          "200": {
+            "description": "Delete success",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DeleteSuccess" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/vehicles": {
+      "get": {
+        "tags": ["Vehicles"],
+        "summary": "List vehicles",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Vehicles list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": true
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Vehicles"],
+        "summary": "Create or update vehicle",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Upsert success",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/UpsertSuccess" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/vehicles/{id}": {
+      "delete": {
+        "tags": ["Vehicles"],
+        "summary": "Delete vehicle",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/IdPath" }],
+        "responses": {
+          "200": {
+            "description": "Delete success",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DeleteSuccess" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/suppliers": {
+      "get": {
+        "tags": ["Suppliers"],
+        "summary": "List suppliers",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Suppliers list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": true
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Suppliers"],
+        "summary": "Create or update supplier",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Upsert success",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/UpsertSuccess" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/suppliers/{id}": {
+      "delete": {
+        "tags": ["Suppliers"],
+        "summary": "Delete supplier",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/IdPath" }],
+        "responses": {
+          "200": {
+            "description": "Delete success",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DeleteSuccess" }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/system/backup/status": {
       "get": {
         "tags": ["Backup"],
@@ -665,8 +869,8 @@
       },
       "AuthResponse": {
         "type": "object",
+        "description": "Authenticated user profile. Session token is issued via HttpOnly cookie, not response body.",
         "properties": {
-          "token": { "type": "string" },
           "user": { "$ref": "#/components/schemas/User" }
         },
         "additionalProperties": true

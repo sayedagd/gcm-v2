@@ -1,7 +1,7 @@
-// @ts-nocheck
 "use client";
 
 import React, { useState } from 'react';
+import Image from 'next/image';
 import { useStore } from '@/context';
 import {
    Save, ImageIcon, Upload, Link as LinkIcon, Sparkles,
@@ -12,9 +12,99 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ActionType, EntityType } from '@/types';
 import { Input, Textarea, ColorPicker } from '@/components';
 
+type LandingTab = 'hero' | 'about' | 'services' | 'fleet' | 'partners' | 'carbon' | 'headerfooter' | 'seo' | 'messages' | 'system';
+
+interface SmartImageControlProps {
+   label: string;
+   value: string | undefined;
+   onChange: (value: string) => void;
+   onUpload: (base64: string) => void;
+   isAr: boolean;
+   handleFileUpload: (e: React.ChangeEvent<HTMLInputElement>, callback: (base64: string) => void) => void;
+}
+
+interface ServiceItem {
+   id: string;
+   titleAr: string;
+   titleEn: string;
+   descAr: string;
+   descEn: string;
+   iconType: 'truck' | 'shield' | 'factory' | 'droplet' | 'custom' | string;
+   iconUrl?: string;
+}
+
+interface FleetItem {
+   id: string;
+   nameAr: string;
+   nameEn: string;
+   specsAr: string;
+   specsEn: string;
+   image: string;
+}
+
+interface PartnerItem {
+   id: string;
+   name: string;
+   logo: string;
+}
+
+interface SocialLinkItem {
+   id: string;
+   platform: string;
+   url: string;
+}
+
+const SmartImageControl: React.FC<SmartImageControlProps> = ({ label, value, onChange, onUpload, isAr, handleFileUpload }) => {
+   const [mode, setMode] = useState<'view' | 'edit'>(value ? 'view' : 'edit');
+   return (
+      <div className="space-y-4">
+         <label className="text-[10px] font-bold text-text-subtle uppercase tracking-[0.2em] block">{label}</label>
+         {mode === 'view' ? (
+            <div className="relative group overflow-hidden rounded-2xl border-4 border-surface shadow-xl aspect-video md:aspect-auto md:h-48 bg-surface-subtle transition-colors">
+               {value ? (
+                  <Image
+                     src={value}
+                     alt="Preview"
+                     fill
+                     sizes="(max-width: 768px) 100vw, 50vw"
+                     unoptimized
+                     className="object-cover transition-transform group-hover:scale-105 duration-700"
+                  />
+               ) : null}
+               <div className="absolute inset-0 bg-background/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-sm">
+                  <button onClick={() => setMode('edit')} className="p-4 bg-surface text-text-main rounded-2xl font-bold text-xs flex items-center gap-2 hover:scale-110 transition-all shadow-lg">
+                     <Edit2 size={16} /> {isAr ? 'تغيير الصورة' : 'Change Image'}
+                  </button>
+               </div>
+            </div>
+         ) : (
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="p-6 bg-surface-subtle rounded-2xl border-2 border-dashed border-border">
+               <div className="flex flex-col sm:flex-row gap-4">
+                  <div className="flex-1 space-y-3">
+                     <Input
+                        icon={LinkIcon}
+                        placeholder="https://..."
+                        value={value?.startsWith('data:') ? '' : (value ?? '')}
+                        onChange={onChange}
+                        className="!bg-surface border-none !p-0 h-auto"
+                        containerClassName="flex-1"
+                     />
+                     <label className="flex items-center justify-center gap-2 p-3 bg-emerald-600 text-white rounded-xl font-bold text-[10px] uppercase cursor-pointer hover:bg-emerald-700 transition-all">
+                        <Upload size={14} /> {isAr ? 'رفع من الجهاز' : 'Upload File'}
+                        <input type="file" className="hidden" accept="image/*" onChange={(e) => { handleFileUpload(e, onUpload); setMode('view'); }} />
+                     </label>
+                  </div>
+                  {value && <button onClick={() => setMode('view')} className="px-4 py-2 text-text-subtle font-bold text-[10px] uppercase">{isAr ? 'إلغاء' : 'Cancel'}</button>}
+               </div>
+            </motion.div>
+         )}
+      </div>
+   );
+};
+
 const LandingSettings: React.FC = () => {
    const { saasConfig, updateSaaS, updateLandingPage, contactSubmissions, deleteContactSubmission, currentUser, addLog } = useStore();
-   const [activeTab, setActiveTab] = useState<'hero' | 'about' | 'services' | 'fleet' | 'partners' | 'carbon' | 'headerfooter' | 'seo' | 'messages' | 'system'>('hero');
+   const [activeTab, setActiveTab] = useState<LandingTab>('hero');
    const [showSaveToast, setShowSaveToast] = useState(false);
    const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -47,46 +137,7 @@ const LandingSettings: React.FC = () => {
       }
    };
 
-   const SmartImageControl = ({ label, value, onChange, onUpload }: any) => {
-      const [mode, setMode] = useState<'view' | 'edit'>(value ? 'view' : 'edit');
-      return (
-         <div className="space-y-4">
-            <label className="text-[10px] font-bold text-text-subtle uppercase tracking-[0.2em] block">{label}</label>
-            {mode === 'view' ? (
-               <div className="relative group overflow-hidden rounded-2xl border-4 border-surface shadow-xl aspect-video md:aspect-auto md:h-48 bg-surface-subtle transition-colors">
-                  <img src={value} className="w-full h-full object-cover transition-transform group-hover:scale-105 duration-700" alt="Preview" />
-                  <div className="absolute inset-0 bg-background/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-sm">
-                     <button onClick={() => setMode('edit')} className="p-4 bg-surface text-text-main rounded-2xl font-bold text-xs flex items-center gap-2 hover:scale-110 transition-all shadow-lg">
-                        <Edit2 size={16} /> {isAr ? 'تغيير الصورة' : 'Change Image'}
-                     </button>
-                  </div>
-               </div>
-            ) : (
-               <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="p-6 bg-surface-subtle rounded-2xl border-2 border-dashed border-border">
-                  <div className="flex flex-col sm:flex-row gap-4">
-                     <div className="flex-1 space-y-3">
-                        <Input
-                           icon={LinkIcon}
-                           placeholder="https://..."
-                           value={value?.startsWith('data:') ? '' : value}
-                           onChange={onChange}
-                           className="!bg-surface border-none !p-0 h-auto"
-                           containerClassName="flex-1"
-                        />
-                        <label className="flex items-center justify-center gap-2 p-3 bg-emerald-600 text-white rounded-xl font-bold text-[10px] uppercase cursor-pointer hover:bg-emerald-700 transition-all">
-                           <Upload size={14} /> {isAr ? 'رفع من الجهاز' : 'Upload File'}
-                           <input type="file" className="hidden" accept="image/*" onChange={(e) => { handleFileUpload(e, onUpload); setMode('view'); }} />
-                        </label>
-                     </div>
-                     {value && <button onClick={() => setMode('view')} className="px-4 py-2 text-text-subtle font-bold text-[10px] uppercase">{isAr ? 'إلغاء' : 'Cancel'}</button>}
-                  </div>
-               </motion.div>
-            )}
-         </div>
-      );
-   };
-
-   const tabs = [
+   const tabs: Array<{ id: LandingTab; label: string; icon: React.ComponentType<{ size?: number }> }> = [
       { id: 'hero', label: isAr ? 'قسم الهيرو' : 'Hero', icon: ImageIcon },
       { id: 'about', label: isAr ? 'عن الشركة' : 'About', icon: Building2 },
       { id: 'services', label: isAr ? 'الخدمات' : 'Services', icon: Layout },
@@ -116,7 +167,7 @@ const LandingSettings: React.FC = () => {
          <div className="w-full bg-surface p-2 rounded-2xl shadow-xl border border-border overflow-x-auto custom-scrollbar transition-colors">
             <div className="flex items-center min-w-max gap-1">
                {tabs.map((tab) => (
-                  <button key={tab.id} onClick={() => setActiveTab(tab.id as any)} className={`px-6 py-4 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all relative z-10 flex items-center gap-2 ${activeTab === tab.id ? 'text-white' : 'text-text-subtle hover:bg-surface-subtle'}`}>
+                  <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`px-6 py-4 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all relative z-10 flex items-center gap-2 ${activeTab === tab.id ? 'text-white' : 'text-text-subtle hover:bg-surface-subtle'}`}>
                      <tab.icon size={14} />
                      {tab.label}
                      {activeTab === tab.id && <motion.div layoutId="activeTabIndicator" className="absolute inset-0 bg-emerald-600 rounded-xl -z-10 shadow-lg shadow-emerald-600/20" transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }} />}
@@ -130,7 +181,7 @@ const LandingSettings: React.FC = () => {
                <motion.div key="hero" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-8">
                   <div className="bg-surface p-10 md:p-12 rounded-[4rem] border border-border shadow-sm space-y-12 transition-colors">
                      <h3 className="font-bold text-2xl flex items-center gap-3 text-emerald-600"><ImageIcon size={24} /> {isAr ? 'قسم الواجهة (Hero)' : 'Hero Section'}</h3>
-                     <SmartImageControl label={isAr ? 'صورة الخلفية البانورامية' : 'Hero Background Image'} value={lp.heroBgUrl} onChange={val => updateLandingPage({ heroBgUrl: val })} onUpload={b64 => updateLandingPage({ heroBgUrl: b64 })} />
+                     <SmartImageControl label={isAr ? 'صورة الخلفية البانورامية' : 'Hero Background Image'} value={lp.heroBgUrl} onChange={val => updateLandingPage({ heroBgUrl: val })} onUpload={b64 => updateLandingPage({ heroBgUrl: b64 })} isAr={isAr} handleFileUpload={handleFileUpload} />
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                         <div className="space-y-4">
                            <Textarea
@@ -171,7 +222,7 @@ const LandingSettings: React.FC = () => {
                <motion.div key="about" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-8">
                   <div className="bg-surface p-10 md:p-12 rounded-[4rem] border border-border shadow-sm space-y-12 transition-colors">
                      <h3 className="font-bold text-2xl flex items-center gap-3 text-emerald-600"><Building2 size={24} /> {isAr ? 'تعريف الشركة (About Us)' : 'About Us Section'}</h3>
-                     <SmartImageControl label={isAr ? 'الصورة التعريفية' : 'About Section Image'} value={lp.aboutImageUrl} onChange={val => updateLandingPage({ aboutImageUrl: val })} onUpload={b64 => updateLandingPage({ aboutImageUrl: b64 })} />
+                     <SmartImageControl label={isAr ? 'الصورة التعريفية' : 'About Section Image'} value={lp.aboutImageUrl} onChange={val => updateLandingPage({ aboutImageUrl: val })} onUpload={b64 => updateLandingPage({ aboutImageUrl: b64 })} isAr={isAr} handleFileUpload={handleFileUpload} />
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                         <div className="space-y-4">
                            <Input label="العنوان الصغير (AR)" value={lp.aboutTitleAr} onChange={val => updateLandingPage({ aboutTitleAr: val })} />
@@ -238,15 +289,17 @@ const LandingSettings: React.FC = () => {
                      </div>
 
                      <div className="grid grid-cols-1 gap-6">
-                        {lp.services.map((s, idx) => (
+                        {lp.services.map((s: ServiceItem, idx: number) => (
                            <div key={s.id} className="p-8 bg-surface-subtle rounded-2xl border border-border flex flex-col md:flex-row items-center gap-8 relative group">
                               <button onClick={() => {
-                                 const n = lp.services.filter(x => x.id !== s.id);
+                                 const n = lp.services.filter((x: ServiceItem) => x.id !== s.id);
                                  updateLandingPage({ services: n });
                               }} className="absolute top-6 right-6 p-2 bg-rose-500/10 text-rose-500 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 size={16} /></button>
                               <div className="w-20 h-20 bg-surface rounded-3xl flex items-center justify-center text-emerald-600 border border-border shrink-0 relative">
                                  {s.iconType === 'custom' ? (
-                                    <img src={s.iconUrl} className="w-12 h-12 object-contain" alt="" />
+                                    s.iconUrl ? (
+                                       <Image src={s.iconUrl} alt="Service icon" fill sizes="80px" unoptimized className="p-4 object-contain" />
+                                    ) : null
                                  ) : (
                                     s.iconType === 'truck' ? <Truck size={32} /> : s.iconType === 'shield' ? <Shield size={32} /> : s.iconType === 'factory' ? <Factory size={32} /> : <Droplets size={32} />
                                  )}
@@ -257,7 +310,7 @@ const LandingSettings: React.FC = () => {
                                        placeholder="العنوان (AR)"
                                        value={s.titleAr}
                                        onChange={val => {
-                                          const n = lp.services.map((svc, i) => i === idx ? { ...svc, titleAr: val } : svc);
+                                          const n = lp.services.map((svc: ServiceItem, i: number) => i === idx ? { ...svc, titleAr: val } : svc);
                                           updateLandingPage({ services: n });
                                        }}
                                        className="!py-3 !rounded-2xl"
@@ -266,7 +319,7 @@ const LandingSettings: React.FC = () => {
                                        placeholder="الوصف (AR)"
                                        value={s.descAr}
                                        onChange={val => {
-                                          const n = lp.services.map((svc, i) => i === idx ? { ...svc, descAr: val } : svc);
+                                          const n = lp.services.map((svc: ServiceItem, i: number) => i === idx ? { ...svc, descAr: val } : svc);
                                           updateLandingPage({ services: n });
                                        }}
                                        rows={3}
@@ -278,7 +331,7 @@ const LandingSettings: React.FC = () => {
                                        placeholder="Title (EN)"
                                        value={s.titleEn}
                                        onChange={val => {
-                                          const n = lp.services.map((svc, i) => i === idx ? { ...svc, titleEn: val } : svc);
+                                          const n = lp.services.map((svc: ServiceItem, i: number) => i === idx ? { ...svc, titleEn: val } : svc);
                                           updateLandingPage({ services: n });
                                        }}
                                        className="!py-3 !rounded-2xl"
@@ -287,7 +340,7 @@ const LandingSettings: React.FC = () => {
                                        placeholder="Description (EN)"
                                        value={s.descEn}
                                        onChange={val => {
-                                          const n = lp.services.map((svc, i) => i === idx ? { ...svc, descEn: val } : svc);
+                                          const n = lp.services.map((svc: ServiceItem, i: number) => i === idx ? { ...svc, descEn: val } : svc);
                                           updateLandingPage({ services: n });
                                        }}
                                        rows={3}
@@ -299,7 +352,7 @@ const LandingSettings: React.FC = () => {
                                  <div>
                                     <label className="text-[9px] font-bold uppercase text-text-subtle block mb-2">Icon Type</label>
                                     <select className="w-full p-2 bg-surface rounded-lg text-xs font-bold text-text-main border border-border" value={s.iconType} onChange={e => {
-                                       const n = lp.services.map((svc, i) => i === idx ? { ...svc, iconType: e.target.value } : svc);
+                                       const n = lp.services.map((svc: ServiceItem, i: number) => i === idx ? { ...svc, iconType: e.target.value } : svc);
                                        updateLandingPage({ services: n });
                                     }}>
                                        <option value="truck">Truck Icon</option>
@@ -314,13 +367,13 @@ const LandingSettings: React.FC = () => {
                                        <label className="text-[8px] font-bold text-text-subtle uppercase">Icon Asset (Link or File)</label>
                                        <div className="flex gap-1">
                                           <input className="flex-1 p-2 bg-surface rounded-lg text-[9px] border border-border text-text-main" value={s.iconUrl || ''} onChange={e => {
-                                             const n = lp.services.map((svc, i) => i === idx ? { ...svc, iconUrl: e.target.value } : svc);
+                                             const n = lp.services.map((svc: ServiceItem, i: number) => i === idx ? { ...svc, iconUrl: e.target.value } : svc);
                                              updateLandingPage({ services: n });
                                           }} placeholder="https://..." />
                                           <label className="p-2 bg-emerald-600 text-white rounded-lg cursor-pointer hover:bg-emerald-700">
                                              <Upload size={12} />
                                              <input type="file" className="hidden" accept="image/*" onChange={(e) => handleFileUpload(e, (b64) => {
-                                                const n = lp.services.map((svc, i) => i === idx ? { ...svc, iconUrl: b64 } : svc);
+                                                const n = lp.services.map((svc: ServiceItem, i: number) => i === idx ? { ...svc, iconUrl: b64 } : svc);
                                                 updateLandingPage({ services: n });
                                              })} />
                                           </label>
@@ -358,48 +411,48 @@ const LandingSettings: React.FC = () => {
                         </div>
                      </div>
                      <div className="grid grid-cols-1 gap-6">
-                        {lp.fleet.map((f, idx) => (
+                        {lp.fleet.map((f: FleetItem, idx: number) => (
                            <div key={f.id} className="p-8 bg-surface-subtle rounded-2xl border border-border grid grid-cols-1 md:grid-cols-4 gap-8 relative group">
                               <button onClick={() => {
-                                 const n = lp.fleet.filter(x => x.id !== f.id);
+                                 const n = lp.fleet.filter((x: FleetItem) => x.id !== f.id);
                                  updateLandingPage({ fleet: n });
                               }} className="absolute top-6 right-6 p-2 bg-rose-500/10 text-rose-500 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 size={16} /></button>
                               <div className="space-y-2">
                                  <label className="text-[9px] font-bold uppercase text-slate-400">Unit Image</label>
                                  <div className="h-40 bg-surface-subtle rounded-3xl border border-border p-4 flex items-center justify-center relative group/img">
-                                    <img src={f.image} className="h-full w-full object-contain" />
+                                    {f.image ? <Image src={f.image} alt="Fleet unit" fill sizes="160px" unoptimized className="p-4 object-contain" /> : null}
                                     <label className="absolute inset-0 bg-black/40 opacity-0 group-hover/img:opacity-100 flex flex-col items-center justify-center text-white rounded-3xl cursor-pointer transition-opacity">
                                        <Upload size={20} />
                                        <span className="text-[9px] font-bold uppercase mt-1">Upload New</span>
                                        <input type="file" className="hidden" accept="image/*" onChange={(e) => handleFileUpload(e, (b64) => {
-                                          const n = lp.fleet.map((item, i) => i === idx ? { ...item, image: b64 } : item);
+                                          const n = lp.fleet.map((item: FleetItem, i: number) => i === idx ? { ...item, image: b64 } : item);
                                           updateLandingPage({ fleet: n });
                                        })} />
                                     </label>
                                  </div>
                                  <input className="w-full p-2 bg-surface rounded-xl text-[10px] mt-2 text-text-main border border-border" value={f.image} onChange={e => {
-                                    const n = lp.fleet.map((item, i) => i === idx ? { ...item, image: e.target.value } : item);
+                                    const n = lp.fleet.map((item: FleetItem, i: number) => i === idx ? { ...item, image: e.target.value } : item);
                                     updateLandingPage({ fleet: n });
                                  }} placeholder="Image URL" />
                               </div>
                               <div className="md:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-4">
                                  <div className="space-y-2">
                                     <input className="w-full p-3 bg-surface rounded-xl font-bold text-sm text-text-main border border-border" value={f.nameAr} onChange={e => {
-                                       const n = lp.fleet.map((item, i) => i === idx ? { ...item, nameAr: e.target.value } : item);
+                                       const n = lp.fleet.map((item: FleetItem, i: number) => i === idx ? { ...item, nameAr: e.target.value } : item);
                                        updateLandingPage({ fleet: n });
                                     }} placeholder="الاسم (AR)" />
                                     <textarea className="w-full p-3 bg-surface rounded-xl font-bold text-xs h-24 text-text-main border border-border" value={f.specsAr} onChange={e => {
-                                       const n = lp.fleet.map((item, i) => i === idx ? { ...item, specsAr: e.target.value } : item);
+                                       const n = lp.fleet.map((item: FleetItem, i: number) => i === idx ? { ...item, specsAr: e.target.value } : item);
                                        updateLandingPage({ fleet: n });
                                     }} placeholder="المواصفات (AR)" />
                                  </div>
                                  <div className="space-y-2">
                                     <input className="w-full p-3 bg-surface rounded-xl font-bold text-sm text-text-main border border-border" value={f.nameEn} onChange={e => {
-                                       const n = lp.fleet.map((item, i) => i === idx ? { ...item, nameEn: e.target.value } : item);
+                                       const n = lp.fleet.map((item: FleetItem, i: number) => i === idx ? { ...item, nameEn: e.target.value } : item);
                                        updateLandingPage({ fleet: n });
                                     }} placeholder="Name (EN)" />
                                     <textarea className="w-full p-3 bg-surface rounded-xl font-bold text-xs h-24 text-text-main border border-border" value={f.specsEn} onChange={e => {
-                                       const n = lp.fleet.map((item, i) => i === idx ? { ...item, specsEn: e.target.value } : item);
+                                       const n = lp.fleet.map((item: FleetItem, i: number) => i === idx ? { ...item, specsEn: e.target.value } : item);
                                        updateLandingPage({ fleet: n });
                                     }} placeholder="Specs (EN)" />
                                  </div>
@@ -432,24 +485,24 @@ const LandingSettings: React.FC = () => {
                         </div>
                      </div>
                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
-                        {lp.partners.map((p, idx) => (
+                        {lp.partners.map((p: PartnerItem, idx: number) => (
                            <div key={p.id} className="p-6 bg-surface-subtle rounded-2xl border border-border group relative">
                               <button onClick={() => {
-                                 const n = lp.partners.filter(x => x.id !== p.id);
+                                 const n = lp.partners.filter((x: PartnerItem) => x.id !== p.id);
                                  updateLandingPage({ partners: n });
                               }} className="absolute -top-2 -right-2 p-2 bg-rose-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"><Trash2 size={12} /></button>
                               <div className="h-20 bg-surface rounded-2xl flex items-center justify-center p-4 mb-4 border border-border transition-colors shadow-sm relative group/img">
-                                 <img src={p.logo} className="h-full w-full object-contain" />
+                                 {p.logo ? <Image src={p.logo} alt={p.name || 'Partner logo'} fill sizes="80px" unoptimized className="p-4 object-contain" /> : null}
                                  <label className="absolute inset-0 bg-emerald-600/60 opacity-0 group-hover/img:opacity-100 flex items-center justify-center text-white rounded-2xl cursor-pointer transition-opacity">
                                     <Upload size={14} />
                                     <input type="file" className="hidden" accept="image/*" onChange={(e) => handleFileUpload(e, (b64) => {
-                                       const n = lp.partners.map((item, i) => i === idx ? { ...item, logo: b64 } : item);
+                                       const n = lp.partners.map((item: PartnerItem, i: number) => i === idx ? { ...item, logo: b64 } : item);
                                        updateLandingPage({ partners: n });
                                     })} />
                                  </label>
                               </div>
                               <input className="w-full bg-transparent border-none text-center font-bold text-[10px] outline-none text-text-main" value={p.name} onChange={e => {
-                                 const n = lp.partners.map((item, i) => i === idx ? { ...item, name: e.target.value } : item);
+                                 const n = lp.partners.map((item: PartnerItem, i: number) => i === idx ? { ...item, name: e.target.value } : item);
                                  updateLandingPage({ partners: n });
                               }} />
                            </div>
@@ -513,8 +566,8 @@ const LandingSettings: React.FC = () => {
 
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                         <div className="space-y-6">
-                           <SmartImageControl label={isAr ? 'شعار المنصة الرئيسي (فاتح)' : 'Main Logo (Light Mode)'} value={saasConfig.logoUrl} onChange={(val: string) => updateSaaS({ logoUrl: val })} onUpload={(b64: string) => updateSaaS({ logoUrl: b64 })} />
-                           <SmartImageControl label={isAr ? 'شعار المنصة (للنمط الداكن)' : 'Dark Mode Logo'} value={saasConfig.logoDarkUrl} onChange={(val: string) => updateSaaS({ logoDarkUrl: val })} onUpload={(b64: string) => updateSaaS({ logoDarkUrl: b64 })} />
+                           <SmartImageControl label={isAr ? 'شعار المنصة الرئيسي (فاتح)' : 'Main Logo (Light Mode)'} value={saasConfig.logoUrl} onChange={(val: string) => updateSaaS({ logoUrl: val })} onUpload={(b64: string) => updateSaaS({ logoUrl: b64 })} isAr={isAr} handleFileUpload={handleFileUpload} />
+                           <SmartImageControl label={isAr ? 'شعار المنصة (للنمط الداكن)' : 'Dark Mode Logo'} value={saasConfig.logoDarkUrl} onChange={(val: string) => updateSaaS({ logoDarkUrl: val })} onUpload={(b64: string) => updateSaaS({ logoDarkUrl: b64 })} isAr={isAr} handleFileUpload={handleFileUpload} />
 
                            <div className="space-y-4">
                               <label className="text-[10px] font-bold uppercase text-text-subtle">{isAr ? 'اسم المنصة (عربي / إنجليزي)' : 'Platform Name (AR/EN)'}</label>
@@ -599,10 +652,10 @@ const LandingSettings: React.FC = () => {
                      <div className="space-y-6">
                         <h4 className="text-lg font-bold flex items-center gap-2"><Share2 size={20} className="text-emerald-500" /> {isAr ? 'روابط التواصل الاجتماعي' : 'Social Media Links'}</h4>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                           {lp.socialLinks.map((link, idx) => (
+                           {lp.socialLinks.map((link: SocialLinkItem, idx: number) => (
                               <div key={link.id} className="p-5 bg-surface-subtle rounded-xl border border-border relative group">
                                  <button onClick={() => {
-                                    const n = lp.socialLinks.filter(x => x.id !== link.id);
+                                    const n = lp.socialLinks.filter((x: SocialLinkItem) => x.id !== link.id);
                                     updateLandingPage({ socialLinks: n });
                                  }} className="absolute top-2 right-2 p-1.5 bg-rose-500/10 text-rose-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"><X size={12} /></button>
                                  <div className="flex items-center gap-3 mb-3">
@@ -610,7 +663,7 @@ const LandingSettings: React.FC = () => {
                                        {link.platform === 'facebook' ? <Facebook size={18} /> : link.platform === 'twitter' ? <Twitter size={18} /> : link.platform === 'linkedin' ? <Linkedin size={18} /> : link.platform === 'instagram' ? <Instagram size={18} /> : link.platform === 'youtube' ? <Youtube size={18} /> : <MessageSquare size={18} />}
                                     </div>
                                     <select className="bg-transparent border-none text-[10px] font-bold uppercase outline-none text-text-subtle" value={link.platform} onChange={e => {
-                                       const n = lp.socialLinks.map((item, i) => i === idx ? { ...item, platform: e.target.value } : item);
+                                       const n = lp.socialLinks.map((item: SocialLinkItem, i: number) => i === idx ? { ...item, platform: e.target.value } : item);
                                        updateLandingPage({ socialLinks: n });
                                     }}>
                                        <option value="facebook">Facebook</option>
@@ -622,7 +675,7 @@ const LandingSettings: React.FC = () => {
                                     </select>
                                  </div>
                                  <input className="w-full p-2 bg-surface rounded-xl text-[10px] border border-border text-text-main" value={link.url} onChange={e => {
-                                    const n = lp.socialLinks.map((item, i) => i === idx ? { ...item, url: e.target.value } : item);
+                                    const n = lp.socialLinks.map((item: SocialLinkItem, i: number) => i === idx ? { ...item, url: e.target.value } : item);
                                     updateLandingPage({ socialLinks: n });
                                  }} placeholder="https://..." />
                               </div>
@@ -741,7 +794,7 @@ const LandingSettings: React.FC = () => {
                            </div>
                            <div className="p-8 bg-surface-subtle rounded-2xl border border-border group-hover:border-emerald-500/10 transition-all relative">
                               <div className="absolute -top-4 left-10 p-2 bg-surface border border-border rounded-lg text-[9px] font-bold uppercase text-text-subtle">{sub.subject || 'Standard Inquiry'}</div>
-                              <p className="text-lg font-bold text-text-main leading-relaxed italic">"{sub.message}"</p>
+                              <p className="text-lg font-bold text-text-main leading-relaxed italic">&ldquo;{sub.message}&rdquo;</p>
                               <div className="mt-8 pt-8 border-t border-border flex flex-col sm:flex-row sm:items-center gap-6">
                                  <div className="flex items-center gap-3">
                                     <Mail size={16} className="text-emerald-500" />

@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Card } from '@/components';
+import Card from '@/components/ui/Card';
 import { useStore } from '@/context';
 import { Truck, Package, Activity, Wrench, CheckCircle2 } from 'lucide-react';
 import { motion } from 'framer-motion';

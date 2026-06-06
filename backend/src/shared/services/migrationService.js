@@ -8,7 +8,9 @@
  * ═════════════════════════════════════════════════════════════════
  */
 const { query } = require('../../../database');
+const bcrypt = require('bcryptjs');
 const { log } = require('../utils/logger');
+const BCRYPT_ROUNDS = Number.parseInt(process.env.BCRYPT_SALT_ROUNDS || '10', 10);
 
 // ═══════════════════════════════════════════════════════════════
 // EXPECTED SCHEMA — Single Source of Truth
@@ -297,10 +299,17 @@ const runStartupMigrations = async () => {
 
     // ── Phase 0: System Users ──
     try {
-        await query(`INSERT INTO users (id, name, email, password, role) VALUES ('SYSTEM', 'System Administrator', 'system@gcm.local', 'SYSTEM_ACCOUNT', 'ADMIN') ON CONFLICT (id) DO NOTHING`);
+        const systemPasswordHash = await bcrypt.hash('SYSTEM_ACCOUNT', BCRYPT_ROUNDS);
+        await query(
+            `INSERT INTO users (id, name, email, password, role) VALUES ('SYSTEM', 'System Administrator', 'system@gcm.local', $1, 'ADMIN') ON CONFLICT (id) DO NOTHING`,
+            [systemPasswordHash]
+        );
         const email = 'eng-yusuf@gcm-gulf.com';
-        await query(`INSERT INTO users (id, name, email, password, role) VALUES ($1, $2, $3, $4, $5) ON CONFLICT (email) DO NOTHING`,
-            ['ADMIN-MASTER', 'Eng. Yusuf (GCM Master)', email, '123', 'ADMIN']);
+        const adminPasswordHash = await bcrypt.hash('123', BCRYPT_ROUNDS);
+        await query(
+            `INSERT INTO users (id, name, email, password, role) VALUES ($1, $2, $3, $4, $5) ON CONFLICT (email) DO NOTHING`,
+            ['ADMIN-MASTER', 'Eng. Yusuf (GCM Master)', email, adminPasswordHash, 'ADMIN']
+        );
         report.success.push('System users initialized');
     } catch (e) {
         log(`[CRITICAL] System user init failed: ${e.message}`);

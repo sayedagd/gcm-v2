@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { useStore } from '@/context';
 import { ENDPOINTS } from '@/api/endpoints';
 import { exportMultiSheetExcel } from '@/utils/excelUtils';
@@ -13,6 +14,7 @@ import { Input, Card, Modal, Button, SystemAudit } from '@/components';
 import TemplateSettings from './TemplateSettings';
 import { toast } from '@/utils/toast';
 import { ShieldAlert } from 'lucide-react';
+import { getClientAuthHeaders } from '@/lib/clientAuth';
 
 type SettingsTab = 'identity' | 'operations' | 'interface' | 'ai' | 'templates' | 'audit';
 
@@ -41,12 +43,6 @@ const Settings: React.FC = () => {
   const [supportWhatsapp, setSupportWhatsapp] = useState(saasConfig.support_whatsapp || '');
   const [isSavingSupport, setIsSavingSupport] = useState(false);
   const [supportSaved, setSupportSaved] = useState(false);
-
-  // Sync local state when saasConfig changes (e.g. on page load)
-  useEffect(() => {
-    setSupportPhone(saasConfig.support_phone || '');
-    setSupportWhatsapp(saasConfig.support_whatsapp || '');
-  }, [saasConfig.support_phone, saasConfig.support_whatsapp]);
 
   const handleSaveSupportContacts = async () => {
     setIsSavingSupport(true);
@@ -103,7 +99,7 @@ const Settings: React.FC = () => {
     }
   };
 
-  const tabs: { key: SettingsTab; label: string; icon: any }[] = [
+  const tabs: { key: SettingsTab; label: string; icon: React.ElementType }[] = [
     { key: 'identity', label: isAr ? 'هوية المنصة' : 'Platform Identity', icon: Palette },
     { key: 'operations', label: isAr ? 'التحكم والعمليات' : 'Data & Ops', icon: Zap },
     { key: 'interface', label: isAr ? 'مظهر الواجهة' : 'Appearance', icon: Monitor },
@@ -167,7 +163,7 @@ const Settings: React.FC = () => {
                     <div className="relative group">
                       <div className="aspect-square bg-surface-subtle rounded-[2rem] border-2 border-dashed border-border flex items-center justify-center overflow-hidden transition-all group-hover:border-primary/50 group-hover:bg-primary/5">
                         {saasConfig.logoUrl ? (
-                          <img src={saasConfig.logoUrl} className="w-full h-full object-contain p-6" alt="SaaS Logo" />
+                          <Image src={saasConfig.logoUrl} className="w-full h-full object-contain p-6" alt="SaaS Logo" width={320} height={320} unoptimized />
                         ) : (
                           <ImageIcon className="text-text-subtle opacity-30" size={60} />
                         )}
@@ -410,15 +406,14 @@ const Settings: React.FC = () => {
                         params.append(k, v ? '1' : '0');
                       });
 
-                      const token = localStorage.getItem('gcm_jwt_token') || '';
-                      const authHeaders = { Authorization: `Bearer ${token}` };
+                      const authHeaders = getClientAuthHeaders();
 
                       if (backupFormat === 'xlsx') {
                         setIsExporting(true);
                         try {
                           params.append('format', 'json');
                           const url = `${ENDPOINTS.SYSTEM.BACKUP}?${params.toString()}`;
-                          const response = await axios.get(url, { headers: authHeaders });
+                          const response = await axios.get(url, { headers: authHeaders, withCredentials: true });
                           const data = response.data;
 
                           if (!data || typeof data !== 'object') {
@@ -433,9 +428,10 @@ const Settings: React.FC = () => {
                           } else {
                             toast.error(isAr ? 'فشل تصدير ملف Excel. تأكد من وجود بيانات في النظام.' : 'Excel export failed. Ensure there is data in the system.');
                           }
-                        } catch (e: any) {
+                        } catch (e: unknown) {
                           console.error('Excel Export Error:', e);
-                          toast.error(isAr ? `خطأ في التصدير: ${e.response?.data?.error || e.message}` : `Export error: ${e.response?.data?.error || e.message}`);
+                          const message = e instanceof Error ? e.message : String(e);
+                          toast.error(isAr ? `خطأ في التصدير: ${message}` : `Export error: ${message}`);
                         } finally {
                           setIsExporting(false);
                         }
@@ -444,7 +440,7 @@ const Settings: React.FC = () => {
                         try {
                           params.append('format', backupFormat);
                           const url = `${ENDPOINTS.SYSTEM.BACKUP}?${params.toString()}`;
-                          const response = await fetch(url, { headers: authHeaders });
+                          const response = await fetch(url, { headers: authHeaders, credentials: 'include' });
                           if (!response.ok) throw new Error(`HTTP ${response.status}`);
                           const blob = await response.blob();
                           const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
@@ -457,9 +453,10 @@ const Settings: React.FC = () => {
                           document.body.removeChild(link);
                           URL.revokeObjectURL(link.href);
                           setIsBackupModalOpen(false);
-                        } catch (e: any) {
+                        } catch (e: unknown) {
                           console.error('Backup Download Error:', e);
-                          toast.error(isAr ? `خطأ في تحميل النسخة الاحتياطية: ${e.message}` : `Backup download error: ${e.message}`);
+                          const message = e instanceof Error ? e.message : String(e);
+                          toast.error(isAr ? `خطأ في تحميل النسخة الاحتياطية: ${message}` : `Backup download error: ${message}`);
                         } finally {
                           setIsExporting(false);
                         }
@@ -526,7 +523,7 @@ const Settings: React.FC = () => {
                 ) : whatsappStatus.qrCode ? (
                   <>
                     <div className="p-4 bg-white rounded-2xl border border-border shadow-sm">
-                      <img src={whatsappStatus.qrCode} alt="WhatsApp QR Code" className="w-64 h-64" />
+                      <Image src={whatsappStatus.qrCode} alt="WhatsApp QR Code" className="w-64 h-64" width={256} height={256} unoptimized />
                     </div>
                     <div>
                       <h4 className="text-lg font-bold text-text-main">{isAr ? 'امسح الرمز ضوئياً' : 'Scan the QR Code'}</h4>

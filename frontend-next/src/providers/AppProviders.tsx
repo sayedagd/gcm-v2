@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect } from "react";
+import { MantineProvider } from "@mantine/core";
 import { LEGACY_BOOTSTRAP_COOKIE } from "@/features/auth/model/sessionCookies";
 import { StoreInitializer, useGCMStore } from "@/store";
+import { theme } from "@/theme";
 
 type AppProvidersProps = {
   children: React.ReactNode;
@@ -37,7 +39,6 @@ const clearLegacySessionStorage = () => {
   localStorage.removeItem("gcm_current_role");
   localStorage.removeItem("gcm_auth_exp");
   localStorage.removeItem("gcm_current_user");
-  localStorage.removeItem("gcm_jwt_token");
   localStorage.removeItem("gcm_last_active");
 };
 
@@ -61,7 +62,6 @@ export function AppProviders({ children }: AppProvidersProps) {
         company_id?: string | null;
         project_id?: string | null;
         supplier_id?: string | null;
-        token?: string;
         expiresAtMs?: number;
       };
 
@@ -69,10 +69,6 @@ export function AppProviders({ children }: AppProvidersProps) {
       localStorage.setItem("gcm_current_role", bootstrap.role || "");
       if (bootstrap.expiresAtMs) {
         localStorage.setItem("gcm_auth_exp", String(bootstrap.expiresAtMs));
-      }
-
-      if (bootstrap.token) {
-        localStorage.setItem("gcm_jwt_token", bootstrap.token);
       }
 
       localStorage.setItem(
@@ -85,7 +81,6 @@ export function AppProviders({ children }: AppProvidersProps) {
           company_id: bootstrap.company_id || undefined,
           project_id: bootstrap.project_id || undefined,
           supplier_id: bootstrap.supplier_id || undefined,
-          token: bootstrap.token || undefined,
         }),
       );
       localStorage.setItem("gcm_last_active", String(Date.now()));
@@ -126,9 +121,9 @@ export function AppProviders({ children }: AppProvidersProps) {
   }, [darkMode]);
 
   return (
-    <>
+    <MantineProvider theme={theme} defaultColorScheme="auto">
       <StoreInitializer />
       {children}
-    </>
+    </MantineProvider>
   );
 }

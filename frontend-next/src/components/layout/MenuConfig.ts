@@ -2,7 +2,7 @@
 import {
     LayoutDashboard, Building2, Briefcase, ClipboardList, BarChart3,
     Truck, Package, HardHat, Users, Box, Activity, ScrollText, MapPin, Zap, Layout as LayoutIcon,
-    CheckSquare, FileText, Map, User, FolderOpen
+    FileText, Map, User, FolderOpen, Headphones
 } from 'lucide-react';
 import { Role } from '../../types';
 
@@ -18,6 +18,7 @@ export const getMenuGroups = (t: any, isAr: boolean, role: Role) => {
                     { name: t.dashboard, href: '/client/dashboard', icon: LayoutDashboard, roles: [Role.COMPANY_USER, Role.PROJECT_USER, Role.CLIENT] },
                     { name: isAr ? 'التقارير' : 'Reports', href: '/client/reports', icon: FileText, roles: [Role.COMPANY_USER, Role.PROJECT_USER, Role.CLIENT] },
                     { name: isAr ? 'الحساب والعقود' : 'Account & Contracts', href: '/client/account', icon: FolderOpen, roles: [Role.COMPANY_USER, Role.PROJECT_USER, Role.CLIENT] },
+                    { name: isAr ? 'الدعم الفني' : 'Support', href: '/client/support', icon: Headphones, roles: [Role.COMPANY_USER, Role.PROJECT_USER, Role.CLIENT] },
                 ]
             }
         ]
@@ -50,7 +51,7 @@ export const getMenuGroups = (t: any, isAr: boolean, role: Role) => {
         ];
     }
 
-    return [
+    const internalMenus = [
     {
         title: t.ops,
         roles: [Role.ADMIN, Role.DATA_ENTRY, Role.LOGISTICS, Role.ACCOUNTANT, Role.REPORTS_MANAGER, Role.DRIVER],
@@ -90,4 +91,19 @@ export const getMenuGroups = (t: any, isAr: boolean, role: Role) => {
         ]
     }
 ];
+
+    const hasMenuForRole = internalMenus.some(group => group.items.some(item => item.roles.includes(role)));
+    if (hasMenuForRole) {
+        return internalMenus;
+    }
+
+    return [
+        {
+            title: isAr ? 'التنقل' : 'Navigation',
+            roles: [role],
+            items: [
+                { name: isAr ? 'الرئيسية' : 'Dashboard', href: '/dashboard', icon: LayoutDashboard, roles: [role] }
+            ]
+        }
+    ];
 };

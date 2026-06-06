@@ -27,7 +27,7 @@ module.exports = {
             const r = await query(sql, params);
             res.json(r.rows);
         } catch (e) {
-            res.status(500).json({ error: e.message });
+            res.status(500).json({ error: 'Internal server error' });
         }
     },
     upsert: upsert('asset_requests'),

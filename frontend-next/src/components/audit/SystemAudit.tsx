@@ -5,6 +5,7 @@ import { ShieldAlert, CheckCircle2, AlertTriangle, Clock, MapPin, Truck, User, D
 import { Button, Card } from '@/components';
 import { toast } from '@/utils/toast';
 import { ENDPOINTS } from '@/api/endpoints';
+import { getClientAuthHeaders } from '@/lib/clientAuth';
 
 const SystemAudit: React.FC = () => {
   const { allTrips, resolveDuplicateTrip, saasConfig, projects, vehicles, drivers } = useStore();
@@ -38,10 +39,9 @@ const SystemAudit: React.FC = () => {
   const checkSchemaHealth = async () => {
     setIsCheckingSchema(true);
     try {
-      const token = localStorage.getItem('gcm_jwt_token') || '';
-      const baseUrl = localStorage.getItem('gcm_api_url') || process.env.NEXT_PUBLIC_API_BASE_URL || '';
+      const baseUrl = saasConfig?.apiConfig?.baseUrl || process.env.NEXT_PUBLIC_API_BASE_URL || '';
       const url = `${baseUrl.replace(/\/$/, '')}${ENDPOINTS.SYSTEM.SCHEMA_HEALTH}`;
-      const res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
+      const res = await fetch(url, { headers: getClientAuthHeaders(), credentials: 'include' });
       const data = await res.json();
       setSchemaStatus(data);
       if (data.status === 'HEALTHY') {
@@ -58,10 +58,9 @@ const SystemAudit: React.FC = () => {
   const forceMigrate = async () => {
     setIsForcingMigrate(true);
     try {
-      const token = localStorage.getItem('gcm_jwt_token') || '';
-      const baseUrl = localStorage.getItem('gcm_api_url') || process.env.NEXT_PUBLIC_API_BASE_URL || '';
+      const baseUrl = saasConfig?.apiConfig?.baseUrl || process.env.NEXT_PUBLIC_API_BASE_URL || '';
       const url = `${baseUrl.replace(/\/$/, '')}${ENDPOINTS.SYSTEM.FORCE_MIGRATE}`;
-      const res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
+      const res = await fetch(url, { headers: getClientAuthHeaders(), credentials: 'include' });
       const data = await res.json();
       
       // Auto trigger a health check after force migrate

@@ -4,10 +4,22 @@
 const fs = require('fs');
 const { log, LOG_FILE } = require('../utils/logger');
 const { recordBackupFailure, getMetricsSnapshot } = require('../services/metricsService');
+const { buildValidationError } = require('../utils/validationErrorContract');
 
 let query = null;
 let backupService = null;
 let restoreService = null;
+
+const BACKUP_FORMATS = new Set(['sql', 'json', 'full']);
+const IDEMPOTENCY_KEY_PATTERN = /^[A-Za-z0-9._:-]{1,128}$/;
+const TRIGGER_SOURCE_PATTERN = /^[A-Za-z0-9._:-]{1,64}$/;
+const ALLOWED_RESTORE_MIME_TYPES = new Set([
+    'application/sql',
+    'application/json',
+    'application/zip',
+    'application/x-zip-compressed',
+    'application/octet-stream',
+]);
 
 const getQuery = () => {
     if (query) {
@@ -67,34 +79,16 @@ const getPing = async (req, res) => {
 
         const dbCheck = await dbQuery('SELECT 1');
         const userCountLog = await dbQuery('SELECT count(*) FROM users');
-        const masterUser = await dbQuery("SELECT * FROM users WHERE email = 'eng-yusuf@gcm-gulf.com'");
-
-        let passMatch = false;
-        let hashInfo = 'User not found';
-        if (masterUser.rows[0]) {
-            passMatch = (masterUser.rows[0].password === '123');
-            hashInfo = {
-                id: masterUser.rows[0].id,
-                passStored: masterUser.rows[0].password,
-                role: masterUser.rows[0].role
-            };
-        }
 
         res.json({
             status: 'ok',
             environment: process.env.VERCEL ? 'Vercel' : 'Node',
             database: dbCheck ? 'Connected' : 'Error',
             totalUsers: userCountLog.rows[0].count,
-            masterAccount: {
-                email: 'eng-yusuf@gcm-gulf.com',
-                exists: !!masterUser.rows[0],
-                password_123_match: passMatch,
-                debug: hashInfo
-            },
             timestamp: new Date().toISOString()
         });
     } catch (e) {
-        res.status(500).json({ status: 'error', message: e.message });
+        res.status(500).json({ status: 'error', message: 'Internal server error' });
     }
 };
 
@@ -111,6 +105,23 @@ const triggerAutoBackup = async (req, res) => {
     const lockKey = 98420311;
     const triggerSource = req.headers['x-scheduler-source'] || 'manual';
     const idempotencyKey = (req.headers['x-idempotency-key'] || '').toString().trim() || null;
+
+    if (!TRIGGER_SOURCE_PATTERN.test(String(triggerSource))) {
+        return res.status(400).json(buildValidationError({
+            code: 'INVALID_SCHEDULER_SOURCE',
+            errorEn: 'Invalid scheduler source.',
+            errorAr: 'مصدر المجدول غير صالح.',
+        }));
+    }
+
+    if (idempotencyKey && !IDEMPOTENCY_KEY_PATTERN.test(idempotencyKey)) {
+        return res.status(400).json(buildValidationError({
+            code: 'INVALID_IDEMPOTENCY_KEY',
+            errorEn: 'Invalid idempotency key.',
+            errorAr: 'مفتاح منع التكرار غير صالح.',
+        }));
+    }
+
     const dbQuery = getQuery();
 
     if (!dbQuery) {
@@ -170,7 +181,7 @@ const triggerAutoBackup = async (req, res) => {
             // no-op
         }
         recordBackupFailure({ message: e.message });
-        return res.status(500).json({ error: e.message });
+        return res.status(500).json({ error: 'Internal server error' });
     } finally {
         try {
             await dbQuery('SELECT pg_advisory_unlock($1)', [lockKey]);
@@ -182,6 +193,15 @@ const triggerAutoBackup = async (req, res) => {
 
 const downloadSystemBackup = async (req, res) => {
     const { format = 'sql' } = req.query;
+
+    if (!BACKUP_FORMATS.has(format)) {
+        return res.status(400).json(buildValidationError({
+            code: 'INVALID_BACKUP_FORMAT',
+            errorEn: 'Invalid backup format.',
+            errorAr: 'صيغة النسخة الاحتياطية غير صالحة.',
+        }));
+    }
+
     log(`[Backup] Starting System Export | Format: ${format}`);
     try {
         const backup = getBackupService();
@@ -226,6 +246,14 @@ const restoreSystemBackup = async (req, res) => {
             return res.status(400).json({ error: 'No backup file uploaded' });
         }
 
+        if (!ALLOWED_RESTORE_MIME_TYPES.has(req.file.mimetype)) {
+            return res.status(400).json(buildValidationError({
+                code: 'UNSUPPORTED_BACKUP_FILE_TYPE',
+                errorEn: 'Unsupported backup file type.',
+                errorAr: 'نوع ملف النسخة الاحتياطية غير مدعوم.',
+            }));
+        }
+
         const restore = getRestoreService();
         if (!restore) {
             return res.status(503).json({ error: 'Restore service unavailable' });
@@ -238,7 +266,7 @@ const restoreSystemBackup = async (req, res) => {
     } catch (e) {
         log(`[RESTORE API ERROR] ${e.message}`);
         recordBackupFailure({ message: e.message });
-        res.status(500).json({ error: e.message });
+        res.status(500).json({ error: 'Internal server error' });
     }
 };
 
@@ -254,5 +282,11 @@ module.exports = {
     downloadSystemBackup,
     getBackupStatusHandler,
     restoreSystemBackup,
-    getMetrics
+    getMetrics,
+    __internal: {
+        BACKUP_FORMATS,
+        IDEMPOTENCY_KEY_PATTERN,
+        TRIGGER_SOURCE_PATTERN,
+        ALLOWED_RESTORE_MIME_TYPES,
+    },
 };

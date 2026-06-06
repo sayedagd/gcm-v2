@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { SignatureApproveModal } from '@/components/ui/SignatureApproveModal';
 import ExportSelectionModal, { ExportOptions } from '@/components/reports/ExportSelectionModal';
@@ -566,9 +567,12 @@ const TripDetailsModal: React.FC<TripDetailsModalProps> = ({ isOpen, onClose, se
                                             {images.map((img, idx) => (
                                                 <div key={idx} className="aspect-square rounded-xl overflow-hidden bg-surface-subtle relative group cursor-pointer flex items-center justify-center border border-border hover:border-primary/50 transition-colors" onClick={() => handleViewImage(img)}>
                                                     <span className="text-[10px] text-slate-400 font-bold uppercase absolute z-0">Failed</span>
-                                                    <img
+                                                    <Image
                                                         src={resolveImagePath(img)}
                                                         alt={`Field Gallery Image ${idx}`}
+                                                        width={320}
+                                                        height={320}
+                                                        unoptimized
                                                         className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 relative z-10"
                                                         onError={handleImageError}
                                                     />

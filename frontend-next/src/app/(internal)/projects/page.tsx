@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { useStore } from '@/context';
 import { useSupplierRates } from '@/store/useSupplierRates';
 import Link from 'next/link';
@@ -26,8 +27,8 @@ import ActiveServicesDashboardModal from '@/components/projects/ActiveServicesDa
 import { useDebounce } from '@/hooks/useDebounce';
 import { useLookupMaps } from '@/hooks/useLookupMaps';
 import { useProjectsPageMetrics } from '@/features/projects/useProjectsPageMetrics';
-import { toast } from '@/utils/toast';
 import { SkeletonFullPage } from '@/components/common/PageSkeleton';
+import { resolveLocalizedError } from '@/lib/errorMessages';
 
 const Projects: React.FC = () => {
   const searchParams = useSearchParams();
@@ -65,18 +66,28 @@ const Projects: React.FC = () => {
   const debouncedSearch = useDebounce(searchTerm, 300);
   const { companyMap } = useLookupMaps();
 
-  useEffect(() => { setCurrentPage(1); }, [debouncedSearch]);
+  const handleSearchChange = (value: string) => {
+    setSearchTerm(value);
+    setCurrentPage(1);
+  };
 
   // Deep Linking Handler
   useEffect(() => {
+    let timerId: number | undefined;
     const projectId = searchParams.get('id');
     if (projectId && projects.length > 0) {
       const project = projects.find(p => p.project_id === projectId);
       if (project) {
-        setSelectedProject(project);
-        setIsDetailModalOpen(true);
+        timerId = window.setTimeout(() => {
+          setSelectedProject(project);
+          setIsDetailModalOpen(true);
+        }, 0);
       }
     }
+
+    return () => {
+      if (timerId !== undefined) window.clearTimeout(timerId);
+    };
   }, [searchParams, projects]);
 
   const {
@@ -142,7 +153,13 @@ const Projects: React.FC = () => {
         // Find if this service already exists in DB (by project_id + service_id match)
         const existingMatch = existingServices.find(ex => ex.service_id === svc.service_id);
 
-        const payload: any = {
+        const payload: Partial<ProjectService> & {
+          quantity: number;
+          unit_price: number;
+          total_cost: number;
+          warning_threshold: number;
+          id?: string;
+        } = {
           ...svc,
           project_id: projectId,
           quantity: Number(svc.quantity) || 0,
@@ -165,9 +182,9 @@ const Projects: React.FC = () => {
       setCurrentProject(null);
       setTempProjectServices([]);
       addNotification({ type: NotificationType.SUCCESS, title: 'Success', message: isAr ? 'تم حفظ المشروع بنجاح' : 'Project deployed successfully' });
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('[Project Save Error]', err);
-      setFormError(err?.messageAr || err?.messageEn || err?.message || (isAr ? 'خطأ أثناء حفظ المشروع' : 'Failed to save project'));
+      setFormError(resolveLocalizedError(err, isAr, 'خطأ أثناء حفظ المشروع', 'Failed to save project'));
     } finally {
       setIsSubmitting(false);
     }
@@ -213,7 +230,7 @@ const Projects: React.FC = () => {
         title={isAr ? 'إدارة المشاريع والمواقع' : 'Project Command Center'}
         subtitle={isAr ? 'التحكم المركزي في مشاريع العملاء والعمليات الميدانية' : 'Centralized control for client deployments and field operations.'}
         searchTerm={searchTerm}
-        onSearchChange={setSearchTerm}
+        onSearchChange={handleSearchChange}
         isAr={isAr}
         actionLabel={canManage ? (isAr ? 'مشروع جديد' : 'New Deployment') : undefined}
         onActionClick={() => {
@@ -315,13 +332,13 @@ const Projects: React.FC = () => {
                     {
                       key: 'project_name',
                       label: isAr ? 'المشروع' : 'PROJECT',
-                      render: (val: any, row: any) => (
+                      render: (val: unknown, row: Project) => (
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded-xl bg-surface-subtle border border-border flex items-center justify-center overflow-hidden shrink-0">
-                            {row.logo_url ? <img src={row.logo_url} onError={handleImageError} className="w-full h-full object-contain" /> : <Briefcase size={20} className="text-text-subtle opacity-30" />}
+                            {row.logo_url ? <Image src={row.logo_url} onError={handleImageError} className="w-full h-full object-contain" alt={row.project_name} width={40} height={40} unoptimized /> : <Briefcase size={20} className="text-text-subtle opacity-30" />}
                           </div>
                           <div className="flex flex-col min-w-0">
-                            <Link href={`/p?id=${row.project_id}`} onClick={e => e.stopPropagation()} className="font-bold text-text-main text-sm truncate uppercase tracking-tight hover:text-primary hover:underline focus:outline-none">{val}</Link>
+                            <Link href={`/p?id=${row.project_id}`} onClick={e => e.stopPropagation()} className="font-bold text-text-main text-sm truncate uppercase tracking-tight hover:text-primary hover:underline focus:outline-none">{String(val ?? '')}</Link>
                             <span className="text-[10px] font-bold text-text-subtle uppercase tracking-widest">#{row.project_id}</span>
                           </div>
                         </div>
@@ -330,12 +347,12 @@ const Projects: React.FC = () => {
                     {
                       key: 'company',
                       label: isAr ? 'العميل' : 'CLIENT',
-                      render: (_: any, row: any) => <span className="font-bold text-xs text-text-subtle uppercase tracking-tight">{companyMap[row.company_id]?.company_name}</span>
+                      render: (_: unknown, row: Project) => <span className="font-bold text-xs text-text-subtle uppercase tracking-tight">{companyMap[row.company_id]?.company_name}</span>
                     },
                     {
                       key: 'status',
                       label: isAr ? 'الحالة' : 'STATUS',
-                      render: (_: any, row: any) => (
+                      render: (_: unknown, row: Project) => (
                         <span className={`px-2 py-1 rounded-lg text-[9px] font-bold uppercase tracking-widest ${row.status === 'ACTIVE' ? 'bg-success/10 text-success' : 'bg-surface-subtle text-text-subtle'}`}>
                           {row.status}
                         </span>
@@ -344,7 +361,7 @@ const Projects: React.FC = () => {
                     {
                       key: 'progress',
                       label: isAr ? 'الإنجاز' : 'PROGRESS',
-                      render: (_: any, row: any) => (
+                      render: (_: unknown, row: Project) => (
                         <div className="w-24 h-1.5 bg-surface-subtle rounded-full overflow-hidden">
                           <div className="h-full bg-primary rounded-full" style={{ width: `${calculateQuantityProgress(row.project_id)}%` }} />
                         </div>
@@ -353,7 +370,7 @@ const Projects: React.FC = () => {
                     {
                       key: 'actions',
                       label: '',
-                      render: (_: any, row: any) => (
+                      render: (_: unknown, row: Project) => (
                         <div className="flex items-center justify-end gap-1">
                           <Button variant="ghost" icon={Eye} onClick={(e) => { e.stopPropagation(); setSelectedProject(row); setIsDetailModalOpen(true); }} className="text-primary hover:bg-primary/10" />
                           {canManage && (

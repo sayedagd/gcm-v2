@@ -7,7 +7,7 @@ const Joi = require('joi');
 // --- قواعد مشتركة ---
 const str = (maxLen = 500) => Joi.alternatives().try(Joi.string().max(maxLen).trim(), Joi.number());
 const optStr = (maxLen = 500) => str(maxLen).optional().allow('', null);
-const reqStr = (maxLen = 500) => str(maxLen).optional().allow("", null);
+const reqStr = (maxLen = 500) => str(maxLen).required();
 const optDate = () => Joi.alternatives().try(Joi.date(), Joi.string().allow('', null)).optional();
 // [AR] قبول الأرقام كنص أو رقم — عشان الفرونت أحياناً يبعتها string
 const flexNum = () => Joi.alternatives().try(Joi.number(), Joi.string().pattern(/^-?\d+\.?\d*$/).allow('', null)).optional();
@@ -373,45 +373,47 @@ const schemas = {
         cost_price: optNum(),
         warning_threshold: optNum(),
         notes: optStr(2000),
-    }).unknown(true),
+    }).unknown(false),
 
     // ═══════════════════════════════════════════
     // [AR] رسائل التواصل
     // ═══════════════════════════════════════════
     contact_submissions: Joi.object({
         id: Joi.any().optional().allow('', null),
-        name: optStr(255).messages({
+        name: reqStr(255).messages({
             'any.required': 'الاسم مطلوب | Name is required',
             'string.empty': 'الاسم مطلوب | Name is required',
         }),
-        email: Joi.string().email({ tlds: false }).optional().allow("", null).messages({
+        email: Joi.string().email({ tlds: false }).required().messages({
             'any.required': 'البريد الإلكتروني مطلوب | Email is required',
             'string.email': 'البريد الإلكتروني غير صحيح | Invalid email format',
+            'string.empty': 'البريد الإلكتروني مطلوب | Email is required',
         }),
         phone: optStr(100),
         company: optStr(255),
         subject: optStr(500),
-        message: optStr(5000).messages({
+        message: reqStr(5000).messages({
             'any.required': 'الرسالة مطلوبة | Message is required',
             'string.empty': 'الرسالة مطلوبة | Message is required',
         }),
         created_at: optStr(),
-    }).unknown(true),
+    }).unknown(false),
 
     // ═══════════════════════════════════════════
     // [AR] طلبات الصلاحيات
     // ═══════════════════════════════════════════
     permission_requests: Joi.object({
         id: optStr(),
-        email: Joi.string().email({ tlds: false }).optional().allow("", null).messages({
+        email: Joi.string().email({ tlds: false }).required().messages({
             'any.required': 'البريد الإلكتروني مطلوب | Email is required',
             'string.email': 'البريد الإلكتروني غير صحيح | Invalid email format',
+            'string.empty': 'البريد الإلكتروني مطلوب | Email is required',
         }),
         from_location: optStr(500),
         notes: optStr(2000),
         status: optStr(50),
         timestamp: optStr(),
-    }).unknown(true),
+    }).unknown(false),
 
     // ═══════════════════════════════════════════
     // [AR] سجلات النشاط
@@ -452,16 +454,16 @@ const schemas = {
 
     equipment_inquiries: Joi.object({
         id: optNum(), // SERIAL
-        equipment_id: optStr(), // FK
-        customer_name: optStr(255),
+        equipment_id: reqStr(), // FK
+        customer_name: reqStr(255),
         email: Joi.string().email({ tlds: false }).optional().allow('', null),
         phone: optStr(100),
         company: optStr(255),
-        message: optStr(5000),
+        message: reqStr(5000),
         status: optStr(50),
         admin_reply: optStr(5000),
         product_name_snapshot: optStr(255),
-    }).unknown(true),
+    }).unknown(false),
 };
 
 module.exports = schemas;

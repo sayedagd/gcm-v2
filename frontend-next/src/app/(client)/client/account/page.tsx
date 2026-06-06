@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useMemo, useState } from 'react';
+import Image from 'next/image';
 import { useStore } from '@/context';
 import { Card } from '@/components';
 import { useTranslation } from '@/hooks/useTranslation';
@@ -34,7 +35,7 @@ const daysRemaining = (end: string | undefined): number => {
 const pct = (used: number, total: number) => total > 0 ? Math.min(100, Math.round((used / total) * 100)) : 0;
 
 const currency = (v: number | null | undefined) => (v ?? 0).toLocaleString('en-SA', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-const safeNum = (v: any): number => parseFloat(String(v)) || 0;
+const safeNum = (v: unknown): number => parseFloat(String(v)) || 0;
 
 // ─── Sub-components ──────────────────────────────────────
 const InfoRow: React.FC<{ icon: React.ElementType; label: string; value: React.ReactNode; accent?: string }> = ({ icon: Icon, label, value, accent }) => (
@@ -196,7 +197,7 @@ const ClientAccount: React.FC = () => {
                             <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%23ffffff\' fill-opacity=\'0.4\'%3E%3Cpath d=\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")' }} />
                             <div className="relative flex items-center gap-4">
                                 {company.logo_url ? (
-                                    <img src={resolveImagePath(company.logo_url)} alt="" className="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-sm object-contain p-2 border border-white/20 shadow-lg" />
+                                    <Image src={resolveImagePath(company.logo_url)} alt="" className="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-sm object-contain p-2 border border-white/20 shadow-lg" width={64} height={64} unoptimized />
                                 ) : (
                                     <div className="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center border border-white/20 shadow-lg">
                                         <Building2 size={28} className="text-white/80" />
@@ -550,7 +551,7 @@ const ClientAccount: React.FC = () => {
                             
                             {currentUser.stamp ? (
                                 <div className="border border-border rounded-xl p-6 flex items-center justify-center bg-surface cursor-pointer hover:bg-surface-subtle transition-colors" onClick={() => stampInputRef.current?.click()}>
-                                    <img src={currentUser.stamp} alt="Stamp" className="h-24 object-contain" />
+                                    <Image src={currentUser.stamp} alt="Stamp" className="h-24 w-auto object-contain" width={320} height={96} unoptimized />
                                 </div>
                             ) : (
                                 <div className="border-2 border-dashed border-border rounded-xl p-8 flex flex-col items-center justify-center bg-surface-subtle cursor-pointer hover:border-emerald-500/50 hover:bg-emerald-50 dark:hover:bg-emerald-900/10 transition-colors" onClick={() => stampInputRef.current?.click()}>
@@ -583,7 +584,7 @@ const ClientAccount: React.FC = () => {
                             
                             {currentUser.signature ? (
                                 <div className="border border-border rounded-xl p-6 flex items-center justify-center bg-surface">
-                                    <img src={currentUser.signature} alt="Signature" className="h-24 object-contain mix-blend-multiply dark:mix-blend-normal" />
+                                    <Image src={currentUser.signature} alt="Signature" className="h-24 w-auto object-contain mix-blend-multiply dark:mix-blend-normal" width={320} height={96} unoptimized />
                                 </div>
                             ) : (
                                 <div className="border-2 border-dashed border-border rounded-xl p-8 flex flex-col items-center justify-center bg-surface-subtle">

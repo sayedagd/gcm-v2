@@ -8,61 +8,61 @@
 export const ENDPOINTS = {
   // موديول الحسابات والأمان
   AUTH: {
-    LOGIN: '/auth/login',
-    LOGOUT: '/auth/logout',
+    LOGIN: '/api/v1/auth/login',
+    LOGOUT: '/api/v1/auth/logout',
   },
 
   // موديول الشركات (Clients)
   COMPANIES: {
-    BASE: '/api/companies',
-    BY_ID: (id: string) => `/api/companies/${id}`,
+    BASE: '/api/v1/companies',
+    BY_ID: (id: string) => `/api/v1/companies/${id}`,
   },
 
   // موديول المشاريع (Sites)
   PROJECTS: {
-    BASE: '/api/projects',
-    BY_ID: (id: string) => `/api/projects/${id}`,
+    BASE: '/api/v1/projects',
+    BY_ID: (id: string) => `/api/v1/projects/${id}`,
   },
 
   // موديول الخدمات
   SERVICES: {
-    BASE: '/api/services',
+    BASE: '/api/v1/services',
   },
 
   // موديول العمليات الميدانية (Operations)
   TRIPS: {
-    BASE: '/api/trips',
-    BY_ID: (id: string) => `/api/trips/${id}`,
+    BASE: '/api/v1/trips',
+    BY_ID: (id: string) => `/api/v1/trips/${id}`,
   },
 
   // موديول اللوجستيات (Logistics)
   FLEET: {
-    VEHICLES: '/api/vehicles',
-    DRIVERS: '/api/drivers',
+    VEHICLES: '/api/v1/vehicles',
+    DRIVERS: '/api/v1/drivers',
   },
 
   // موديول النظام والإدارة
   SYSTEM: {
-    USERS: '/api/users',
-    LOGS: '/api/logs',
+    USERS: '/api/v1/users',
+    LOGS: '/api/v1/logs',
     NOTIFICATIONS: {
-      BASE: '/api/notifications',
-      BY_ID: (id: string) => `/api/notifications/${id}`,
-      MARK_READ: (id: string) => `/api/notifications/${id}/read`,
+      BASE: '/api/v1/notifications',
+      BY_ID: (id: string) => `/api/v1/notifications/${id}`,
+      MARK_READ: (id: string) => `/api/v1/notifications/${id}/read`,
     },
-    BACKUP: '/api/system/backup/download',
-    SCHEMA_HEALTH: '/api/system/schema-health',
-    FORCE_MIGRATE: '/api/system/force-migrate',
+    BACKUP: '/api/v1/system/backup/download',
+    SCHEMA_HEALTH: '/api/v1/system/schema-health',
+    FORCE_MIGRATE: '/api/v1/system/force-migrate',
   },
 
   // موديول الذكاء الاصطناعي
   AI: {
-    LOG_SESSION: '/api/ai/log-session',
-    SESSIONS: '/api/ai/sessions',
-    SESSION_BY_ID: (id: string) => `/api/ai/sessions/${id}`,
-    ANALYTICS: '/api/ai/analytics',
-    RATE_SESSION: (id: string) => `/api/ai/sessions/${id}/rate`,
-    CHAT: '/api/ai/chat',
+    LOG_SESSION: '/api/v1/ai/log-session',
+    SESSIONS: '/api/v1/ai/sessions',
+    SESSION_BY_ID: (id: string) => `/api/v1/ai/sessions/${id}`,
+    ANALYTICS: '/api/v1/ai/analytics',
+    RATE_SESSION: (id: string) => `/api/v1/ai/sessions/${id}/rate`,
+    CHAT: '/api/v1/ai/chat',
   }
 };
 

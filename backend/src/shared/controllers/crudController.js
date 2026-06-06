@@ -3,6 +3,7 @@
  * [AR] المحرك المركزي — مع تحقق شامل ورسائل ثنائية اللغة
  */
 const { query, transaction } = require('../../../database');
+const bcrypt = require('bcryptjs');
 const { log } = require('../utils/logger');
 const { logActivity } = require('../services/activityService');
 const { PK_MAP } = require('../config/constants');
@@ -32,6 +33,22 @@ const TABLE_TO_PREFIX = {
 };
 
 const ACTION_TO_VERB = { CREATE: 'created', UPDATE: 'updated', DELETE: 'deleted' };
+const BCRYPT_ROUNDS = Number.parseInt(process.env.BCRYPT_SALT_ROUNDS || '10', 10);
+const BCRYPT_HASH_PATTERN = /^\$2[aby]\$\d{2}\$/;
+
+const isBcryptHash = (value) => typeof value === 'string' && BCRYPT_HASH_PATTERN.test(value);
+
+const hashUserPassword = async (password) => {
+    if (typeof password !== 'string' || password.length === 0) {
+        return password;
+    }
+
+    if (isBcryptHash(password) || password === 'DELETED_USER_ACCESS_REVOKED') {
+        return password;
+    }
+
+    return bcrypt.hash(password, BCRYPT_ROUNDS);
+};
 
 const broadcastChange = async (table, action, record) => {
     const prefix = TABLE_TO_PREFIX[table];
@@ -214,6 +231,10 @@ const upsert = (table) => async (req, res) => {
 
         if (id) data[pk] = id;
 
+        if (table === 'users' && typeof data.password === 'string') {
+            data.password = await hashUserPassword(data.password);
+        }
+
         // --- 3. كشف التكرار (Duplicate Detection) ---
         const rule = UNIQUE_RULES[table];
         if (rule && data[rule.field]) {
@@ -389,7 +410,8 @@ const upsert = (table) => async (req, res) => {
         const finalType = table.endsWith('s') ? table.slice(0, -1).toUpperCase() : table.toUpperCase();
         await logActivity(action, finalType, finalId, finalName, userId, `Via API`);
 
-        res.json({ status: 'success', id: finalId, ...finalRecord });
+        const statusCode = action === 'CREATE' ? 201 : 200;
+        res.status(statusCode).json({ status: 'success', id: finalId, ...finalRecord });
 
         // [AR] بث لحظي لكل الجداول المراقبة — SSE
         broadcastChange(table, action, finalRecord);

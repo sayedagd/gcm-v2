@@ -1,12 +1,7 @@
-import { RouteShell } from "@/features/shell/ui/RouteShell";
+import { MainLayout } from "@/components/layout/MainLayout";
 
 export const dynamic = "force-dynamic";
-export const fetchCache = "force-no-store";
 
 export default function InternalLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <RouteShell title="Internal Workspace" subtitle="Admin, operations, logistics, and reports routes">
-      {children}
-    </RouteShell>
-  );
+  return <MainLayout>{children}</MainLayout>;
 }
