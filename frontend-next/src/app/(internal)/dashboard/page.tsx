@@ -12,14 +12,16 @@ const getInitialHeroImage = async () => {
       ? { strategy: "dynamic" as const, headers: { cookie: cookieHeader, "x-gcm-auth": "VALID" } }
       : { strategy: "dynamic" as const };
 
-    const config = await fetchApiJson<{
+    const configResult = await fetchApiJson<{
       landing_page?: { heroBgUrl?: string } | string;
       landingPage?: { heroBgUrl?: string };
     }>("/api/v1/config", requestOptions);
 
-    if (!config) {
+    if (!configResult.ok) {
       return FALLBACK_HERO;
     }
+
+    const config = configResult.data;
 
     if (config.landingPage?.heroBgUrl) {
       return config.landingPage.heroBgUrl;

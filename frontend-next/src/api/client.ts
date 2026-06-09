@@ -4,10 +4,67 @@ import { getClientAuthHeaders } from '@/lib/clientAuth';
 import { broadcastMutationInvalidation } from '@/lib/clientSync';
 import { validateCriticalApiResponse } from '@/lib/responseSchemas';
 import { sanitizeSessionUser } from '@/features/auth/model/sanitizeSessionUser';
+import { HttpResponseError, performHttpJsonRequest } from '@/api/http';
+import type { paths } from '@/api/generated/openapi.types';
 
 type BaseUrlResolver = string | (() => string);
-type ApiPayload = object;
+type JsonObjectPayload = unknown;
 type RuntimeWindow = Window & { GCM_CONFIG?: { API_BASE_URL?: string } };
+
+type StripIndexSignature<T> = {
+    [K in keyof T as string extends K ? never : number extends K ? never : symbol extends K ? never : K]: T[K];
+};
+
+type CompanyUpsertPayload = StripIndexSignature<paths['/api/v1/companies']['post']['requestBody']['content']['application/json']>;
+type ProjectUpsertPayload = StripIndexSignature<paths['/api/v1/projects']['post']['requestBody']['content']['application/json']>;
+type TripUpsertBasePayload = StripIndexSignature<paths['/api/v1/trips']['post']['requestBody']['content']['application/json']>;
+type TripUpsertPayload = TripUpsertBasePayload & { project_id?: string; status?: string };
+type UserUpsertPayload = StripIndexSignature<paths['/api/v1/users']['post']['requestBody']['content']['application/json']>;
+type LoginBasePayload = StripIndexSignature<paths['/api/v1/auth/login']['post']['requestBody']['content']['application/json']>;
+type LoginRequestPayload = Pick<LoginBasePayload, 'email'> & { password?: LoginBasePayload['password'] | undefined };
+type ConfigUpsertPayload = StripIndexSignature<paths['/api/v1/config']['post']['requestBody']['content']['application/json']>;
+type ServiceUpsertPayload = StripIndexSignature<paths['/api/v1/services']['post']['requestBody']['content']['application/json']>;
+type VehicleUpsertPayload = StripIndexSignature<paths['/api/v1/vehicles']['post']['requestBody']['content']['application/json']>;
+type DriverUpsertPayload = StripIndexSignature<paths['/api/v1/drivers']['post']['requestBody']['content']['application/json']>;
+type SupplierUpsertPayload = StripIndexSignature<paths['/api/v1/suppliers']['post']['requestBody']['content']['application/json']>;
+type FacilityUpsertBasePayload = StripIndexSignature<paths['/api/v1/facilities']['post']['requestBody']['content']['application/json']>;
+type FacilityUpsertPayload = FacilityUpsertBasePayload & { name?: string };
+
+const LEGACY_ENDPOINT_ALLOW_PREFIXES: string[] = [];
+
+const isAllowedApiPath = (endpoint: string) => {
+    if (!endpoint.startsWith('/api/')) {
+        return true;
+    }
+
+    if (endpoint.startsWith('/api/v1/') || endpoint.startsWith('/api/write/')) {
+        return true;
+    }
+
+    return false;
+};
+
+const isUsableRuntimeApiUrl = (value: string) => {
+    try {
+        const parsed = new URL(value);
+        const host = parsed.hostname.toLowerCase();
+        const isLocalHost = host === 'localhost' || host === '127.0.0.1';
+        const isProdHost = typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
+
+        // Ignore stale localhost overrides when running on real deployed hosts.
+        if (isProdHost && isLocalHost) {
+            return false;
+        }
+
+        if (typeof window !== 'undefined' && window.location.protocol === 'https:' && parsed.protocol !== 'https:') {
+            return false;
+        }
+
+        return true;
+    } catch {
+        return false;
+    }
+};
 
 const resolveRuntimeBaseUrl = () => {
     if (typeof window === 'undefined') {
@@ -15,12 +72,12 @@ const resolveRuntimeBaseUrl = () => {
     }
 
     const runtimeUrl = (window as RuntimeWindow).GCM_CONFIG?.API_BASE_URL;
-    if (typeof runtimeUrl === 'string' && runtimeUrl) {
+    if (typeof runtimeUrl === 'string' && runtimeUrl && isUsableRuntimeApiUrl(runtimeUrl)) {
         return runtimeUrl;
     }
 
     const storedUrl = window.localStorage.getItem('gcm_api_url');
-    if (storedUrl) {
+    if (storedUrl && isUsableRuntimeApiUrl(storedUrl)) {
         return storedUrl;
     }
 
@@ -54,6 +111,8 @@ export class ApiError extends Error {
     }
 }
 
+type ApiErrorInput = ConstructorParameters<typeof ApiError>[0];
+
 /**
  * [AR] خدمة الاتصال بالسيرفر (API Client)
  * [EN] API Client Service for Backend Communication
@@ -64,7 +123,24 @@ export const createApiClient = (baseUrl: BaseUrlResolver = '') => {
         return resolved || resolveRuntimeBaseUrl();
     };
 
+    const enforceEndpointPolicy = (endpoint: string) => {
+        if (isAllowedApiPath(endpoint)) {
+            return;
+        }
+
+        throw new ApiError(
+            {
+                errorAr: 'تم حظر المسار بسبب سياسة نسخة واجهة البرمجة',
+                errorEn: 'Endpoint blocked by v1 API policy',
+                error: `Disallowed endpoint path: ${endpoint}`,
+                code: 'ENDPOINT_POLICY_VIOLATION',
+            },
+            500,
+        );
+    };
+
     const request = async (endpoint: string, options: RequestInit = {}) => {
+        enforceEndpointPolicy(endpoint);
         const url = buildApiUrl(getResolvedBaseUrl(), endpoint);
         const headers: HeadersInit = {
             ...options.headers,
@@ -75,24 +151,21 @@ export const createApiClient = (baseUrl: BaseUrlResolver = '') => {
             (headers as Record<string, string>)['Content-Type'] = 'application/json';
         }
 
-        const response = await fetch(url, {
-            ...options,
-            headers,
-            credentials: options.credentials ?? 'include',
-        });
-
-        if (!response.ok) {
-            // [AR] قراءة جسم الرد للحصول على الأخطاء ثنائية اللغة
-            let errorData: ApiPayload = {};
-            try {
-                errorData = await response.json();
-            } catch {
-                errorData = { error: response.statusText };
+        let data: any;
+        try {
+            ({ data } = await performHttpJsonRequest<any>(url, {
+                ...options,
+                headers,
+                credentials: options.credentials ?? 'include',
+            }));
+        } catch (error) {
+            if (error instanceof HttpResponseError) {
+                const errorPayload = (error.payload || {}) as ApiErrorInput;
+                throw new ApiError(errorPayload, error.status);
             }
-            throw new ApiError(errorData, response.status);
+            throw new ApiError({ error: 'Network request failed' }, 500);
         }
 
-        const data = await response.json();
         try {
             return validateCriticalApiResponse(endpoint, data);
         } catch (validationError) {
@@ -120,6 +193,7 @@ export const createApiClient = (baseUrl: BaseUrlResolver = '') => {
             | "suppliers"
             | "facilities",
     ) => {
+        enforceEndpointPolicy(endpoint);
         const headers: HeadersInit = {
             ...options.headers,
             ...getClientAuthHeaders(),
@@ -129,23 +203,21 @@ export const createApiClient = (baseUrl: BaseUrlResolver = '') => {
             (headers as Record<string, string>)['Content-Type'] = 'application/json';
         }
 
-        const response = await fetch(endpoint, {
-            ...options,
-            headers,
-            credentials: 'include',
-        });
-
-        if (!response.ok) {
-            let errorData: ApiPayload = {};
-            try {
-                errorData = await response.json();
-            } catch {
-                errorData = { error: response.statusText };
+        let data: any;
+        try {
+            ({ data } = await performHttpJsonRequest<any>(endpoint, {
+                ...options,
+                headers,
+                credentials: 'include',
+            }));
+        } catch (error) {
+            if (error instanceof HttpResponseError) {
+                const errorPayload = (error.payload || {}) as ApiErrorInput;
+                throw new ApiError(errorPayload, error.status);
             }
-            throw new ApiError(errorData, response.status);
+            throw new ApiError({ error: 'Network request failed' }, 500);
         }
 
-        const data = await response.json();
         if (mutationScope) {
             broadcastMutationInvalidation(mutationScope);
         }
@@ -155,29 +227,29 @@ export const createApiClient = (baseUrl: BaseUrlResolver = '') => {
     return {
         // Companies
         getCompanies: () => request(ENDPOINTS.COMPANIES.BASE),
-        upsertCompany: (data: ApiPayload, skipValidation?: boolean) => requestServerWrite('/api/write/companies', { method: 'POST', body: JSON.stringify(data), headers: skipValidation ? { 'x-skip-validation': 'true' } : {} }, 'companies'),
+        upsertCompany: (data: CompanyUpsertPayload, skipValidation?: boolean) => requestServerWrite('/api/write/companies', { method: 'POST', body: JSON.stringify(data), headers: skipValidation ? { 'x-skip-validation': 'true' } : {} }, 'companies'),
         deleteCompany: (id: string) => requestServerWrite(`/api/write/companies/${id}`, { method: 'DELETE' }, 'companies'),
 
         // Projects
         getProjects: () => request(ENDPOINTS.PROJECTS.BASE),
-        upsertProject: (data: ApiPayload, skipValidation?: boolean) => requestServerWrite('/api/write/projects', { method: 'POST', body: JSON.stringify(data), headers: skipValidation ? { 'x-skip-validation': 'true' } : {} }, 'projects'),
+        upsertProject: (data: ProjectUpsertPayload, skipValidation?: boolean) => requestServerWrite('/api/write/projects', { method: 'POST', body: JSON.stringify(data), headers: skipValidation ? { 'x-skip-validation': 'true' } : {} }, 'projects'),
         deleteProject: (id: string) => requestServerWrite(`/api/write/projects/${id}`, { method: 'DELETE' }, 'projects'),
 
         // Project Services
         getProjectServices: () => request('/api/v1/project_services'),
-        upsertProjectService: (data: ApiPayload) => request('/api/v1/project_services', { method: 'POST', body: JSON.stringify(data) }),
+        upsertProjectService: (data: JsonObjectPayload) => request('/api/v1/project_services', { method: 'POST', body: JSON.stringify(data) }),
         deleteProjectService: (id: string) => request(`/api/v1/project_services/${id}`, { method: 'DELETE' }),
 
         // Trips
         getTrips: () => request(ENDPOINTS.TRIPS.BASE),
-        upsertTrip: (data: ApiPayload, skipValidation?: boolean) => requestServerWrite('/api/write/trips', { method: 'POST', body: JSON.stringify(data), headers: skipValidation ? { 'x-skip-validation': 'true' } : {} }, 'trips'),
+        upsertTrip: (data: TripUpsertPayload, skipValidation?: boolean) => requestServerWrite('/api/write/trips', { method: 'POST', body: JSON.stringify(data), headers: skipValidation ? { 'x-skip-validation': 'true' } : {} }, 'trips'),
         deleteTrip: (id: string) => requestServerWrite(`/api/write/trips/${id}`, { method: 'DELETE' }, 'trips'),
 
         // Users
         getUsers: () => request(ENDPOINTS.SYSTEM.USERS),
-        upsertUser: (data: ApiPayload) => request(ENDPOINTS.SYSTEM.USERS, { method: 'POST', body: JSON.stringify(data) }),
+        upsertUser: (data: UserUpsertPayload) => request(ENDPOINTS.SYSTEM.USERS, { method: 'POST', body: JSON.stringify(data) }),
         deleteUser: (id: string) => request(`${ENDPOINTS.SYSTEM.USERS}/${id}`, { method: 'DELETE' }),
-        login: async (credentials: ApiPayload) => {
+        login: async (credentials: LoginRequestPayload) => {
             const payload = await request(ENDPOINTS.AUTH.LOGIN, { method: 'POST', body: JSON.stringify(credentials) });
             if (!payload || typeof payload !== 'object') {
                 return payload;
@@ -189,19 +261,19 @@ export const createApiClient = (baseUrl: BaseUrlResolver = '') => {
 
         // SaaS Config
         getConfig: () => request('/api/v1/config'),
-        upsertConfig: (data: ApiPayload) => request('/api/v1/config', { method: 'POST', body: JSON.stringify(data) }),
+        upsertConfig: (data: ConfigUpsertPayload) => request('/api/v1/config', { method: 'POST', body: JSON.stringify(data) }),
 
         // Services
         getServices: () => request(ENDPOINTS.SERVICES.BASE),
-        upsertService: (data: ApiPayload, skipValidation?: boolean) => requestServerWrite('/api/write/services', { method: 'POST', body: JSON.stringify(data), headers: skipValidation ? { 'x-skip-validation': 'true' } : {} }, 'services'),
+        upsertService: (data: ServiceUpsertPayload, skipValidation?: boolean) => requestServerWrite('/api/write/services', { method: 'POST', body: JSON.stringify(data), headers: skipValidation ? { 'x-skip-validation': 'true' } : {} }, 'services'),
         deleteService: (id: string) => requestServerWrite(`/api/write/services/${id}`, { method: 'DELETE' }, 'services'),
 
         // Vehicles
         getVehicles: () => request(ENDPOINTS.FLEET.VEHICLES),
-        upsertVehicle: async (data: ApiPayload, skipValidation?: boolean) => {
+        upsertVehicle: async (data: VehicleUpsertPayload, skipValidation?: boolean) => {
             // [PERF] Document uniqueness is enforced server-side via DB constraints.
             // Client-side validation for empty required fields only.
-            const vehicleData = data as { documents?: Array<{ type?: string; expiry_date?: string }> };
+            const vehicleData = data as VehicleUpsertPayload & { documents?: Array<{ type?: string; expiry_date?: string }> };
             if (!skipValidation && vehicleData.documents && Array.isArray(vehicleData.documents)) {
                 const typesInPayload = new Set<string>();
                 for (const doc of vehicleData.documents) {
@@ -221,32 +293,32 @@ export const createApiClient = (baseUrl: BaseUrlResolver = '') => {
 
         // Drivers
         getDrivers: () => request(ENDPOINTS.FLEET.DRIVERS),
-        upsertDriver: (data: ApiPayload, skipValidation?: boolean) => requestServerWrite('/api/write/drivers', { method: 'POST', body: JSON.stringify(data), headers: skipValidation ? { 'x-skip-validation': 'true' } : {} }, 'drivers'),
+        upsertDriver: (data: DriverUpsertPayload, skipValidation?: boolean) => requestServerWrite('/api/write/drivers', { method: 'POST', body: JSON.stringify(data), headers: skipValidation ? { 'x-skip-validation': 'true' } : {} }, 'drivers'),
         deleteDriver: (id: string) => requestServerWrite(`/api/write/drivers/${id}`, { method: 'DELETE' }, 'drivers'),
 
         // Inventory
         getContainers: () => request('/api/v1/inventory/containers'),
-        upsertContainer: (data: ApiPayload) => request('/api/v1/inventory/containers', { method: 'POST', body: JSON.stringify(data) }),
+        upsertContainer: (data: JsonObjectPayload) => request('/api/v1/inventory/containers', { method: 'POST', body: JSON.stringify(data) }),
         deleteContainer: (id: string) => request(`/api/v1/inventory/containers/${id}`, { method: 'DELETE' }),
         getTanks: () => request('/api/v1/inventory/tanks'),
-        upsertTank: (data: ApiPayload) => request('/api/v1/inventory/tanks', { method: 'POST', body: JSON.stringify(data) }),
+        upsertTank: (data: JsonObjectPayload) => request('/api/v1/inventory/tanks', { method: 'POST', body: JSON.stringify(data) }),
         deleteTank: (id: string) => request(`/api/v1/inventory/tanks/${id}`, { method: 'DELETE' }),
         getInventorySizes: () => request('/api/v1/inventory/sizes'),
-        upsertInventorySize: (data: ApiPayload) => request('/api/v1/inventory/sizes', { method: 'POST', body: JSON.stringify(data) }),
+        upsertInventorySize: (data: JsonObjectPayload) => request('/api/v1/inventory/sizes', { method: 'POST', body: JSON.stringify(data) }),
         deleteInventorySize: (id: string) => request(`/api/v1/inventory/sizes/${id}`, { method: 'DELETE' }),
 
         // Scales
         getScales: () => request('/api/v1/inventory/scales'),
-        upsertScale: (data: ApiPayload) => request('/api/v1/inventory/scales', { method: 'POST', body: JSON.stringify(data) }),
+        upsertScale: (data: JsonObjectPayload) => request('/api/v1/inventory/scales', { method: 'POST', body: JSON.stringify(data) }),
         deleteScale: (id: string) => request(`/api/v1/inventory/scales/${id}`, { method: 'DELETE' }),
 
         // Logs
         getLogs: () => request(ENDPOINTS.SYSTEM.LOGS),
-        addLog: (logData: ApiPayload) => request(ENDPOINTS.SYSTEM.LOGS, { method: 'POST', body: JSON.stringify(logData) }),
+        addLog: (logData: JsonObjectPayload) => request(ENDPOINTS.SYSTEM.LOGS, { method: 'POST', body: JSON.stringify(logData) }),
 
         // Notifications
         getNotifications: () => request(ENDPOINTS.SYSTEM.NOTIFICATIONS.BASE),
-        addNotification: (data: ApiPayload) => request(ENDPOINTS.SYSTEM.NOTIFICATIONS.BASE, { method: 'POST', body: JSON.stringify(data) }),
+        addNotification: (data: JsonObjectPayload) => request(ENDPOINTS.SYSTEM.NOTIFICATIONS.BASE, { method: 'POST', body: JSON.stringify(data) }),
         markNotificationRead: (id: string) => request(ENDPOINTS.SYSTEM.NOTIFICATIONS.MARK_READ(id), { method: 'PATCH' }), // Backend forces TRUE currently
         markAllNotificationsRead: () => request(`${ENDPOINTS.SYSTEM.NOTIFICATIONS.BASE}/read-all`, { method: 'PATCH' }),
         deleteAllNotifications: () => request(ENDPOINTS.SYSTEM.NOTIFICATIONS.BASE, { method: 'DELETE' }),
@@ -254,38 +326,38 @@ export const createApiClient = (baseUrl: BaseUrlResolver = '') => {
 
         // Permission Requests
         getPermissionRequests: () => request('/api/v1/permission-requests'),
-        upsertPermissionRequest: (data: ApiPayload) => request('/api/v1/permission-requests', { method: 'POST', body: JSON.stringify(data) }),
+        upsertPermissionRequest: (data: JsonObjectPayload) => request('/api/v1/permission-requests', { method: 'POST', body: JSON.stringify(data) }),
         deletePermissionRequest: (id: string) => request(`/api/v1/permission-requests/${id}`, { method: 'DELETE' }),
 
         // Contact Submissions
         getContactSubmissions: () => request('/api/v1/contact-submissions'),
-        addContactSubmission: (data: ApiPayload) => request('/api/v1/contact-submissions', { method: 'POST', body: JSON.stringify(data) }),
+        addContactSubmission: (data: JsonObjectPayload) => request('/api/v1/contact-submissions', { method: 'POST', body: JSON.stringify(data) }),
         deleteContactSubmission: (id: string) => request(`/api/v1/contact-submissions/${id}`, { method: 'DELETE' }),
 
         // Environmental Equipments (E-Commerce)
         getEquipments: () => request('/api/v1/public/store/equipments'),
         getEquipmentDetail: (id: string) => request(`/api/v1/public/store/equipments/${id}`),
-        upsertEquipment: (data: ApiPayload) => request('/api/v1/public/store/equipments', { method: 'POST', body: JSON.stringify(data) }),
+        upsertEquipment: (data: JsonObjectPayload) => request('/api/v1/public/store/equipments', { method: 'POST', body: JSON.stringify(data) }),
         deleteEquipment: (id: string) => request(`/api/v1/public/store/equipments/${id}`, { method: 'DELETE' }),
         shareEquipment: (id: string) => request(`/api/v1/public/store/equipments/${id}/share`, { method: 'POST' }),
 
         // Equipment Inquiries
         getEquipmentInquiries: () => request('/api/v1/public/store/inquiries'),
-        submitEquipmentInquiry: (data: ApiPayload) => request('/api/v1/public/store/inquiries', { method: 'POST', body: JSON.stringify(data) }),
-        updateEquipmentInquiry: (id: string, data: ApiPayload) => request(`/api/v1/public/store/inquiries/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+        submitEquipmentInquiry: (data: JsonObjectPayload) => request('/api/v1/public/store/inquiries', { method: 'POST', body: JSON.stringify(data) }),
+        updateEquipmentInquiry: (id: string, data: JsonObjectPayload) => request(`/api/v1/public/store/inquiries/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
         deleteEquipmentInquiry: (id: string) => request(`/api/v1/public/store/inquiries/${id}`, { method: 'DELETE' }),
 
         getSuppliers: () => request('/api/v1/suppliers'),
-        upsertSupplier: (data: ApiPayload, skipValidation?: boolean) => requestServerWrite('/api/write/suppliers', { method: 'POST', body: JSON.stringify(data), headers: skipValidation ? { 'x-skip-validation': 'true' } : {} }, 'suppliers'),
+        upsertSupplier: (data: SupplierUpsertPayload, skipValidation?: boolean) => requestServerWrite('/api/write/suppliers', { method: 'POST', body: JSON.stringify(data), headers: skipValidation ? { 'x-skip-validation': 'true' } : {} }, 'suppliers'),
         deleteSupplier: (id: string) => requestServerWrite(`/api/write/suppliers/${id}`, { method: 'DELETE' }, 'suppliers'),
 
         // Facilities
         getFacilities: () => request('/api/v1/facilities'),
-        upsertFacility: (data: ApiPayload, skipValidation?: boolean) => requestServerWrite('/api/write/facilities', { method: 'POST', body: JSON.stringify(data), headers: skipValidation ? { 'x-skip-validation': 'true' } : {} }, 'facilities'),
+        upsertFacility: (data: FacilityUpsertPayload, skipValidation?: boolean) => requestServerWrite('/api/write/facilities', { method: 'POST', body: JSON.stringify(data), headers: skipValidation ? { 'x-skip-validation': 'true' } : {} }, 'facilities'),
         deleteFacility: (id: string) => requestServerWrite(`/api/write/facilities/${id}`, { method: 'DELETE' }, 'facilities'),
 
         // AI Sessions
-        logAISession: (data: ApiPayload) => request(ENDPOINTS.AI.LOG_SESSION, { method: 'POST', body: JSON.stringify(data) }),
+        logAISession: (data: JsonObjectPayload) => request(ENDPOINTS.AI.LOG_SESSION, { method: 'POST', body: JSON.stringify(data) }),
         getAISessions: (params?: Record<string, string>) => {
             const qs = params ? '?' + new URLSearchParams(params).toString() : '';
             return request(`${ENDPOINTS.AI.SESSIONS}${qs}`);
@@ -297,12 +369,12 @@ export const createApiClient = (baseUrl: BaseUrlResolver = '') => {
 
         // Asset Requests
         getAssetRequests: () => request('/api/v1/asset_requests'),
-        upsertAssetRequest: (data: ApiPayload) => request('/api/v1/asset_requests', { method: 'POST', body: JSON.stringify(data) }),
+        upsertAssetRequest: (data: JsonObjectPayload) => request('/api/v1/asset_requests', { method: 'POST', body: JSON.stringify(data) }),
 
         // Asset Service Links (N:N)
         getAssetServiceLinks: () => request('/api/v1/asset-service-links'),
         syncAssetServiceLinks: (assetType: string, assetId: string, serviceIds: string[]) =>
-            request(`/api/asset-service-links/${assetType}/${assetId}`, { method: 'PUT', body: JSON.stringify({ service_ids: serviceIds }) }),
+            request(`/api/v1/asset-service-links/${assetType}/${assetId}`, { method: 'PUT', body: JSON.stringify({ service_ids: serviceIds }) }),
 
         // AI OCR
         processOcrVision: (base64: string) => request('/api/v1/ai/ocr/vision', { method: 'POST', body: JSON.stringify({ image: base64 }) }),
@@ -326,4 +398,9 @@ export const createApiClient = (baseUrl: BaseUrlResolver = '') => {
             }).then(res => res.json().then(data => res.ok ? data : Promise.reject(data)));
         },
     };
+};
+
+export const _internal = {
+    isAllowedApiPath,
+    LEGACY_ENDPOINT_ALLOW_PREFIXES,
 };

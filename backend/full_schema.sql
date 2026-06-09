@@ -421,6 +421,51 @@ CREATE TABLE IF NOT EXISTS contact_submissions (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- [AR] وظائف OCR غير المتزامنة
+-- [EN] Asynchronous OCR jobs
+CREATE TABLE IF NOT EXISTS ocr_jobs (
+    job_id VARCHAR(100) PRIMARY KEY,
+    status VARCHAR(30) NOT NULL DEFAULT 'PENDING',
+    image_data TEXT NOT NULL,
+    mime_type VARCHAR(100),
+    callback_url TEXT,
+    requested_by VARCHAR(100),
+    extracted_data JSONB,
+    error_message TEXT,
+    attempts INTEGER NOT NULL DEFAULT 0,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    started_at TIMESTAMP,
+    completed_at TIMESTAMP,
+    next_attempt_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    dead_lettered_at TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- [AR] وظائف WhatsApp غير المتزامنة
+-- [EN] Asynchronous WhatsApp jobs
+CREATE TABLE IF NOT EXISTS whatsapp_jobs (
+    id SERIAL PRIMARY KEY,
+    status VARCHAR(30) NOT NULL DEFAULT 'PENDING',
+    payload JSONB NOT NULL,
+    error_message TEXT,
+    attempts INTEGER NOT NULL DEFAULT 0,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    started_at TIMESTAMP,
+    completed_at TIMESTAMP,
+    next_attempt_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    dead_lettered_at TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- [AR] مخزن إعادة بث الأحداث لدعم Last-Event-ID
+-- [EN] Event replay store for Last-Event-ID reconnect support
+CREATE TABLE IF NOT EXISTS event_bus_replay (
+    id BIGSERIAL PRIMARY KEY,
+    event_name VARCHAR(120) NOT NULL,
+    payload JSONB NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
 ---------------------------------------------------------
 -- 5. FINANCE & AI
 ---------------------------------------------------------
@@ -523,6 +568,10 @@ CREATE INDEX IF NOT EXISTS idx_trips_driver_id ON trips(driver_id);
 CREATE INDEX IF NOT EXISTS idx_projects_company_id ON projects(company_id);
 CREATE INDEX IF NOT EXISTS idx_activity_logs_entity ON activity_logs(entity_id, entity_type);
 CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
+CREATE INDEX IF NOT EXISTS idx_ocr_jobs_status_created_at ON ocr_jobs(status, created_at);
+CREATE INDEX IF NOT EXISTS idx_whatsapp_jobs_status_created_at ON whatsapp_jobs(status, created_at);
+CREATE INDEX IF NOT EXISTS idx_event_bus_replay_created_at ON event_bus_replay(created_at);
+CREATE INDEX IF NOT EXISTS idx_event_bus_replay_event_name ON event_bus_replay(event_name);
 
 ---------------------------------------------------------
 -- 9. SEQUENCE PERMISSIONS (Fix cPanel PostgreSQL permissions)

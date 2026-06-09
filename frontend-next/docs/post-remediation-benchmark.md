@@ -2,47 +2,104 @@
 
 ## Scope
 
-This report evaluates post-remediation performance against explicit acceptance thresholds for:
+This report validates SLO compliance under two runtime modes:
 
-- TTFB
-- Hydration proxy
-- Route transition
-- API latency
+- Peak mode: expected 10x profile concurrency.
+- Degraded mode: elevated concurrency and tighter timeout constraints.
 
-Source snapshot: `docs/baseline-metrics.json`.
+Evidence sources:
 
-## Acceptance Thresholds
+- `docs/baseline-metrics.json` (peak mode)
+- `docs/baseline-metrics.degraded.json` (degraded mode)
 
-- TTFB: `<= 800ms`
-- Hydration proxy: `<= 200ms`
-- Route transition (`/landing` -> `/store`): `<= 2500ms`
-- API latency: `<= 500ms` with expected production API status (`2xx/4xx auth-gated`) from a valid endpoint
+## SLO Targets
 
-## Benchmark Results
+- Success rate: `>= 99%`
+- API latency p95: `<= 500ms`
+- API latency p99: `<= 900ms`
 
-- TTFB: `469ms` -> PASS
-- Hydration proxy: `91ms` -> PASS
-- Route transition: `1663ms` -> PASS
-- API latency: `336ms` with status `404` -> CONDITIONAL (latency budget passed, endpoint mapping needs environment override)
+## Validation Results
+
+### Peak Mode
+
+- Endpoint: `https://gcm-back.twision.agency/api/v1/ping`
+- Concurrency: `20`
+- Requests: `703`
+- Success rate: `100%` -> PASS
+- p95 latency: `263ms` -> PASS
+- p99 latency: `432ms` -> PASS
+
+### Degraded Mode
+
+- Endpoint: `https://gcm-back.twision.agency/api/v1/ping`
+- Concurrency: `80`
+- Timeout: `3000ms`
+- Requests: `2811`
+- Success rate: `100%` -> PASS
+- p95 latency: `263ms` -> PASS
+- p99 latency: `407ms` -> PASS
+
+## Remediation List
+
+1. Add automated scheduled execution for `perf:10x` and persist trend history per release.
+2. Add route-level 10x profiles for authenticated high-traffic endpoints (auth/trips/dashboard) instead of ping-only synthetic path.
+3. Add explicit degraded-network profile (latency/jitter injection) in CI perf environment.
 
 ## Decision
 
-- Overall status: `CONDITIONAL PASS`
-- Required follow-up before release sign-off: set `PERF_API_LATENCY_URL` to a known live API endpoint in target environment and recapture to confirm status contract.
+- Overall SLO validation status: `PASS`
+
+## KPI Assessment - API Latency (Critical)
+
+Target:
+
+- p95 less than or equal to `500ms`
+- p99 less than or equal to `900ms`
+- Scope: core authenticated routes under peak-hour profile
+
+Evidence available:
+
+- Peak synthetic probe (`/api/v1/ping`): p95 `263ms`, p99 `432ms`
+- Degraded synthetic probe (`/api/v1/ping`): p95 `263ms`, p99 `407ms`
+- KPI suite staging probe (`/api/v1/ping`): p95 `257ms`, p99 `434ms`
+- KPI suite production-like probe (`/api/v1/ping`): p95 `246ms`, p99 `281ms`
+
+Result:
+
+- FAIL for KPI acceptance criteria (route-scope mismatch; no committed route-level histogram evidence for core authenticated routes yet).
+
+## KPI Assessment - Database Saturation (Critical)
+
+Target:
+
+- Average DB CPU below `70%`
+- Connection wait events near zero
+- Scope: controlled `5x` load run
+
+Evidence available:
+
+- Current benchmark artifacts in this report and `docs/baseline-metrics.json` are API probe snapshots only.
+- No committed DB CPU trend export or connection wait-event capture is attached for the required 5x load window.
+
+Result:
+
+- FAIL for KPI acceptance criteria (required DB saturation telemetry evidence not yet committed).
 
 ## Reproduction
 
 Run from `backend`:
 
 ```bash
-npm run perf:baseline
+npm run perf:10x
 ```
 
-Optional environment overrides:
+Degraded mode example:
 
 ```bash
-PERF_FRONTEND_URL=https://your-frontend-host \
-PERF_BACKEND_URL=https://your-backend-host \
-PERF_API_LATENCY_URL=https://your-backend-host/api/v1/ping \
-npm run perf:baseline
+PERF_10X_BACKEND_URL=https://gcm-back.twision.agency \
+PERF_10X_DURATION_SECONDS=10 \
+PERF_10X_CONCURRENCY=80 \
+PERF_10X_TIMEOUT_MS=3000 \
+PERF_10X_OUTPUT_PATH=../frontend-next/docs/baseline-metrics.degraded.json \
+npm run perf:10x
 ```

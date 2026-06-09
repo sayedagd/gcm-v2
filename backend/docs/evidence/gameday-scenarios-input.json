@@ -1,0 +1,27 @@
+{
+  "scenarios": [
+    {
+      "id": "api-outage",
+      "telemetry": {
+        "healthStatus": 503,
+        "errorRate5xxPercent": 8.2
+      }
+    },
+    {
+      "id": "broker-outage",
+      "telemetry": {
+        "redisConnected": false,
+        "sseReconnectSpike": true
+      }
+    },
+    {
+      "id": "worker-backlog",
+      "telemetry": {
+        "queueDepth": 140,
+        "queueDepthThreshold": 100,
+        "deadLetterRatePercent": 0.8,
+        "deadLetterThresholdPercent": 0.5
+      }
+    }
+  ]
+}

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Leaf, Globe, Zap, Percent, ShieldCheck } from 'lucide-react';
+import { performHttpJsonRequest } from '@/api/http';
 
 interface CarbonData {
     url: string;
@@ -47,8 +48,7 @@ const CarbonImpactSection: React.FC<CarbonImpactSectionProps> = ({ isAr, config 
         const fetchCarbonData = async () => {
             try {
                 const currentUrl = window.location.hostname === 'localhost' ? 'gcm-eco.com' : window.location.hostname;
-                const response = await fetch(`/api/public/carbon-proxy?url=${currentUrl}`);
-                const result = await response.json();
+                const { data: result } = await performHttpJsonRequest<any>(`/api/v1/public/carbon-proxy?url=${currentUrl}`);
                 if (result && !result.error) {
                     setData(result);
                 }
@@ -190,7 +190,7 @@ const CarbonImpactSection: React.FC<CarbonImpactSectionProps> = ({ isAr, config 
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
                     transition={{ delay: 0.5 }}
-                    className="mt-16 p-8 rounded-3xl bg-gradient-to-r from-emerald-600/20 to-teal-600/20 border border-emerald-500/20 flex flex-col md:flex-row items-center justify-between gap-8 text-center md:text-start"
+                    className="mt-16 p-8 rounded-3xl bg-linear-to-r from-emerald-600/20 to-teal-600/20 border border-emerald-500/20 flex flex-col md:flex-row items-center justify-between gap-8 text-center md:text-start"
                 >
                     <div className="flex-1">
                         <h4 className="text-xl font-bold text-white mb-2">{footerTitle}</h4>

@@ -1,0 +1,97 @@
+{
+  "status": "success",
+  "workflowReference": ".github/workflows/cutover-canary.yml",
+  "generatedAt": "2026-06-09T11:37:49.299Z",
+  "startedAt": "2026-06-09T11:37:49.298Z",
+  "scenarios": [
+    {
+      "id": "healthy-rollout",
+      "description": "No backend failures and frontend failure ratio below threshold.",
+      "expectedRollbackRequired": false,
+      "observedRollbackRequired": false,
+      "rollbackReason": null,
+      "metrics": {
+        "samples": 4,
+        "frontendFailures": 0,
+        "backendFailures": 0,
+        "frontendFailureThreshold": 2
+      },
+      "statusCodes": {
+        "frontend": [
+          200,
+          200,
+          302,
+          200
+        ],
+        "backend": [
+          200,
+          200,
+          200,
+          200
+        ]
+      },
+      "pass": true
+    },
+    {
+      "id": "backend-failure-forces-rollback",
+      "description": "Any backend canary health check failure should force rollback.",
+      "expectedRollbackRequired": true,
+      "observedRollbackRequired": true,
+      "rollbackReason": "backend-health-check-failure",
+      "metrics": {
+        "samples": 4,
+        "frontendFailures": 0,
+        "backendFailures": 1,
+        "frontendFailureThreshold": 2
+      },
+      "statusCodes": {
+        "frontend": [
+          200,
+          200,
+          200,
+          200
+        ],
+        "backend": [
+          200,
+          503,
+          200,
+          200
+        ]
+      },
+      "pass": true
+    },
+    {
+      "id": "frontend-threshold-forces-rollback",
+      "description": "At least half of frontend checks failing should force rollback.",
+      "expectedRollbackRequired": true,
+      "observedRollbackRequired": true,
+      "rollbackReason": "frontend-failure-threshold-exceeded",
+      "metrics": {
+        "samples": 4,
+        "frontendFailures": 2,
+        "backendFailures": 0,
+        "frontendFailureThreshold": 2
+      },
+      "statusCodes": {
+        "frontend": [
+          500,
+          502,
+          200,
+          200
+        ],
+        "backend": [
+          200,
+          200,
+          200,
+          200
+        ]
+      },
+      "pass": true
+    }
+  ],
+  "summary": {
+    "totalScenarios": 3,
+    "passedScenarios": 3,
+    "rollbackValidationPassed": true
+  }
+}

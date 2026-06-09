@@ -69,7 +69,7 @@ export const useSupplierRatesStore = create<SupplierRatesStore>((set) => ({
 
     deleteRate: async (id) => {
         try {
-            await authAxios.delete(`/api/project_supplier_rates/${id}`);
+            await authAxios.delete(`/api/v1/project_supplier_rates/${id}`);
             set(state => ({
                 rates: state.rates.filter(r => r.id !== id)
             }));

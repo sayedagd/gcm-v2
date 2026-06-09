@@ -20,6 +20,10 @@ jest.mock('dotenv', () => ({
   config: jest.fn()
 }));
 
+jest.mock('../../../src/shared/utils/logger', () => ({
+  logEvent: jest.fn(),
+}));
+
 describe('database.js', () => {
   let database;
   let mockPool;
@@ -32,32 +36,26 @@ describe('database.js', () => {
     // Get fresh mock
     const { Pool } = require('pg');
     mockPool = new Pool();
+    mockPool.connect.mockResolvedValue({
+      release: jest.fn()
+    });
     
     // Load database module after mocking
     database = require('../../../database');
   });
 
   describe('connectWithRetry', () => {
-    test('returns false after max retries on bad connection', async () => {
-      // Mock pool.connect to fail all times
-      mockPool.connect.mockRejectedValue(new Error('Connection failed'));
-      
-      // Re-initialize to trigger connectWithRetry
-      jest.isolateModules(() => {
-        const db = require('../../../database');
-        // The initialization happens automatically, but we need to wait
-      });
+    test('waitForDb() attempts to connect and resolves when successful', async () => {
+      const result = await database.waitForDb();
 
-      // Wait for retries to complete
-      await new Promise(resolve => setTimeout(resolve, 100));
-
-      // Should have attempted 10 times with 3-second delay
       expect(mockPool.connect).toHaveBeenCalled();
+      expect(result).toBe(true);
     });
 
     test('query() logs slow queries when execution > 200ms', async () => {
       const mockQuery = 'SELECT * FROM companies';
       const mockParams = [];
+      const { logEvent } = require('../../../src/shared/utils/logger');
       
       // Mock slow query
       mockPool.query.mockImplementation(async () => {
@@ -65,27 +63,25 @@ describe('database.js', () => {
         return { rows: [] };
       });
 
-      const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation();
-
       await database.query(mockQuery, mockParams);
 
-      expect(consoleWarnSpy).toHaveBeenCalledWith(
-        expect.stringContaining('[DB SLOW]')
+      expect(logEvent).toHaveBeenCalledWith(
+        'db_slow_query',
+        expect.objectContaining({
+          queryFingerprint: expect.any(String),
+          thresholdMs: 200,
+        })
       );
-      expect(consoleWarnSpy).toHaveBeenCalledWith(
-        expect.stringContaining('250ms')
-      );
-
-      consoleWarnSpy.mockRestore();
     });
 
     test('initializePool() uses DATABASE_URL if present in env', () => {
       process.env.DATABASE_URL = 'postgres://test:test@localhost:5432/test';
       
       jest.isolateModules(() => {
-        const { Pool } = require('pg');
-        new Pool(); // This will use the DATABASE_URL
+        require('../../../database');
       });
+
+      const { Pool } = require('pg');
 
       expect(Pool).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -105,9 +101,10 @@ describe('database.js', () => {
       process.env.PROD_DB_PORT = '5432';
 
       jest.isolateModules(() => {
-        const { Pool } = require('pg');
-        new Pool();
+        require('../../../database');
       });
+
+      const { Pool } = require('pg');
 
       expect(Pool).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -131,9 +128,10 @@ describe('database.js', () => {
       process.env.DATABASE_URL = 'postgres://test:test@localhost:5432/test';
 
       jest.isolateModules(() => {
-        const { Pool } = require('pg');
-        new Pool();
+        require('../../../database');
       });
+
+      const { Pool } = require('pg');
 
       expect(Pool).toHaveBeenCalledWith(
         expect.objectContaining({

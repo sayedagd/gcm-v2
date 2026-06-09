@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { useStore } from '@/context';
 import { createApiClient } from '@/api/client';
+import { EmptyState, ErrorState, LoadingState } from '@/components/common/FetchBoundaryState';
 import type { AISession, AIAnalytics } from '@/types';
 import { exportToExcel } from '@/utils/excelUtils';
 
@@ -29,6 +30,7 @@ const AISessions: React.FC = () => {
     const [sessions, setSessions] = useState<AISession[]>([]);
     const [analytics, setAnalytics] = useState<AIAnalytics | null>(null);
     const [loading, setLoading] = useState(true);
+    const [sessionsError, setSessionsError] = useState<string | null>(null);
     const [total, setTotal] = useState(0);
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
@@ -55,11 +57,13 @@ const AISessions: React.FC = () => {
             if (filterTo) params.to = filterTo;
 
             const res = await api.getAISessions(params);
+            setSessionsError(null);
             setSessions(res.data || []);
             setTotal(res.total || 0);
             setTotalPages(res.pages || 1);
         } catch (e) {
             console.error('[AI Sessions] Fetch error:', e);
+            setSessionsError(isAr ? 'تعذر تحميل الجلسات حالياً' : 'Unable to load sessions right now');
             setSessions([]);
         } finally {
             setLoading(false);
@@ -356,17 +360,25 @@ const AISessions: React.FC = () => {
                         </thead>
                         <tbody>
                             {loading ? (
-                                <tr><td colSpan={10} className="text-center py-12 text-text-subtle">{isAr ? 'جاري التحميل...' : 'Loading...'}</td></tr>
+                                <tr><td colSpan={10}><LoadingState label={isAr ? 'جاري تحميل الجلسات...' : 'Loading sessions...'} /></td></tr>
+                            ) : sessionsError ? (
+                                <tr>
+                                    <td colSpan={10}>
+                                        <ErrorState
+                                            title={isAr ? 'تعذر تحميل البيانات' : 'Unable to load data'}
+                                            message={sessionsError}
+                                            retryLabel={isAr ? 'إعادة المحاولة' : 'Retry'}
+                                            onRetry={fetchSessions}
+                                        />
+                                    </td>
+                                </tr>
                             ) : filteredSessions.length === 0 ? (
                                 <tr>
                                     <td colSpan={10} className="text-center py-12">
-                                        <div className="flex flex-col items-center gap-3">
-                                            <div className="w-16 h-16 rounded-2xl bg-surface-subtle flex items-center justify-center">
-                                                <Zap size={28} className="text-text-subtle" />
-                                            </div>
-                                            <p className="text-text-subtle font-medium">{isAr ? 'لا توجد جلسات بعد' : 'No sessions found'}</p>
-                                            <p className="text-xs text-text-subtle">{isAr ? 'ستظهر الجلسات هنا عند بدء استخدام المساعد الذكي' : 'Sessions will appear here when the AI assistant is used'}</p>
-                                        </div>
+                                        <EmptyState
+                                            title={isAr ? 'لا توجد جلسات بعد' : 'No sessions found'}
+                                            description={isAr ? 'ستظهر الجلسات هنا عند بدء استخدام المساعد الذكي' : 'Sessions will appear here when the AI assistant is used'}
+                                        />
                                     </td>
                                 </tr>
                             ) : filteredSessions.map(session => (

@@ -1,118 +1,85 @@
 /**
- * OCR Controller powered by Google Gemini (Gemini 2.0 Flash)
- * Used to extract handwritten and printed text from Delivery Notes.
+ * OCR Controller (async job model)
  */
 const { log } = require('../../../shared/utils/logger');
+const {
+    createOcrJob,
+    getOcrJobById,
+    parseImagePayload,
+} = require('./ocr.service');
 
-const processDeliveryNoteOCR = async (req, res) => {
+const generateJobId = () => `OCR-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+const submitDeliveryNoteOCRJob = async (req, res) => {
     try {
-        const { image } = req.body;
+        const { image, callback_url: callbackUrl } = req.body;
         if (!image) {
             return res.status(400).json({ error: 'Image base64 is required' });
         }
 
-        const apiKey = process.env.GEMINI_API_KEY || 'AIzaSyDckn5GBmg2sxFKVSwefPMGDBPl5hXJflI';
+        const apiKey = process.env.GEMINI_API_KEY;
         if (!apiKey) {
             log('[OCR] Error: GEMINI_API_KEY is not configured');
             return res.status(500).json({ error: 'AI Vision is not configured on the server.' });
         }
 
-        log('[OCR] Starting Vision AI analysis for delivery note via Gemini...');
+        const jobId = generateJobId();
+        const { mimeType } = parseImagePayload(image);
+        const requestedBy = req.user?.id || null;
 
-        // Clean base64 and extract mime type if possible
-        let base64Data = image;
-        let mimeType = 'image/jpeg';
-        
-        if (image.startsWith('data:')) {
-            const matches = image.match(/^data:([^;]+);base64,(.+)$/);
-            if (matches && matches.length === 3) {
-                mimeType = matches[1];
-                base64Data = matches[2];
-            }
-        }
-
-        const prompt = `You are a highly accurate OCR assistant specialized in Arabic and English handwritten text reading for Waste Management forms (Delivery Notes / Manifests). 
-Your ONLY task is to extract data from the provided image and return it in pure JSON format.
-There must be NO markdown formatting, NO \`\`\`json blocks, and NO conversational text. Just the strictly valid JSON object.
-
-Extract the following fields if present:
-- "delivery_note_no": Look for "No.", "DN", "رقم السند". Return just the number (e.g., "123456").
-- "waste_manifest_no": Look for Manifest number if any.
-- "date": The date of the trip in YYYY-MM-DD format (if possible) or whatever is written.
-- "quantity": (Number only) Look for "الكمية", "الوزن", "Quantity", "QTY", "Weight".
-- "unit": (String: TON, KG, CBM)
-- "company_name": Client name, "العميل", "الشركة".
-- "project_name": Project name, "المشروع", "الموقع".
-- "driver_name": Driver's name, "السائق".
-- "vehicle_plate": Vehicle Plate number, "رقم اللوحة", "السيارة".
-- "service_name": Material type, "النفايات", "نوع المادة", "الخدمة".
-
-If a field is not found or unreadable, set its value to null. Output standard JSON.`;
-
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                contents: [{
-                    parts: [
-                        { text: prompt },
-                        {
-                            inline_data: {
-                                mime_type: mimeType,
-                                data: base64Data
-                            }
-                        }
-                    ]
-                }],
-                generationConfig: {
-                    temperature: 0.1,
-                    topK: 32,
-                    topP: 1,
-                    maxOutputTokens: 1024,
-                }
-            })
+        await createOcrJob({
+            jobId,
+            image,
+            mimeType,
+            callbackUrl,
+            requestedBy,
         });
 
-        const data = await response.json();
+        log(`[OCR] Job queued: ${jobId}`);
 
-        if (!response.ok) {
-            log(`[OCR] External AI Error: ${JSON.stringify(data)}`);
-            throw new Error(data.error?.message || 'Failed to process image with AI Vision');
-        }
-
-        // Gemini returns the text in candidates[0].content.parts[0].text
-        const rawContent = data.candidates?.[0]?.content?.parts?.[0]?.text;
-        if (!rawContent) {
-           throw new Error('AI returned an empty response.');
-        }
-
-        log(`[OCR] AI Output received: ${rawContent}`);
-
-        // Try to parse the JSON. Since we instructed strictly, it should be clean.
-        // We handle potential markdown code blocks just in case.
-        let jsonStr = rawContent.trim();
-        if (jsonStr.startsWith('\`\`\`json')) {
-            jsonStr = jsonStr.replace(/\`\`\`json/g, '').replace(/\`\`\`/g, '').trim();
-        } else if (jsonStr.startsWith('\`\`\`')) {
-            jsonStr = jsonStr.replace(/\`\`\`/g, '').trim();
-        }
-
-        const parsedData = JSON.parse(jsonStr);
-
-        res.json({
-            status: 'success',
-            extracted: parsedData
+        return res.status(202).json({
+            status: 'accepted',
+            job_id: jobId,
+            polling_url: `/api/v1/ai/ocr/vision/jobs/${jobId}`,
+            callback_url: callbackUrl || null,
         });
-
     } catch (error) {
-        log(`[OCR] Controller Error: ${error.message}`);
-        res.status(500).json({ error: 'Failed to extract data' });
+        log(`[OCR] Submit Error: ${error.message}`);
+        return res.status(500).json({ error: 'Failed to queue OCR job' });
     }
 };
 
+const getDeliveryNoteOCRJobStatus = async (req, res) => {
+    try {
+        const { jobId } = req.params;
+        const job = await getOcrJobById(jobId);
+        if (!job) {
+            return res.status(404).json({ error: 'OCR job not found' });
+        }
+
+        return res.json({
+            job_id: job.job_id,
+            status: job.status,
+            extracted: job.extracted_data || null,
+            error: job.error_message || null,
+            attempts: job.attempts,
+            created_at: job.created_at,
+            started_at: job.started_at,
+            completed_at: job.completed_at,
+            next_attempt_at: job.next_attempt_at,
+            dead_lettered_at: job.dead_lettered_at,
+        });
+    } catch (error) {
+        log(`[OCR] Status Error: ${error.message}`);
+        return res.status(500).json({ error: 'Failed to fetch OCR job status' });
+    }
+};
+
+const processDeliveryNoteOCR = submitDeliveryNoteOCRJob;
+
 module.exports = {
-    processDeliveryNoteOCR
+    processDeliveryNoteOCR,
+    submitDeliveryNoteOCRJob,
+    getDeliveryNoteOCRJobStatus,
 };
 

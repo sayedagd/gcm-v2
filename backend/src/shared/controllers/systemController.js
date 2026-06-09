@@ -3,8 +3,9 @@
  */
 const fs = require('fs');
 const { log, LOG_FILE } = require('../utils/logger');
-const { recordBackupFailure, getMetricsSnapshot } = require('../services/metricsService');
+const { recordBackupFailure, getMetricsSnapshot, setQueueDepth } = require('../services/metricsService');
 const { buildValidationError } = require('../utils/validationErrorContract');
+const { getIdempotencyValue, setIdempotencyValue } = require('../services/redisStateService');
 
 let query = null;
 let backupService = null;
@@ -102,7 +103,6 @@ const getLogs = (req, res) => {
 };
 
 const triggerAutoBackup = async (req, res) => {
-    const lockKey = 98420311;
     const triggerSource = req.headers['x-scheduler-source'] || 'manual';
     const idempotencyKey = (req.headers['x-idempotency-key'] || '').toString().trim() || null;
 
@@ -133,16 +133,21 @@ const triggerAutoBackup = async (req, res) => {
         return res.status(503).json({ error: 'Backup service unavailable' });
     }
 
-    const createRun = async ({ status, artifactId = null, errorMessage = null }) => {
-        await dbQuery(
-            `INSERT INTO backup_job_runs (idempotency_key, trigger_source, status, artifact_id, error_message, finished_at)
-             VALUES ($1, $2, $3, $4, $5, NOW())`,
-            [idempotencyKey, triggerSource, status, artifactId, errorMessage]
-        );
-    };
-
     try {
         if (idempotencyKey) {
+            const cacheHit = await getIdempotencyValue({
+                namespace: 'backup:trigger',
+                identity: idempotencyKey,
+            });
+            if (cacheHit) {
+                return res.json({
+                    ...cacheHit,
+                    status: 'success',
+                    idempotentReplay: true,
+                    fromRedisCache: true,
+                });
+            }
+
             const prior = await dbQuery(
                 `SELECT bjr.id, bjr.status, bjr.artifact_id, ba.file_name, ba.created_at
                  FROM backup_job_runs bjr
@@ -154,6 +159,17 @@ const triggerAutoBackup = async (req, res) => {
             );
 
             if (prior.rows[0] && prior.rows[0].status === 'success') {
+                await setIdempotencyValue({
+                    namespace: 'backup:trigger',
+                    identity: idempotencyKey,
+                    value: {
+                        artifactId: prior.rows[0].artifact_id,
+                        fileName: prior.rows[0].file_name,
+                        createdAt: prior.rows[0].created_at,
+                    },
+                    ttlSeconds: 600,
+                });
+
                 return res.json({
                     status: 'success',
                     idempotentReplay: true,
@@ -162,32 +178,33 @@ const triggerAutoBackup = async (req, res) => {
                     createdAt: prior.rows[0].created_at
                 });
             }
+
+            if (prior.rows[0] && (prior.rows[0].status === 'queued' || prior.rows[0].status === 'running')) {
+                return res.status(202).json({
+                    status: prior.rows[0].status,
+                    idempotentReplay: true,
+                    jobId: prior.rows[0].id,
+                    artifactId: prior.rows[0].artifact_id || null,
+                });
+            }
         }
 
-        const lock = await dbQuery('SELECT pg_try_advisory_lock($1) AS acquired', [lockKey]);
-        if (!lock.rows[0]?.acquired) {
-            return res.status(409).json({ error: 'Backup job already running' });
-        }
+        const job = await backup.enqueueBackupJob({
+            triggerSource,
+            idempotencyKey,
+        });
 
-        log(`[API CRON] External Backup Trigger Received`);
-        const result = await backup.performSystemBackup('sql');
-        await createRun({ status: 'success', artifactId: result.artifactId || null });
+        log(`[API CRON] Backup queued as job ${job.id}`);
 
-        return res.json({ ...result, triggered_at: new Date().toISOString() });
+        return res.status(202).json({
+            status: 'queued',
+            jobId: job.id,
+            requestedAt: job.requested_at,
+            triggerSource: job.trigger_source,
+        });
     } catch (e) {
-        try {
-            await createRun({ status: 'failed', errorMessage: e.message });
-        } catch (_) {
-            // no-op
-        }
         recordBackupFailure({ message: e.message });
         return res.status(500).json({ error: 'Internal server error' });
-    } finally {
-        try {
-            await dbQuery('SELECT pg_advisory_unlock($1)', [lockKey]);
-        } catch (_) {
-            // no-op
-        }
     }
 };
 
@@ -236,6 +253,25 @@ const getBackupStatusHandler = async (req, res) => {
         return res.status(503).json({ error: 'Backup service unavailable' });
     }
 
+    const jobId = Number.parseInt(String(req.query.job_id || ''), 10);
+    if (Number.isFinite(jobId) && jobId > 0) {
+        const job = await backup.getBackupJobById(jobId);
+        if (!job) {
+            return res.status(404).json({ error: 'Backup job not found' });
+        }
+        return res.json({
+            jobId: job.id,
+            status: job.status,
+            triggerSource: job.trigger_source,
+            requestedAt: job.requested_at,
+            finishedAt: job.finished_at,
+            artifactId: job.artifact_id,
+            fileName: job.file_name,
+            format: job.format,
+            errorMessage: job.error_message,
+        });
+    }
+
     const status = await backup.getBackupStatus();
     return res.json(status);
 };
@@ -270,8 +306,107 @@ const restoreSystemBackup = async (req, res) => {
     }
 };
 
-const getMetrics = (req, res) => {
-    return res.json(getMetricsSnapshot());
+const toNumber = (value) => {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const getQueueVisibilityMetrics = async () => {
+    const dbQuery = getQuery();
+    if (!dbQuery) {
+        return null;
+    }
+
+    const result = await dbQuery(
+        `WITH queue_rows AS (
+            SELECT
+                'ocr'::text AS queue_name,
+                COALESCE(SUM(CASE WHEN status = 'PENDING' THEN 1 ELSE 0 END), 0)::int AS queued_count,
+                COALESCE(SUM(CASE WHEN status = 'RETRY' THEN 1 ELSE 0 END), 0)::int AS retry_count,
+                COALESCE(SUM(CASE WHEN status = 'DEAD_LETTER' THEN 1 ELSE 0 END), 0)::int AS dead_letter_count,
+                COALESCE(SUM(CASE WHEN status = 'PROCESSING' THEN 1 ELSE 0 END), 0)::int AS running_count
+            FROM ocr_jobs
+
+            UNION ALL
+
+            SELECT
+                'whatsapp'::text AS queue_name,
+                COALESCE(SUM(CASE WHEN status = 'PENDING' THEN 1 ELSE 0 END), 0)::int AS queued_count,
+                COALESCE(SUM(CASE WHEN status = 'RETRY' THEN 1 ELSE 0 END), 0)::int AS retry_count,
+                COALESCE(SUM(CASE WHEN status = 'DEAD_LETTER' THEN 1 ELSE 0 END), 0)::int AS dead_letter_count,
+                COALESCE(SUM(CASE WHEN status = 'PROCESSING' THEN 1 ELSE 0 END), 0)::int AS running_count
+            FROM whatsapp_jobs
+
+            UNION ALL
+
+            SELECT
+                'backups'::text AS queue_name,
+                COALESCE(SUM(CASE WHEN status = 'queued' THEN 1 ELSE 0 END), 0)::int AS queued_count,
+                0::int AS retry_count,
+                COALESCE(SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END), 0)::int AS dead_letter_count,
+                COALESCE(SUM(CASE WHEN status = 'running' THEN 1 ELSE 0 END), 0)::int AS running_count
+            FROM backup_job_runs
+        )
+        SELECT queue_name, queued_count, retry_count, dead_letter_count, running_count
+        FROM queue_rows;`
+    );
+
+    const queues = {};
+
+    for (const row of result.rows || []) {
+        const queueName = String(row.queue_name || '').toLowerCase();
+        if (!queueName) {
+            continue;
+        }
+
+        const queued = toNumber(row.queued_count);
+        const running = toNumber(row.running_count);
+        const retry = toNumber(row.retry_count);
+        const deadLetter = toNumber(row.dead_letter_count);
+        const depth = queued + running + retry;
+
+        queues[queueName] = {
+            depth,
+            queued,
+            running,
+            retry,
+            deadLetter,
+        };
+
+        setQueueDepth({ queueName, depth });
+    }
+
+    return {
+        generatedAt: new Date().toISOString(),
+        queues,
+    };
+};
+
+const getMetrics = async (req, res) => {
+    const snapshot = getMetricsSnapshot();
+
+    try {
+        const queueVisibility = await getQueueVisibilityMetrics();
+        if (queueVisibility) {
+            const queueDepths = {
+                ...(snapshot.metrics?.queueDepths || {}),
+            };
+
+            for (const [queueName, metrics] of Object.entries(queueVisibility.queues || {})) {
+                queueDepths[queueName] = toNumber(metrics.depth);
+            }
+
+            snapshot.metrics = {
+                ...(snapshot.metrics || {}),
+                queueDepths,
+            };
+            snapshot.queueVisibility = queueVisibility;
+        }
+    } catch (error) {
+        log(`[Metrics] Queue visibility query failed: ${error.message}`);
+    }
+
+    return res.json(snapshot);
 };
 
 module.exports = {
@@ -288,5 +423,6 @@ module.exports = {
         IDEMPOTENCY_KEY_PATTERN,
         TRIGGER_SOURCE_PATTERN,
         ALLOWED_RESTORE_MIME_TYPES,
+        getQueueVisibilityMetrics,
     },
 };

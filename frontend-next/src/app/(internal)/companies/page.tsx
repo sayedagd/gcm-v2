@@ -1,9 +1,10 @@
 import { Suspense } from "react";
 import CompaniesClient from "./CompaniesClient";
+import { LoadingState } from "@/components/common/FetchBoundaryState";
 
 export default function CompaniesPage() {
   return (
-    <Suspense fallback={<div className="p-6 text-sm text-muted-foreground">Loading companies...</div>}>
+    <Suspense fallback={<LoadingState label="Loading companies..." />}>
       <CompaniesClient />
     </Suspense>
   );

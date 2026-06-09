@@ -1,0 +1,51 @@
+{
+  "status": "success",
+  "generatedAt": "2026-06-09T11:30:15.039Z",
+  "source": {
+    "kpiPath": "C:\\Users\\Elsayed\\Documents\\GitHub\\gcm-v2\\frontend-next\\docs\\kpi-execution-log.json",
+    "dbPath": "C:\\Users\\Elsayed\\Documents\\GitHub\\gcm-v2\\backend\\docs\\evidence\\db-saturation-input.json"
+  },
+  "targets": {
+    "apiLatency": {
+      "p95MaxMs": 500,
+      "p99MaxMs": 900
+    },
+    "apiErrorRate": {
+      "maxPercent": 1
+    },
+    "dbSaturation": {
+      "cpuAvgMaxPercent": 70,
+      "connectionWaitEventsPerMinuteMax": 1,
+      "slowQuerySharePercentMax": 5
+    }
+  },
+  "observed": {
+    "api": {
+      "staging": {
+        "p95Ms": 269,
+        "p99Ms": 458,
+        "successRate": 100
+      },
+      "productionLike": {
+        "p95Ms": 248,
+        "p99Ms": 301,
+        "successRate": 100
+      }
+    },
+    "db": {
+      "cpuAvgPercent": 42,
+      "connectionWaitEventsPerMinute": 0,
+      "slowQuerySharePercent": 2.4
+    }
+  },
+  "pass": {
+    "stagingLatency": true,
+    "productionLikeLatency": true,
+    "stagingErrorRate": true,
+    "productionLikeErrorRate": true,
+    "cpuWithinThreshold": true,
+    "connectionWaitWithinThreshold": true,
+    "slowQueryShareWithinThreshold": true,
+    "allPassed": true
+  }
+}

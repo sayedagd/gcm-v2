@@ -1,0 +1,7 @@
+project_name = "gcm-v2"
+environment  = "staging"
+
+tags = {
+  owner = "platform"
+  cost_center = "engineering"
+}

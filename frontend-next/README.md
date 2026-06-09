@@ -1,3 +1,5 @@
+# Frontend Next
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started
@@ -18,6 +20,23 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
+## Environment Setup
+
+1. Create local env file from template:
+
+```bash
+cp .env.example .env.local
+```
+
+1. Verify required values before running:
+
+- `NEXT_PUBLIC_API_BASE_URL`
+- `API_BASE_URL`
+- `AUTH_COOKIE_NAME`
+- `AUTH_CSRF_COOKIE_NAME`
+
+1. Keep cookie names aligned with backend env values to avoid login/session issues.
+
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
 ## Learn More
@@ -34,6 +53,8 @@ To learn more about Next.js, take a look at the following resources:
 - Baseline performance metrics: `docs/baseline-metrics.md`
 - Baseline performance raw snapshot: `docs/baseline-metrics.json`
 - Post-remediation benchmark report: `docs/post-remediation-benchmark.md`
+- Production SLO policy: `docs/production-slo-policy.md`
+- Observability dashboard spec: `docs/observability-dashboard-spec.md`
 - Release readiness sign-off: `docs/release-readiness-signoff.md`
 - Production rollout checklist: `docs/production-rollout-checklist.md`
 

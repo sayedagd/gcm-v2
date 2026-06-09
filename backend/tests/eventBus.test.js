@@ -8,6 +8,15 @@ const assert = require('assert');
 
 // Mock the logger to prevent file writes during test
 jest.mock('../src/shared/utils/logger', () => ({ log: () => {} }));
+jest.mock('../database', () => ({
+    query: jest.fn(async (sql) => {
+        const text = String(sql);
+        if (text.includes('SELECT COALESCE(MAX(id), 0) AS max_id FROM event_bus_replay')) {
+            return { rows: [{ max_id: 0 }] };
+        }
+        return { rows: [] };
+    }),
+}));
 
 const { sseHandler, publish, stats } = require('../src/shared/services/eventBus');
 

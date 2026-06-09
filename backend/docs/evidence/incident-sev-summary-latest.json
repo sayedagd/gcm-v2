@@ -1,0 +1,21 @@
+{
+  "status": "success",
+  "generatedAt": "2026-06-09T11:30:14.322Z",
+  "source": {
+    "path": "C:\\Users\\Elsayed\\Documents\\GitHub\\gcm-v2\\backend\\docs\\evidence\\incidents-sev-input.json",
+    "recordCount": 0
+  },
+  "summary": {
+    "openSev1Count": 0,
+    "openSev2Count": 0,
+    "unresolvedSev1Sev2Count": 0,
+    "mttrMinutes": null
+  },
+  "openIncidents": {
+    "sev1": [],
+    "sev2": []
+  },
+  "pass": {
+    "unresolvedSev1Sev2IsZero": true
+  }
+}

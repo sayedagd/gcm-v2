@@ -1,0 +1,18 @@
+{
+  "service": "api",
+  "errorBudgetPercent": 0.5,
+  "windows": {
+    "last5m": {
+      "errorRatePercent": 0.1
+    },
+    "last30m": {
+      "errorRatePercent": 0.12
+    },
+    "last1h": {
+      "errorRatePercent": 0.15
+    },
+    "last6h": {
+      "errorRatePercent": 0.18
+    }
+  }
+}

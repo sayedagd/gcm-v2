@@ -4,17 +4,21 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "next build --webpack",
     "start": "next start",
     "check:features": "node scripts/check-feature-structure.mjs",
     "check:bundle-budget": "node scripts/check-bundle-budget.mjs",
     "check:critical-deps": "node scripts/check-critical-deps.mjs",
     "check:api-boundary": "node scripts/check-api-boundary.mjs",
+    "check:v1-endpoints": "node scripts/check-v1-endpoints.mjs",
+    "generate:api-types": "openapi-typescript ../backend/openapi/openapi.v1.json -o src/api/generated/openapi.types.ts",
+    "check:api-types": "npm run generate:api-types && git diff --exit-code src/api/generated/openapi.types.ts",
     "check:no-jwt-localstorage": "node scripts/check-no-localstorage-jwt.mjs",
+    "check:cache-strategy": "node scripts/check-cache-strategy.mjs",
     "check:public-nav-links": "node scripts/check-public-nav-links.mjs",
     "check:sidebar-parity": "vitest run src/components/layout/MenuConfig.test.ts",
     "check:type-strict": "tsc --noEmit -p tsconfig.typecheck.json",
-    "lint": "npm run check:type-strict && npm run check:features && npm run check:api-boundary && npm run check:no-jwt-localstorage && npm run check:sidebar-parity && npm run check:public-nav-links && eslint",
+    "lint": "npm run check:type-strict && npm run check:features && npm run check:api-boundary && npm run check:v1-endpoints && npm run check:no-jwt-localstorage && npm run check:cache-strategy && npm run check:sidebar-parity && npm run check:public-nav-links && eslint",
     "test": "vitest",
     "test:run": "vitest run",
     "test:e2e-regression": "vitest run src/e2e/coreJourneys.regression.test.ts",
@@ -22,7 +26,7 @@
     "smoke:split": "node ../scripts/smoke/split-deployment-smoke.mjs",
     "smoke:rate-limit": "node ../scripts/smoke/rate-limit-burst-test.mjs",
     "parity:check": "node ../scripts/parity/parallel-parity-check.mjs",
-    "ci:perf": "npm run check:type-strict && npm run build && npm run check:bundle-budget && npm run check:critical-deps"
+    "ci:perf": "npm run check:type-strict && npm run check:v1-endpoints && npm run build && npm run check:bundle-budget && npm run check:critical-deps"
   },
   "dependencies": {
     "@mantine/core": "^9.3.0",
@@ -44,7 +48,6 @@
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "react-leaflet": "^5.0.0",
-    "react-router-dom": "^7.16.0",
     "recharts": "^3.8.1",
     "tesseract.js": "^7.0.0",
     "xlsx": "^0.18.5",
@@ -59,6 +62,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.6",
     "jsdom": "^29.1.1",
+    "openapi-typescript": "^7.13.0",
     "tailwindcss": "^4",
     "typescript": "^5",
     "vitest": "^4.1.8"

@@ -1,6 +1,8 @@
 /**
  * Canonical API error envelope with backward-compatible top-level fields.
  */
+const ERROR_SCHEMA_VERSION = 'v1';
+
 const buildErrorPayload = ({
     code = 'INTERNAL_ERROR',
     error = 'Internal server error',
@@ -12,7 +14,9 @@ const buildErrorPayload = ({
 } = {}) => {
     const normalized = {
         status: 'error',
+        schemaVersion: ERROR_SCHEMA_VERSION,
         errorInfo: {
+            schemaVersion: ERROR_SCHEMA_VERSION,
             code,
             message: error,
             errorEn,
@@ -52,6 +56,7 @@ const sendError = (res, statusCode, payload) => {
 };
 
 module.exports = {
+    ERROR_SCHEMA_VERSION,
     buildErrorPayload,
     sendError
 };

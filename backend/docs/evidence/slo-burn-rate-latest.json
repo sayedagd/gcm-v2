@@ -1,0 +1,43 @@
+{
+  "status": "success",
+  "generatedAt": "2026-06-09T11:30:14.605Z",
+  "source": {
+    "path": "C:\\Users\\Elsayed\\Documents\\GitHub\\gcm-v2\\backend\\docs\\evidence\\slo-burn-input.json",
+    "service": "api",
+    "errorBudgetPercent": 0.5
+  },
+  "windows": {
+    "last5m": 0.1,
+    "last30m": 0.12,
+    "last1h": 0.15,
+    "last6h": 0.18
+  },
+  "burnRates": {
+    "last5m": 0.2,
+    "last30m": 0.24,
+    "last1h": 0.3,
+    "last6h": 0.36
+  },
+  "thresholds": {
+    "immediate": {
+      "fastWindow": 14.4,
+      "slowWindow": 6
+    },
+    "urgent": {
+      "mediumWindow": 6,
+      "longWindow": 3
+    },
+    "warning": {
+      "mediumWindow": 3
+    }
+  },
+  "rollbackSignals": {
+    "immediate": false,
+    "urgent": false,
+    "warning": false
+  },
+  "decision": {
+    "rollbackRequired": false,
+    "reason": "healthy"
+  }
+}

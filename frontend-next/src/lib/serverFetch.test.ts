@@ -24,7 +24,9 @@ describe("fetchApiJson trace propagation", () => {
       headers: new Headers(),
     } as unknown as Response);
 
-    await fetchApiJson("/api/v1/ping", { strategy: "dynamic" });
+    const result = await fetchApiJson("/api/v1/ping", { strategy: "dynamic" });
+
+    expect(result.ok).toBe(true);
 
     const callArgs = fetchMock.mock.calls[0];
     expect(callArgs).toBeDefined();
@@ -45,7 +47,12 @@ describe("fetchApiJson trace propagation", () => {
 
     const result = await fetchApiJson("/api/v1/system/backup/status", { strategy: "dynamic" });
 
-    expect(result).toBeNull();
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.traceId).toBe("trace-err-1");
+      expect(result.error.code).toBe("AUTH_NO_TOKEN");
+      expect(result.error.status).toBe(401);
+    }
     expect(console.error).toHaveBeenCalledWith(
       "[serverFetch] API request failed",
       expect.objectContaining({

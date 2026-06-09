@@ -56,3 +56,87 @@ Status: APPROVED
 Reference:
 
 - `docs/production-rollout-checklist.md`
+- `../backend/docs/incident-playbooks.md`
+- `docs/cost-capacity-review.md`
+- `docs/next-quarter-capacity-roadmap.md`
+
+## Final Architecture Review and Sign-Off
+
+Status: APPROVED
+
+Decision Date:
+
+- 2026-06-09
+
+Go or No-Go:
+
+- No-Go
+
+Owner Signatures and Audit:
+
+- Audit artifact: `../backend/docs/evidence/release-decision-audit.json`
+- Architect: signed
+- Platform/DevOps lead: signed
+- Backend lead: signed
+- Frontend lead: signed
+- Decision timestamp: `2026-06-09T11:32:01.307Z`
+
+Review Summary:
+
+- Phase implementation tasks completed through architecture readiness workflow.
+- OpenAPI contract gating and consumer-driven contract checks are active.
+- Peak and degraded mode SLO validation passed using 10x benchmark profiles.
+- Reliability runbooks, restore drill targets, and rollback signaling workflow are in place.
+- Required multi-day KPI evidence windows are not yet satisfied.
+
+Quarter Handoff Package:
+
+- `docs/next-quarter-capacity-roadmap.md`
+- `docs/post-remediation-benchmark.md`
+- `docs/cost-capacity-review.md`
+- `../backend/docs/incident-playbooks.md`
+- `../backend/docs/restore-drill-runbook.md`
+
+## KPI Execution Evidence
+
+Status: RECORDED
+
+- Ordered execution (staging then production-like): `docs/kpi-execution-log.json`
+
+## KPI Evidence Matrix
+
+Status: UPDATED (2026-06-09)
+
+Sev-1/Sev-2 Incident Status:
+
+- Evidence file: `../backend/docs/evidence/incident-sev-summary-latest.json`
+- Current snapshot: unresolved Sev-1/Sev-2 count = `0`.
+- Caveat: source feed is currently local evidence input and must be wired to production incident system export for release-grade acceptance.
+
+Critical KPIs:
+
+- API reliability (7-day error-rate window): PARTIAL (`docs/kpi-execution-log.json`)
+- API latency: PASSED (`../backend/docs/evidence/slo-threshold-validation-latest.json`)
+- Database saturation under target load: PASSED (`../backend/docs/evidence/slo-threshold-validation-latest.json`)
+- Realtime correctness during rolling restart/failover: PASSED (`../backend/docs/evidence/realtime-failover-latest.json`)
+- Security hygiene (14-day secret-scan trend): PARTIAL (`../.github/workflows/ci.yml`)
+
+API reliability evidence snapshot:
+
+- Source: `docs/kpi-execution-log.json` (captured 2026-06-09)
+- Staging success rate: `100%`
+- Production-like success rate: `100%`
+- Target check: requires error rate below `1.0%` for `7 consecutive days`
+- Result: PARTIAL (single-day snapshot only)
+
+Important KPIs:
+
+- Deployment safety (last 5 releases): PARTIAL (`../backend/docs/evidence/canary-rollback-latest.json`, `../.github/workflows/cutover-canary.yml`)
+- Backup and restore (RTO/RPO timed drill): PASSED (`../backend/docs/evidence/restore-drill-latest.json`)
+- Queue/job reliability (7-day success/dead-letter trend): PARTIAL (`../backend/docs/evidence/gameday-scenarios-latest.json`)
+- Contract stability (OpenAPI drift trend): PASSED (`../backend/docs/evidence/contract-drift-trend-latest.json`)
+- Drizzle migration coverage/parity: PARTIAL (`../backend/src/modules/auth/users/users.controller.js`, `../backend/src/modules/core/companies/companies.controller.js`)
+
+Rule Enforcement:
+
+- Final go decision remains blocked until multi-day evidence windows and migration coverage evidence are committed.

@@ -6,6 +6,7 @@ import { Button, Card } from '@/components';
 import { toast } from '@/utils/toast';
 import { ENDPOINTS } from '@/api/endpoints';
 import { getClientAuthHeaders } from '@/lib/clientAuth';
+import { performHttpJsonRequest } from '@/api/http';
 
 const SystemAudit: React.FC = () => {
   const { allTrips, resolveDuplicateTrip, saasConfig, projects, vehicles, drivers } = useStore();
@@ -41,8 +42,10 @@ const SystemAudit: React.FC = () => {
     try {
       const baseUrl = saasConfig?.apiConfig?.baseUrl || process.env.NEXT_PUBLIC_API_BASE_URL || '';
       const url = `${baseUrl.replace(/\/$/, '')}${ENDPOINTS.SYSTEM.SCHEMA_HEALTH}`;
-      const res = await fetch(url, { headers: getClientAuthHeaders(), credentials: 'include' });
-      const data = await res.json();
+      const { data } = await performHttpJsonRequest<any>(url, {
+        headers: getClientAuthHeaders(),
+        credentials: 'include',
+      });
       setSchemaStatus(data);
       if (data.status === 'HEALTHY') {
         toast.success(isAr ? 'قاعدة البيانات سليمة ومحدثة' : 'Database is healthy and up to date');
@@ -60,8 +63,10 @@ const SystemAudit: React.FC = () => {
     try {
       const baseUrl = saasConfig?.apiConfig?.baseUrl || process.env.NEXT_PUBLIC_API_BASE_URL || '';
       const url = `${baseUrl.replace(/\/$/, '')}${ENDPOINTS.SYSTEM.FORCE_MIGRATE}`;
-      const res = await fetch(url, { headers: getClientAuthHeaders(), credentials: 'include' });
-      const data = await res.json();
+      await performHttpJsonRequest<any>(url, {
+        headers: getClientAuthHeaders(),
+        credentials: 'include',
+      });
       
       // Auto trigger a health check after force migrate
       await checkSchemaHealth();

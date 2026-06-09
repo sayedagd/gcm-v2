@@ -9,6 +9,7 @@
  */
 const { query } = require('../../../database');
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 const { log } = require('../utils/logger');
 const BCRYPT_ROUNDS = Number.parseInt(process.env.BCRYPT_SALT_ROUNDS || '10', 10);
 
@@ -145,6 +146,35 @@ const EXPECTED_TABLES = {
             finished_at: 'timestamp'
         },
         pk: 'id'
+    },
+    ocr_jobs: {
+        columns: {
+            job_id: 'varchar', status: "varchar DEFAULT 'PENDING'", image_data: 'text',
+            mime_type: 'varchar', callback_url: 'text', requested_by: 'varchar',
+            extracted_data: "jsonb DEFAULT '{}'::jsonb", error_message: 'text',
+            attempts: 'integer DEFAULT 0', created_at: 'timestamp DEFAULT CURRENT_TIMESTAMP',
+            started_at: 'timestamp', completed_at: 'timestamp',
+            next_attempt_at: 'timestamp DEFAULT CURRENT_TIMESTAMP', dead_lettered_at: 'timestamp',
+            updated_at: 'timestamp DEFAULT CURRENT_TIMESTAMP'
+        },
+        pk: 'job_id'
+    },
+    whatsapp_jobs: {
+        columns: {
+            id: 'serial', status: "varchar DEFAULT 'PENDING'", payload: "jsonb DEFAULT '{}'::jsonb",
+            error_message: 'text', attempts: 'integer DEFAULT 0',
+            created_at: 'timestamp DEFAULT CURRENT_TIMESTAMP', started_at: 'timestamp',
+            completed_at: 'timestamp', next_attempt_at: 'timestamp DEFAULT CURRENT_TIMESTAMP',
+            dead_lettered_at: 'timestamp', updated_at: 'timestamp DEFAULT CURRENT_TIMESTAMP'
+        },
+        pk: 'id'
+    },
+    event_bus_replay: {
+        columns: {
+            id: 'serial', event_name: 'varchar', payload: "jsonb DEFAULT '{}'::jsonb",
+            created_at: 'timestamp DEFAULT CURRENT_TIMESTAMP'
+        },
+        pk: 'id'
     }
 };
 
@@ -221,7 +251,11 @@ const EXPECTED_INDEXES = [
     { name: 'idx_users_email', table: 'users', columns: 'email' },
     { name: 'idx_containers_project', table: 'containers', columns: 'project_id' },
     { name: 'idx_asl_asset', table: 'asset_service_links', columns: 'asset_type, asset_id' },
-    { name: 'idx_asl_service', table: 'asset_service_links', columns: 'service_id' }
+    { name: 'idx_asl_service', table: 'asset_service_links', columns: 'service_id' },
+    { name: 'idx_ocr_jobs_status_created_at', table: 'ocr_jobs', columns: 'status, created_at' },
+    { name: 'idx_whatsapp_jobs_status_created_at', table: 'whatsapp_jobs', columns: 'status, created_at' },
+    { name: 'idx_event_bus_replay_created_at', table: 'event_bus_replay', columns: 'created_at' },
+    { name: 'idx_event_bus_replay_event_name', table: 'event_bus_replay', columns: 'event_name' }
 ];
 
 // ═══════════════════════════════════════════════════════════════
@@ -233,7 +267,7 @@ const introspectDatabase = async () => {
     const tablesResult = await query(`
         SELECT table_name FROM information_schema.tables 
         WHERE table_schema = 'public' AND table_type = 'BASE TABLE'
-    `);
+    `, [], { suppressSlowLog: true });
     const existingTables = new Set(tablesResult.rows.map(r => r.table_name));
 
     const columnsResult = await query(`
@@ -241,7 +275,7 @@ const introspectDatabase = async () => {
         FROM information_schema.columns 
         WHERE table_schema = 'public'
         ORDER BY table_name, ordinal_position
-    `);
+    `, [], { suppressSlowLog: true });
 
     const tableColumns = {};
     for (const row of columnsResult.rows) {
@@ -256,19 +290,19 @@ const introspectDatabase = async () => {
     // Check table ownership
     const ownerResult = await query(`
         SELECT tablename, tableowner FROM pg_tables WHERE schemaname = 'public'
-    `);
+    `, [], { suppressSlowLog: true });
     const tableOwners = {};
     for (const row of ownerResult.rows) {
         tableOwners[row.tablename] = row.tableowner;
     }
 
-    const currentUserResult = await query('SELECT current_user');
+    const currentUserResult = await query('SELECT current_user', [], { suppressSlowLog: true });
     const currentUser = currentUserResult.rows[0].current_user;
 
     // Check existing indexes
     const indexResult = await query(`
         SELECT indexname FROM pg_indexes WHERE schemaname = 'public'
-    `);
+    `, [], { suppressSlowLog: true });
     const existingIndexes = new Set(indexResult.rows.map(r => r.indexname));
 
     return { existingTables, tableColumns, tableOwners, currentUser, existingIndexes };
@@ -299,18 +333,28 @@ const runStartupMigrations = async () => {
 
     // ── Phase 0: System Users ──
     try {
-        const systemPasswordHash = await bcrypt.hash('SYSTEM_ACCOUNT', BCRYPT_ROUNDS);
+        const systemPasswordSource = process.env.BOOTSTRAP_SYSTEM_PASSWORD || `disabled-${crypto.randomUUID()}`;
+        const systemPasswordHash = await bcrypt.hash(systemPasswordSource, BCRYPT_ROUNDS);
         await query(
             `INSERT INTO users (id, name, email, password, role) VALUES ('SYSTEM', 'System Administrator', 'system@gcm.local', $1, 'ADMIN') ON CONFLICT (id) DO NOTHING`,
             [systemPasswordHash]
         );
-        const email = 'eng-yusuf@gcm-gulf.com';
-        const adminPasswordHash = await bcrypt.hash('123', BCRYPT_ROUNDS);
-        await query(
-            `INSERT INTO users (id, name, email, password, role) VALUES ($1, $2, $3, $4, $5) ON CONFLICT (email) DO NOTHING`,
-            ['ADMIN-MASTER', 'Eng. Yusuf (GCM Master)', email, adminPasswordHash, 'ADMIN']
-        );
-        report.success.push('System users initialized');
+        report.success.push('System account ensured');
+
+        const bootstrapAdminEmail = process.env.BOOTSTRAP_ADMIN_EMAIL;
+        const bootstrapAdminPassword = process.env.BOOTSTRAP_ADMIN_PASSWORD;
+        const bootstrapAdminName = process.env.BOOTSTRAP_ADMIN_NAME || 'Bootstrap Administrator';
+
+        if (bootstrapAdminEmail && bootstrapAdminPassword) {
+            const adminPasswordHash = await bcrypt.hash(bootstrapAdminPassword, BCRYPT_ROUNDS);
+            await query(
+                `INSERT INTO users (id, name, email, password, role) VALUES ($1, $2, $3, $4, $5) ON CONFLICT (email) DO NOTHING`,
+                ['ADMIN-MASTER', bootstrapAdminName, bootstrapAdminEmail, adminPasswordHash, 'ADMIN']
+            );
+            report.success.push(`Bootstrap admin ensured for ${bootstrapAdminEmail}`);
+        } else {
+            log('[SMART-MIGRATION] Bootstrap admin skipped. Set BOOTSTRAP_ADMIN_EMAIL and BOOTSTRAP_ADMIN_PASSWORD to create one.');
+        }
     } catch (e) {
         log(`[CRITICAL] System user init failed: ${e.message}`);
         report.failed.push(`System users: ${e.message}`);

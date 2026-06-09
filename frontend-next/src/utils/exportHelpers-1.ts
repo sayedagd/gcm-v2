@@ -2376,7 +2376,7 @@ export const printDriverDossier = (
         `).join('')
         : `<div class="empty">${isAr ? 'لا توجد تصاريح' : 'No active permits'}</div>`;
 
-    let avatarSymbol = driver.category === 'MANAGEMENT' ? 'B' : 'H';
+    const avatarSymbol = driver.category === 'MANAGEMENT' ? 'B' : 'H';
 
     // Calculate Document Readiness
     const requiredDocsKeys = ['iqama_no', 'license_no', 'operating_card_no', 'insurance_no'];

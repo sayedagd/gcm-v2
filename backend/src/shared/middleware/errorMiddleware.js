@@ -4,15 +4,20 @@
  */
 const { translatePgError, serverError } = require('../utils/bilingualErrors');
 const { sendError } = require('../utils/apiError');
+const { logEvent } = require('../utils/logger');
 
 // eslint-disable-next-line no-unused-vars
 const errorHandler = (err, req, res, next) => {
     const statusCode = res.statusCode === 200 ? 500 : res.statusCode;
 
-    console.error(`[Error] ${req.method} ${req.url}`, err.message);
-    if (process.env.NODE_ENV === 'development') {
-        console.error(err.stack);
-    }
+    logEvent('http_error', {
+        correlationId: req.correlationId || res.locals?.correlationId || null,
+        method: req.method,
+        path: req.originalUrl || req.url,
+        statusCode,
+        message: err.message,
+        stack: process.env.NODE_ENV === 'development' ? err.stack : undefined,
+    });
 
     // --- ترجمة أخطاء PostgreSQL ---
     if (err.code && (err.code.startsWith('23') || err.code.startsWith('22'))) {

@@ -1,5 +1,15 @@
 const { EventEmitter } = require('events');
 
+jest.mock('../../../database', () => ({
+  query: jest.fn(async (sql) => {
+    const text = String(sql);
+    if (text.includes('SELECT COALESCE(MAX(id), 0) AS max_id FROM event_bus_replay')) {
+      return { rows: [{ max_id: 0 }] };
+    }
+    return { rows: [] };
+  }),
+}));
+
 describe('eventBus role visibility', () => {
   const createClient = (sseHandler, user) => {
     const req = new EventEmitter();

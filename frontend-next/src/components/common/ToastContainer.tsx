@@ -26,7 +26,7 @@ const translateNotif = (n: AppNotification, isAr: boolean) => {
 
     // Handle "ACTION: NAME" format
     let title = n.title;
-    let message = n.message;
+    const message = n.message;
 
     if (title.includes(':')) {
         const [action, name] = title.split(':').map(s => s.trim());

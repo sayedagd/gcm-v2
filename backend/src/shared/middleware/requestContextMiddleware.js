@@ -1,5 +1,5 @@
 const { randomUUID } = require('crypto');
-const { logEvent } = require('../utils/logger');
+const { logEvent, runWithLogContext } = require('../utils/logger');
 const { observeRequest, getMetricsSnapshot } = require('../services/metricsService');
 
 const getIncomingCorrelationId = (req) => {
@@ -16,36 +16,42 @@ const requestContext = (req, res, next) => {
     res.locals.correlationId = correlationId;
     res.setHeader('X-Correlation-Id', correlationId);
 
-    res.on('finish', () => {
-        const durationMs = Date.now() - startedAtMs;
-        observeRequest({
-            path: req.originalUrl || req.url,
-            statusCode: res.statusCode,
-            durationMs,
-        });
+    const bindContext = typeof runWithLogContext === 'function'
+        ? runWithLogContext
+        : (_, handler) => handler();
 
-        logEvent('http_request', {
-            correlationId,
-            method: req.method,
-            path: req.originalUrl || req.url,
-            statusCode: res.statusCode,
-            durationMs,
-            userId: req.user?.id || null,
-            role: req.user?.role || null,
-        });
-
-        const snapshot = getMetricsSnapshot();
-        if (snapshot.activeAlerts.length > 0) {
-            snapshot.activeAlerts.forEach((alert) => {
-                logEvent('metric_alert', {
-                    correlationId,
-                    ...alert,
-                });
+    bindContext({ correlationId }, () => {
+        res.on('finish', () => {
+            const durationMs = Date.now() - startedAtMs;
+            observeRequest({
+                path: req.originalUrl || req.url,
+                statusCode: res.statusCode,
+                durationMs,
             });
-        }
-    });
 
-    next();
+            logEvent('http_request', {
+                correlationId,
+                method: req.method,
+                path: req.originalUrl || req.url,
+                statusCode: res.statusCode,
+                durationMs,
+                userId: req.user?.id || null,
+                role: req.user?.role || null,
+            });
+
+            const snapshot = getMetricsSnapshot();
+            if (snapshot.activeAlerts.length > 0) {
+                snapshot.activeAlerts.forEach((alert) => {
+                    logEvent('metric_alert', {
+                        correlationId,
+                        ...alert,
+                    });
+                });
+            }
+        });
+
+        next();
+    });
 };
 
 module.exports = {

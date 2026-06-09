@@ -1,6 +1,12 @@
-import { describe, expect, test } from 'vitest';
+/// <reference types="vitest" />
+
 import { getMenuGroups } from './MenuConfig';
 import { Role } from '@/types';
+
+type VitestGlobals = typeof import('vitest');
+declare const describe: VitestGlobals['describe'];
+declare const test: VitestGlobals['test'];
+declare const expect: VitestGlobals['expect'];
 
 type MenuItem = {
   name: string;

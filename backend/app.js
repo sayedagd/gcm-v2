@@ -16,6 +16,7 @@ const dotenv = require('dotenv');
 const http = require('http');
 const jwt = require('jsonwebtoken');
 const { getJwtSecret } = require('./src/shared/config/auth');
+const { validateRuntimeConfig } = require('./src/shared/config/runtimeConfig');
 
 // Environment Setup (load backend/.env FIRST before anything else)
 const findEnv = () => {
@@ -25,11 +26,64 @@ const findEnv = () => {
 };
 dotenv.config({ path: findEnv() });
 
+validateRuntimeConfig();
+
 const app = express();
 const port = process.env.PORT || 8080;
+const processRole = process.env.PROCESS_ROLE || 'api';
+const enableInProcessJobsRequested = process.env.ENABLE_IN_PROCESS_JOBS === 'true';
+const shouldRunInProcessJobs = processRole === 'worker';
 const runtimeWritableRoot = process.env.VERCEL ? '/tmp' : __dirname;
 const UPLOADS_DIR = path.join(runtimeWritableRoot, 'uploads');
 const API_V1_PREFIX = '/api/v1';
+const STARTUP_MODULE_POLICY = Object.freeze({
+    critical: new Set([
+        'logger',
+        'database',
+        'migrationService',
+        'errorMiddleware',
+        'requestContextMiddleware',
+        'systemController',
+        'authMiddleware',
+        'requestValidationMiddleware',
+        'rateLimitPolicies',
+        'login',
+        'profile',
+        'users',
+        'companies',
+        'projects',
+        'services',
+        'trips',
+        'health',
+        'backup',
+        'settings',
+    ]),
+    optional: new Set([
+        'backupService',
+        'upload-storage',
+        'whatsappService',
+        'facilities',
+        'requests',
+        'notifications',
+        'asset_requests',
+        'vehicles',
+        'drivers',
+        'inventory',
+        'dashboard',
+        'exports',
+        'landing',
+        'contact',
+        'store',
+        'carbon',
+        'shadi',
+        'ai-analytics',
+        'ocr',
+        'suppliers',
+        'project_services',
+        'supplier_rates',
+        'asset_service_links',
+    ]),
+});
 
 const ensureDirExists = (dirPath, label) => {
     try {
@@ -61,6 +115,30 @@ function safeRequire(modulePath, name) {
     }
 }
 
+function requireCritical(modulePath, name) {
+    try {
+        return require(modulePath);
+    } catch (err) {
+        const message = `[GCM] Critical module "${name}" failed to load: ${err.message}`;
+        console.error(message, err.stack);
+        const startupError = new Error(message);
+        startupError.cause = err;
+        throw startupError;
+    }
+}
+
+function requireByStartupPolicy(modulePath, name) {
+    if (STARTUP_MODULE_POLICY.critical.has(name)) {
+        return requireCritical(modulePath, name);
+    }
+
+    if (!STARTUP_MODULE_POLICY.optional.has(name)) {
+        console.warn(`[GCM] Module "${name}" is not declared in startup policy. Defaulting to optional-safe load.`);
+    }
+
+    return safeRequire(modulePath, name);
+}
+
 function safeLazyRouter(modulePath, name) {
     let loadedRouter = null;
     const proxy = express.Router();
@@ -87,46 +165,46 @@ try { helmet = require('helmet'); } catch (e) { console.error('[GCM] helmet not 
 try { rateLimit = require('express-rate-limit'); } catch (e) { console.error('[GCM] express-rate-limit not found'); }
 
 // --- Load internal shared modules safely ---
-const logModule = safeRequire('./src/shared/utils/logger', 'logger');
+const logModule = requireByStartupPolicy('./src/shared/utils/logger', 'logger');
 const log = logModule.log || console.log;
 
-const dbModule = safeRequire('./database', 'database');
+const dbModule = requireByStartupPolicy('./database', 'database');
 const query = dbModule.query || (() => Promise.reject(new Error('DB not loaded')));
 const waitForDb = dbModule.waitForDb || (() => Promise.resolve());
 
-const migrationModule = safeRequire('./src/shared/services/migrationService', 'migrationService');
+const migrationModule = requireByStartupPolicy('./src/shared/services/migrationService', 'migrationService');
 const runStartupMigrations = migrationModule.runStartupMigrations || (() => Promise.resolve());
 const getSchemaHealthReport = migrationModule.getSchemaHealthReport || (() => Promise.resolve({ status: 'UNAVAILABLE' }));
 
-const backupModule = safeRequire('./src/shared/services/backupService', 'backupService');
+const backupModule = requireByStartupPolicy('./src/shared/services/backupService', 'backupService');
 const initBackupScheduler = backupModule.initBackupScheduler || (() => {});
 const BACKUPS_DIR = backupModule.BACKUPS_DIR || path.join(__dirname, 'backups');
 
 
 
-const errorMiddleware = safeRequire('./src/shared/middleware/errorMiddleware', 'errorMiddleware');
+const errorMiddleware = requireByStartupPolicy('./src/shared/middleware/errorMiddleware', 'errorMiddleware');
 const errorHandler = errorMiddleware.errorHandler || ((err, req, res, next) => res.status(500).json({ error: err.message }));
 const notFound = errorMiddleware.notFound || ((req, res) => res.status(404).json({ error: 'Not Found' }));
 
-const requestContextMiddleware = safeRequire('./src/shared/middleware/requestContextMiddleware', 'requestContextMiddleware');
+const requestContextMiddleware = requireByStartupPolicy('./src/shared/middleware/requestContextMiddleware', 'requestContextMiddleware');
 const requestContext = requestContextMiddleware.requestContext || ((req, res, next) => next());
 
 const { sseHandler } = require('./src/shared/services/eventBus');
-const systemController = safeRequire('./src/shared/controllers/systemController', 'systemController');
+const systemController = requireByStartupPolicy('./src/shared/controllers/systemController', 'systemController');
 
-const authMiddleware = safeRequire('./src/shared/middleware/authMiddleware', 'authMiddleware');
+const authMiddleware = requireByStartupPolicy('./src/shared/middleware/authMiddleware', 'authMiddleware');
 const protect = authMiddleware.protect || ((req, res, next) => next());
 const authorizeRoles = authMiddleware.authorizeRoles || (() => (req, res, next) => next());
 
-const requestValidationMiddleware = safeRequire('./src/shared/middleware/requestValidationMiddleware', 'requestValidationMiddleware');
+const requestValidationMiddleware = requireByStartupPolicy('./src/shared/middleware/requestValidationMiddleware', 'requestValidationMiddleware');
 const validateAndSanitizeWritePayload =
     requestValidationMiddleware.validateAndSanitizeWritePayload || ((req, res, next) => next());
 
-const uploadStorageModule = safeRequire('./src/shared/services/uploadStorageService', 'upload-storage');
+const uploadStorageModule = requireByStartupPolicy('./src/shared/services/uploadStorageService', 'upload-storage');
 const isUploadsObjectStorageEnabled = uploadStorageModule.isUploadsObjectStorageEnabled || (() => false);
 const getSignedUploadReadUrl = uploadStorageModule.getSignedUploadReadUrl || (async () => null);
 
-const rateLimitPoliciesModule = safeRequire('./src/shared/middleware/rateLimitPolicies', 'rateLimitPolicies');
+const rateLimitPoliciesModule = requireByStartupPolicy('./src/shared/middleware/rateLimitPolicies', 'rateLimitPolicies');
 const buildRateLimitPolicies = rateLimitPoliciesModule.buildRateLimitPolicies || (() => ({
     globalLimiter: (req, res, next) => next(),
     authLimiter: (req, res, next) => next(),
@@ -136,7 +214,7 @@ const buildRateLimitPolicies = rateLimitPoliciesModule.buildRateLimitPolicies ||
     adminOpsLimiter: (req, res, next) => next(),
 }));
 
-const whatsappModule = safeRequire('./src/shared/services/whatsappService', 'whatsappService');
+const whatsappModule = requireByStartupPolicy('./src/shared/services/whatsappService', 'whatsappService');
 const initWhatsApp = whatsappModule.initWhatsApp || (() => {});
 const getQrCode = whatsappModule.getQrCode || (() => ({ isReady: false, qrCode: null }));
 
@@ -151,14 +229,33 @@ const initializeStartupServices = ({ runHeavyServices = false } = {}) => {
     }
 
     startupServicesPromise = (async () => {
+        if (enableInProcessJobsRequested && processRole !== 'worker') {
+            log(`[GCM] Ignoring ENABLE_IN_PROCESS_JOBS=true for ${processRole} role. Background jobs run in worker role only.`);
+        }
+
         if (runHeavyServices) {
             // Heavy integrations are enabled in long-lived runtime mode only.
-            initWhatsApp();
+            if (shouldRunInProcessJobs && process.env.ENABLE_WHATSAPP === 'true') {
+                log(`[GCM] Initializing WhatsApp integration in ${processRole} role.`);
+                initWhatsApp();
+            } else if (!shouldRunInProcessJobs) {
+                log(`[GCM] Skipping WhatsApp in-process startup for ${processRole} role.`);
+            } else {
+                log('[GCM] WhatsApp service disabled. Set ENABLE_WHATSAPP=true to enable.');
+            }
         }
 
         await waitForDb();
-        await runStartupMigrations();
-        initBackupScheduler();
+        if (process.env.ENABLE_STARTUP_MIGRATIONS === 'true') {
+            await runStartupMigrations();
+        } else {
+            log('[SMART-MIGRATION] Startup migrations skipped. Set ENABLE_STARTUP_MIGRATIONS=true or call /api/system/force-migrate when you need a schema sync.');
+        }
+        if (shouldRunInProcessJobs) {
+            initBackupScheduler();
+        } else {
+            log(`[GCM] Skipping in-process backup scheduler for ${processRole} role.`);
+        }
         log('[GCM] Startup services initialized successfully');
     })();
 
@@ -176,37 +273,36 @@ const {
 } = buildRateLimitPolicies(rateLimit);
 
 // --- Import Route Modules (all safe-loaded) ---
-const loginRoutes = safeRequire('./src/modules/auth/login/login.routes', 'login');
-const profileRoutes = safeRequire('./src/modules/auth/profile/profile.routes', 'profile');
-const usersRoutes = safeRequire('./src/modules/auth/users/users.routes', 'users');
-const companiesRoutes = safeRequire('./src/modules/core/companies/companies.routes', 'companies');
-const projectsRoutes = safeRequire('./src/modules/core/projects/projects.routes', 'projects');
-const servicesRoutes = safeRequire('./src/modules/core/services/services.routes', 'services');
-const facilitiesRoutes = safeRequire('./src/modules/core/facilities/facilities.routes', 'facilities');
-const tripsRoutes = safeRequire('./src/modules/operations/trips/trips.routes', 'trips');
-const requestsRoutes = safeRequire('./src/modules/operations/requests/requests.routes', 'requests');
-const notificationsRoutes = safeRequire('./src/modules/operations/notifications/notifications.routes', 'notifications');
-const assetRequestsRoutes = safeRequire('./src/modules/operations/asset_requests/asset_requests.routes', 'asset_requests');
-const vehiclesRoutes = safeRequire('./src/modules/logistics/vehicles/vehicles.routes', 'vehicles');
-const driversRoutes = safeRequire('./src/modules/logistics/drivers/drivers.routes', 'drivers');
-const inventoryRoutes = safeRequire('./src/modules/logistics/inventory/inventory.routes', 'inventory');
-const dashboardRoutes = safeRequire('./src/modules/reporting/dashboard/dashboard.routes', 'dashboard');
-const exportsRoutes = safeRequire('./src/modules/reporting/exports/exports.routes', 'exports');
-const logsRoutes = safeRequire('./src/modules/reporting/logs/logs.routes', 'logs');
-const landingRoutes = safeRequire('./src/modules/public/landing/landing.routes', 'landing');
-const contactRoutes = safeRequire('./src/modules/public/contact/contact.routes', 'contact');
-const storeRoutes = safeRequire('./src/modules/public/store/store.routes', 'store');
-const carbonRoutes = safeRequire('./src/modules/public/carbon/carbon.routes', 'carbon');
+const loginRoutes = requireByStartupPolicy('./src/modules/auth/login/login.routes', 'login');
+const profileRoutes = requireByStartupPolicy('./src/modules/auth/profile/profile.routes', 'profile');
+const usersRoutes = requireByStartupPolicy('./src/modules/auth/users/users.routes', 'users');
+const companiesRoutes = requireByStartupPolicy('./src/modules/core/companies/companies.routes', 'companies');
+const projectsRoutes = requireByStartupPolicy('./src/modules/core/projects/projects.routes', 'projects');
+const servicesRoutes = requireByStartupPolicy('./src/modules/core/services/services.routes', 'services');
+const facilitiesRoutes = requireByStartupPolicy('./src/modules/core/facilities/facilities.routes', 'facilities');
+const tripsRoutes = requireByStartupPolicy('./src/modules/operations/trips/trips.routes', 'trips');
+const requestsRoutes = requireByStartupPolicy('./src/modules/operations/requests/requests.routes', 'requests');
+const notificationsRoutes = requireByStartupPolicy('./src/modules/operations/notifications/notifications.routes', 'notifications');
+const assetRequestsRoutes = requireByStartupPolicy('./src/modules/operations/asset_requests/asset_requests.routes', 'asset_requests');
+const vehiclesRoutes = requireByStartupPolicy('./src/modules/logistics/vehicles/vehicles.routes', 'vehicles');
+const driversRoutes = requireByStartupPolicy('./src/modules/logistics/drivers/drivers.routes', 'drivers');
+const inventoryRoutes = requireByStartupPolicy('./src/modules/logistics/inventory/inventory.routes', 'inventory');
+const dashboardRoutes = requireByStartupPolicy('./src/modules/reporting/dashboard/dashboard.routes', 'dashboard');
+const exportsRoutes = requireByStartupPolicy('./src/modules/reporting/exports/exports.routes', 'exports');
+const landingRoutes = requireByStartupPolicy('./src/modules/public/landing/landing.routes', 'landing');
+const contactRoutes = requireByStartupPolicy('./src/modules/public/contact/contact.routes', 'contact');
+const storeRoutes = requireByStartupPolicy('./src/modules/public/store/store.routes', 'store');
+const carbonRoutes = requireByStartupPolicy('./src/modules/public/carbon/carbon.routes', 'carbon');
 const shadiRoutes = safeLazyRouter('./src/modules/ai/shadi/shadi.routes', 'shadi');
 const aiAnalyticsRoutes = safeLazyRouter('./src/modules/ai/analytics/analytics.routes', 'ai-analytics');
 const ocrRoutes = safeLazyRouter('./src/modules/ai/ocr/ocr.routes', 'ocr');
-const healthRoutes = safeRequire('./src/modules/infrastructure/health/health.routes', 'health');
-const backupRoutes = safeRequire('./src/modules/infrastructure/backup/backup.routes', 'backup');
-const settingsRoutes = safeRequire('./src/modules/infrastructure/settings/settings.routes', 'settings');
-const suppliersRoutes = safeRequire('./src/modules/logistics/suppliers/suppliers.routes', 'suppliers');
-const projectServicesRoutes = safeRequire('./src/modules/core/project_services/project_services.routes', 'project_services');
-const supplierRatesRoutes = safeRequire('./src/modules/core/supplier_rates/supplier_rates.routes', 'supplier_rates');
-const assetServiceLinksRoutes = safeRequire('./src/modules/logistics/asset_service_links/assetServiceLinks.routes', 'asset_service_links');
+const healthRoutes = requireByStartupPolicy('./src/modules/infrastructure/health/health.routes', 'health');
+const backupRoutes = requireByStartupPolicy('./src/modules/infrastructure/backup/backup.routes', 'backup');
+const settingsRoutes = requireByStartupPolicy('./src/modules/infrastructure/settings/settings.routes', 'settings');
+const suppliersRoutes = requireByStartupPolicy('./src/modules/logistics/suppliers/suppliers.routes', 'suppliers');
+const projectServicesRoutes = requireByStartupPolicy('./src/modules/core/project_services/project_services.routes', 'project_services');
+const supplierRatesRoutes = requireByStartupPolicy('./src/modules/core/supplier_rates/supplier_rates.routes', 'supplier_rates');
+const assetServiceLinksRoutes = requireByStartupPolicy('./src/modules/logistics/asset_service_links/assetServiceLinks.routes', 'asset_service_links');
 
 // --- Global Middleware ---
 if (helmet) {
@@ -253,8 +349,40 @@ app.use(cors({
 }));
 app.use(requestContext);
 app.use(globalLimiter);
-app.use(express.json({ limit: '100mb' }));
-app.use(express.urlencoded({ limit: '100mb', extended: true }));
+
+const defaultJsonBodyLimit = process.env.BODY_LIMIT_DEFAULT_JSON || '2mb';
+const defaultUrlEncodedBodyLimit = process.env.BODY_LIMIT_DEFAULT_URLENCODED || '2mb';
+const uploadJsonBodyLimit = process.env.BODY_LIMIT_UPLOAD_JSON || '25mb';
+const uploadUrlEncodedBodyLimit = process.env.BODY_LIMIT_UPLOAD_URLENCODED || '10mb';
+
+const uploadHeavyPrefixes = [
+    '/api/ai/ocr',
+    '/api/trips',
+    '/api/asset_requests',
+    '/api/requests',
+    '/ai/ocr',
+    '/trips',
+    '/asset_requests',
+    '/requests',
+];
+
+const isUploadHeavyPath = (pathName = '') => uploadHeavyPrefixes.some(prefix => pathName.startsWith(prefix));
+
+const defaultJsonParser = express.json({ limit: defaultJsonBodyLimit });
+const uploadJsonParser = express.json({ limit: uploadJsonBodyLimit });
+const defaultUrlEncodedParser = express.urlencoded({ limit: defaultUrlEncodedBodyLimit, extended: true });
+const uploadUrlEncodedParser = express.urlencoded({ limit: uploadUrlEncodedBodyLimit, extended: true });
+
+app.use((req, res, next) => {
+    const parser = isUploadHeavyPath(req.path || '') ? uploadJsonParser : defaultJsonParser;
+    return parser(req, res, next);
+});
+
+app.use((req, res, next) => {
+    const parser = isUploadHeavyPath(req.path || '') ? uploadUrlEncodedParser : defaultUrlEncodedParser;
+    return parser(req, res, next);
+});
+
 app.use(validateAndSanitizeWritePayload);
 
 const uploadAccessMiddleware = async (req, res, next) => {
@@ -283,6 +411,8 @@ app.use('/uploads', uploadAccessMiddleware, express.static(UPLOADS_DIR));
 
 const legacyApiSunset = process.env.LEGACY_API_SUNSET || '2026-12-31';
 const legacyApiSunsetDate = new Date(`${legacyApiSunset}T00:00:00Z`);
+const legacyApiEnforceAfterSunset = process.env.LEGACY_API_ENFORCE_AFTER_SUNSET === 'true';
+const legacyDeprecationDocUrl = process.env.LEGACY_API_DEPRECATION_DOC_URL || 'https://github.com/sayedagd/gcm-v2/blob/main/backend/docs/api-v1-deprecation.md';
 
 app.use((req, res, next) => {
     const isLegacyApiPath = req.path.startsWith('/api/') && !req.path.startsWith(`${API_V1_PREFIX}/`);
@@ -291,7 +421,24 @@ app.use((req, res, next) => {
         if (!Number.isNaN(legacyApiSunsetDate.getTime())) {
             res.setHeader('Sunset', legacyApiSunsetDate.toUTCString());
         }
-        res.setHeader('Link', '</api/v1>; rel="successor-version"');
+        res.setHeader(
+            'Link',
+            `</api/v1>; rel="successor-version", <${legacyDeprecationDocUrl}>; rel="deprecation"`
+        );
+
+        if (
+            legacyApiEnforceAfterSunset &&
+            !Number.isNaN(legacyApiSunsetDate.getTime()) &&
+            Date.now() >= legacyApiSunsetDate.getTime()
+        ) {
+            return res.status(410).json({
+                error: 'Legacy API routes are no longer available',
+                code: 'LEGACY_API_SUNSET_ENFORCED',
+                successor: '/api/v1',
+                sunset: legacyApiSunsetDate.toISOString(),
+                deprecationDoc: legacyDeprecationDocUrl,
+            });
+        }
     }
     next();
 });
@@ -429,12 +576,11 @@ mountApiUse('/api/drivers', protect, driversRoutes);
 mountApiUse('/api/inventory', protect, inventoryRoutes);
 mountApiUse('/api/reporting/dashboard', protect, dashboardRoutes);
 mountApiUse('/api/reporting/exports', protect, exportsRoutes);
-mountApiUse('/api/reporting/logs', protect, logsRoutes);
 mountApiUse('/api/suppliers', protect, suppliersRoutes);
 mountApiUse('/api/project_services', protect, projectServicesRoutes);
 mountApiUse('/api/project_supplier_rates', protect, supplierRatesRoutes);
 mountApiUse('/api/asset-service-links', protect, assetServiceLinksRoutes);
-mountApiUse('/api/logs', protect, logsRoutes);
+mountApiGet('/api/logs', protect, authorizeRoles('ADMIN'), systemController.getLogs || ((req, res) => res.status(503).json({ error: 'Logs unavailable' })));
 mountApiUse('/api/ai/ocr', aiLimiter, protect, ocrRoutes);
 mountApiUse('/api/ai', aiLimiter, protect, shadiRoutes);
 mountApiUse('/api/ai', aiLimiter, protect, aiAnalyticsRoutes);
@@ -471,16 +617,54 @@ app.use(errorHandler);
 // --- Server Start ---
 const server = http.createServer(app);
 
+const startServer = async (requestedPort) => {
+    const parsedPort = Number(requestedPort);
+    const effectivePort = Number.isNaN(parsedPort) ? 8080 : parsedPort;
+
+    return new Promise((resolve, reject) => {
+        const handleError = (err) => {
+            server.removeListener('listening', handleListening);
+
+            const canRetryOnNextPort =
+                err && err.code === 'EADDRINUSE' &&
+                process.env.NODE_ENV !== 'production' &&
+                !process.env.PORT;
+
+            if (canRetryOnNextPort) {
+                const fallbackPort = effectivePort + 1;
+                console.warn(`[GCM] Port ${effectivePort} is in use. Retrying on port ${fallbackPort}...`);
+                return resolve(startServer(fallbackPort));
+            }
+
+            return reject(err);
+        };
+
+        const handleListening = () => {
+            server.removeListener('error', handleError);
+            console.log(`[GCM] Server running on port ${effectivePort}`);
+            resolve(effectivePort);
+        };
+
+        server.once('error', handleError);
+        server.once('listening', handleListening);
+        server.listen(effectivePort);
+    });
+};
+
 if (require.main === module) {
     // Full startup only in long-lived server mode.
     initializeStartupServices({ runHeavyServices: true })
         .then(() => {
-            server.listen(port, () => console.log(`[GCM] Server running on port ${port}`));
+            return startServer(port);
         })
         .catch((err) => {
             console.error(`[GCM] Startup services failed: ${err.message}`);
-            // Still start server even if migration fails — don't block traffic
-            server.listen(port, () => console.log(`[GCM] Server running on port ${port} (startup services failed)`));
+            if (process.env.NODE_ENV === 'production') {
+                console.error('[GCM] Production startup aborted due to startup service failure.');
+                process.exit(1);
+            }
+            // Non-production: keep local/dev recovery behavior to avoid blocking iteration.
+            return startServer(port);
         });
 } else {
     // Module/serverless mode: keep request path cold-start friendly by default.
@@ -492,4 +676,12 @@ if (require.main === module) {
     }
 
     module.exports = app;
+    module.exports._startup = {
+        policy: STARTUP_MODULE_POLICY,
+        requireCritical,
+        requireByStartupPolicy,
+        processRole,
+        enableInProcessJobsRequested,
+        shouldRunInProcessJobs,
+    };
 }

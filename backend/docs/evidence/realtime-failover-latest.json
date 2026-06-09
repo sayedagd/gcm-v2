@@ -1,0 +1,44 @@
+{
+  "status": "success",
+  "generatedAt": "2026-06-09T11:41:19.895Z",
+  "startedAt": "2026-06-09T11:41:19.318Z",
+  "durationMs": 576,
+  "command": "C:\\Program Files\\nodejs\\node.exe C:\\Users\\Elsayed\\Documents\\GitHub\\gcm-v2\\backend\\node_modules\\jest\\bin\\jest.js --runInBand --forceExit src/__tests__/unit/eventBusChaos.test.js src/__tests__/unit/eventBusReplayPolicy.test.js",
+  "exitCode": 0,
+  "spawnError": null,
+  "stdoutTail": [
+    "  console.log",
+    "    {\"ts\":\"2026-06-09T11:41:19.816Z\",\"level\":\"info\",\"message\":\"[SSE] event=trip:created delivered=0/0\",\"correlationId\":null}",
+    "",
+    "      at log (src/shared/utils/logger.js:26:13)",
+    "",
+    "  console.log",
+    "    {\"ts\":\"2026-06-09T11:41:19.839Z\",\"level\":\"info\",\"message\":\"[SSE] +client user=admin-1 role=ADMIN (total=1)\",\"correlationId\":null}",
+    "",
+    "      at log (src/shared/utils/logger.js:26:13)",
+    "",
+    ""
+  ],
+  "stderrTail": [
+    "PASS src/__tests__/unit/eventBusReplayPolicy.test.js",
+    "  event bus replay persistence and retention policy",
+    "    √ persists replay events and prunes old events by retention days (46 ms)",
+    "    √ replays missed events using configured replay limit on reconnect (4 ms)",
+    "",
+    "PASS src/__tests__/unit/eventBusChaos.test.js",
+    "  EventBus realtime chaos checks",
+    "    √ falls back to local fanout when broker disconnects, then still accepts broker messages after reconnect (2 ms)",
+    "    √ continues replay id sequence across rolling restart (2 ms)",
+    "",
+    "Test Suites: 2 passed, 2 total",
+    "Tests:       4 passed, 4 total",
+    "Snapshots:   0 total",
+    "Time:        0.262 s, estimated 1 s",
+    "Ran all test suites matching src/__tests__/unit/eventBusChaos.test.js|src/__tests__/unit/eventBusReplayPolicy.test.js.",
+    "Force exiting Jest: Have you considered using `--detectOpenHandles` to detect async operations that kept running after all tests finished?",
+    ""
+  ],
+  "pass": {
+    "realtimeFailoverSuite": true
+  }
+}

@@ -10,6 +10,8 @@ describe('apiError trace propagation', () => {
 
     expect(payload.traceId).toBe('trace-123');
     expect(payload.errorInfo.traceId).toBe('trace-123');
+    expect(payload.schemaVersion).toBe('v1');
+    expect(payload.errorInfo.schemaVersion).toBe('v1');
   });
 
   test('sendError falls back to res.locals correlationId', () => {
@@ -27,8 +29,10 @@ describe('apiError trace propagation', () => {
     expect(res.status).toHaveBeenCalledWith(401);
     expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
       traceId: 'corr-xyz',
+      schemaVersion: 'v1',
       errorInfo: expect.objectContaining({
         traceId: 'corr-xyz',
+        schemaVersion: 'v1',
       }),
     }));
   });

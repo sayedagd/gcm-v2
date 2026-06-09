@@ -661,13 +661,27 @@
       "get": {
         "tags": ["Backup"],
         "summary": "Get backup status",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "integer" },
+            "description": "Optional backup job id to inspect queued/running/completed job state"
+          }
+        ],
         "security": [{ "bearerAuth": [] }],
         "responses": {
           "200": {
             "description": "Backup status",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/BackupStatus" }
+                "schema": {
+                  "oneOf": [
+                    { "$ref": "#/components/schemas/BackupStatus" },
+                    { "$ref": "#/components/schemas/BackupJobStatus" }
+                  ]
+                }
               }
             }
           },
@@ -756,14 +770,14 @@
     "/api/v1/system/backup/trigger": {
       "post": {
         "tags": ["Backup"],
-        "summary": "Trigger backup",
+        "summary": "Queue backup job",
         "security": [{ "bearerAuth": [] }],
         "responses": {
-          "200": {
-            "description": "Backup triggered",
+          "202": {
+            "description": "Backup job queued",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/OperationSuccess" }
+                "schema": { "$ref": "#/components/schemas/BackupTriggerAccepted" }
               }
             }
           },
@@ -886,12 +900,14 @@
       },
       "ErrorResponse": {
         "type": "object",
-        "required": ["status", "error", "code", "errorInfo"],
+        "required": ["status", "schemaVersion", "error", "code", "errorInfo"],
         "properties": {
           "status": { "type": "string", "example": "error" },
+          "schemaVersion": { "type": "string", "example": "v1" },
           "errorInfo": {
             "type": "object",
             "properties": {
+              "schemaVersion": { "type": "string", "example": "v1" },
               "code": { "type": "string" },
               "message": { "type": "string" },
               "errorEn": { "type": "string" },
@@ -941,6 +957,32 @@
           "status": { "type": "string" },
           "lastBackupAt": { "type": "string", "format": "date-time" },
           "nextBackupAt": { "type": "string", "format": "date-time" }
+        },
+        "additionalProperties": true
+      },
+      "BackupJobStatus": {
+        "type": "object",
+        "properties": {
+          "jobId": { "type": "integer" },
+          "status": { "type": "string" },
+          "triggerSource": { "type": "string" },
+          "requestedAt": { "type": "string", "format": "date-time" },
+          "finishedAt": { "type": "string", "format": "date-time" },
+          "artifactId": { "type": "integer" },
+          "fileName": { "type": "string" },
+          "format": { "type": "string" },
+          "errorMessage": { "type": "string" }
+        },
+        "additionalProperties": true
+      },
+      "BackupTriggerAccepted": {
+        "type": "object",
+        "required": ["status", "jobId"],
+        "properties": {
+          "status": { "type": "string", "example": "queued" },
+          "jobId": { "type": "integer" },
+          "requestedAt": { "type": "string", "format": "date-time" },
+          "triggerSource": { "type": "string" }
         },
         "additionalProperties": true
       },

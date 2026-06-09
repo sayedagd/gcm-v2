@@ -1,18 +1,25 @@
 {
-  "capturedAt": "2026-06-06T14:02:07.058Z",
-  "frontendBase": "https://gcm.twision.agency",
-  "backendBase": "https://gcm.twision.agency",
-  "apiLatencyUrl": "https://gcm.twision.agency/api/v1/ping",
-  "metrics": {
-    "ttfbMs": 469,
-    "hydrationProxyMs": 91,
-    "routeTransitionMs": 1663,
-    "apiLatencyMs": 336,
-    "apiStatusCode": 404,
-    "supporting": {
-      "domContentLoadedMs": 671,
-      "interactiveMs": 671,
-      "totalLoadMs": 763
-    }
+  "capturedAt": "2026-06-09T09:21:52.470Z",
+  "profile": {
+    "name": "10x-load-profile",
+    "endpoint": "https://gcm-back.twision.agency/api/v1/ping",
+    "durationSeconds": 10,
+    "concurrency": 20,
+    "rampUpSeconds": 5,
+    "timeoutMs": 10000
+  },
+  "results": {
+    "totalRequests": 703,
+    "successfulRequests": 703,
+    "failedRequests": 0,
+    "successRate": 100,
+    "requestsPerSecond": 68.65,
+    "latencyMs": {
+      "p50": 204,
+      "p95": 263,
+      "p99": 432,
+      "max": 540
+    },
+    "maxInFlight": 20
   }
 }

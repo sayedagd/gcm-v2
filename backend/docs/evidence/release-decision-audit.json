@@ -1,0 +1,98 @@
+{
+  "status": "success",
+  "generatedAt": "2026-06-09T11:32:01.307Z",
+  "decision": {
+    "status": "No-Go",
+    "reason": "Multi-day KPI evidence windows and migration coverage evidence remain partial.",
+    "decidedAt": "2026-06-09T11:32:01.307Z"
+  },
+  "signatures": [
+    {
+      "role": "Architect",
+      "signer": "Architect",
+      "signedAt": "2026-06-09T11:32:01.307Z"
+    },
+    {
+      "role": "Platform/DevOps Lead",
+      "signer": "Platform/DevOps Lead",
+      "signedAt": "2026-06-09T11:32:01.307Z"
+    },
+    {
+      "role": "Backend Lead",
+      "signer": "Backend Lead",
+      "signedAt": "2026-06-09T11:32:01.307Z"
+    },
+    {
+      "role": "Frontend Lead",
+      "signer": "Frontend Lead",
+      "signedAt": "2026-06-09T11:32:01.307Z"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "backend/docs/evidence/restore-drill-latest.json",
+      "exists": true,
+      "sizeBytes": 1169,
+      "sha256": "f47de530c00c48974e6a4f16f77a40c2be0970804f0837fce8fb1f97ad73555b"
+    },
+    {
+      "path": "backend/docs/evidence/canary-rollback-latest.json",
+      "exists": true,
+      "sizeBytes": 2273,
+      "sha256": "ee31440de8e6182ac3bc26aad86655c014c8243ac864c53d3daa2e787c882585"
+    },
+    {
+      "path": "backend/docs/evidence/incident-sev-summary-latest.json",
+      "exists": true,
+      "sizeBytes": 460,
+      "sha256": "0c5cf6f5a3601eec467c6ef231ed186c9316f312823cb5cdaaa1e5d98e930638"
+    },
+    {
+      "path": "backend/docs/evidence/slo-burn-rate-latest.json",
+      "exists": true,
+      "sizeBytes": 832,
+      "sha256": "e3e0f209653bd4ee952bb1ac07ac29af80003a31a54214a53063bec94e49e6ae"
+    },
+    {
+      "path": "backend/docs/evidence/slo-threshold-validation-latest.json",
+      "exists": true,
+      "sizeBytes": 1248,
+      "sha256": "3aa57eec746692ed964e1490ec4c82d25817049638ce4848fcb9c50cb4a81257"
+    },
+    {
+      "path": "backend/docs/evidence/contract-drift-trend-latest.json",
+      "exists": true,
+      "sizeBytes": 711,
+      "sha256": "b643640df25f4e4c890b3075cf9682379d50bd36dfaad3241fc833cccda8ab03"
+    },
+    {
+      "path": "backend/docs/evidence/realtime-failover-latest.json",
+      "exists": true,
+      "sizeBytes": 2043,
+      "sha256": "079aa3bcb123f889769dd2b621006d144e45f4993b7417216648ed6773a11d71"
+    },
+    {
+      "path": "backend/docs/evidence/gameday-scenarios-latest.json",
+      "exists": true,
+      "sizeBytes": 1328,
+      "sha256": "18a19a22d789dd37677006e3d2ee20bd0be18221b88e7cdfe2010702712df994"
+    },
+    {
+      "path": "frontend-next/docs/kpi-execution-log.json",
+      "exists": true,
+      "sizeBytes": 723,
+      "sha256": "6ad5c31353c49338b114b0cb82b22abf3d736a5d29e2a241f1901d8d1b750486"
+    },
+    {
+      "path": "frontend-next/docs/release-readiness-signoff.md",
+      "exists": true,
+      "sizeBytes": 5170,
+      "sha256": "f8330ab362f3480cff2373239deba2444bf27f0e5c21340ddd2af1c438970211"
+    }
+  ],
+  "pass": {
+    "allEvidencePresent": true,
+    "fullySigned": true,
+    "auditable": true
+  }
+}

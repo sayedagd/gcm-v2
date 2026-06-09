@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
-import { createApiClient } from '@/api/client';
+import { _internal, createApiClient } from '@/api/client';
 
 describe('api non-happy-path regressions', () => {
   beforeEach(() => {
@@ -102,5 +102,13 @@ describe('api non-happy-path regressions', () => {
       code: 'SERVER_ERROR',
       messageEn: 'Unexpected server error',
     });
+  });
+
+  test('allows only v1/write API paths (with temporary legacy exceptions)', () => {
+    expect(_internal.isAllowedApiPath('/api/v1/companies')).toBe(true);
+    expect(_internal.isAllowedApiPath('/api/write/trips')).toBe(true);
+    expect(_internal.isAllowedApiPath('/api/v1/asset-service-links/vehicle/1')).toBe(true);
+    expect(_internal.isAllowedApiPath('/api/asset-service-links/vehicle/1')).toBe(false);
+    expect(_internal.isAllowedApiPath('/api/legacy/companies')).toBe(false);
   });
 });

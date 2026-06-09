@@ -4,26 +4,17 @@
  */
 const fs = require('fs');
 const path = require('path');
+const { AsyncLocalStorage } = require('async_hooks');
 
 // Log file in the backend root
 const LOG_FILE = path.join(__dirname, '..', '..', 'server_error.log');
+const logContextStorage = new AsyncLocalStorage();
 
-const log = (msg) => {
-    const entry = `[${new Date().toISOString()}] ${msg}\n`;
-    try {
-        fs.appendFileSync(LOG_FILE, entry);
-    } catch (e) {
-        // Silently fail if log cannot be written (usually permission issues)
-    }
-    console.log(entry);
-};
+const getLogContext = () => logContextStorage.getStore() || {};
 
-const logEvent = (event, data = {}) => {
-    const payload = {
-        ts: new Date().toISOString(),
-        event,
-        ...data,
-    };
+const runWithLogContext = (context, handler) => logContextStorage.run(context || {}, handler);
+
+const writeLogLine = (payload) => {
     const line = `${JSON.stringify(payload)}\n`;
 
     try {
@@ -31,11 +22,38 @@ const logEvent = (event, data = {}) => {
     } catch (e) {
         // Silently fail if log cannot be written (usually permission issues)
     }
-    console.log(line);
+
+    console.log(line.trim());
+};
+
+const log = (msg, data = {}) => {
+    const context = getLogContext();
+
+    writeLogLine({
+        ts: new Date().toISOString(),
+        level: 'info',
+        message: msg,
+        correlationId: context.correlationId || null,
+        ...data,
+    });
+};
+
+const logEvent = (event, data = {}) => {
+    const context = getLogContext();
+    const payload = {
+        ts: new Date().toISOString(),
+        event,
+        correlationId: data.correlationId || context.correlationId || null,
+        ...data,
+    };
+
+    writeLogLine(payload);
 };
 
 module.exports = {
     log,
     logEvent,
+    runWithLogContext,
+    getLogContext,
     LOG_FILE
 };

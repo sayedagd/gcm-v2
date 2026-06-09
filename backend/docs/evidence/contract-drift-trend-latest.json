@@ -1,0 +1,31 @@
+{
+  "status": "success",
+  "generatedAt": "2026-06-09T11:37:16.195Z",
+  "source": {
+    "path": "C:\\Users\\Elsayed\\Documents\\GitHub\\gcm-v2\\backend\\docs\\evidence\\contract-drift-history.json",
+    "totalSprints": 4,
+    "requiredSprints": 4
+  },
+  "evaluation": {
+    "recentSprints": [
+      {
+        "sprint": "2026-S18",
+        "unapprovedDriftCount": 0
+      },
+      {
+        "sprint": "2026-S19",
+        "unapprovedDriftCount": 0
+      },
+      {
+        "sprint": "2026-S20",
+        "unapprovedDriftCount": 0
+      },
+      {
+        "sprint": "2026-S21",
+        "unapprovedDriftCount": 0
+      }
+    ],
+    "nonZeroUnapprovedDriftSprints": [],
+    "zeroUnapprovedDriftTargetMet": true
+  }
+}

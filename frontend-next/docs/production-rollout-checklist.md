@@ -10,11 +10,20 @@
 - [ ] `backend`: `npm run check:openapi-sync`
 - [ ] `frontend-next`: `npm run smoke:split` with target env vars
 - [ ] `frontend-next`: `npm run smoke:rate-limit` with target env vars
+- [ ] Infrastructure drift review completed for target environment:
+  - [ ] Run `terraform plan` from `backend/infra/terraform` with target env vars/tfvars.
+  - [ ] Attach plan summary to release evidence (`create/update/delete/no-op` counts).
+  - [ ] Confirm no unapproved drift in compute/database/redis/object storage/observability.
+  - [ ] Record approver from Platform/DevOps.
 
 ## Stage 1 - Staged Deployment
 
 - [ ] Deploy backend to staging with `/api/v1/*` and legacy alias support enabled.
 - [ ] Deploy frontend to staging with write boundary (`/api/write/*`) unchanged.
+- [ ] Execute restore drill in staging against runbook:
+  - [ ] Runbook: `backend/docs/restore-drill-runbook.md`
+  - [ ] Target RTO: less than or equal to 60 minutes
+  - [ ] Target RPO: less than or equal to 15 minutes
 - [ ] Run smoke checks on staging:
   - [ ] auth login invalid returns expected auth envelope
   - [ ] protected read/write endpoints return 401 unauthenticated
@@ -63,3 +72,28 @@
 - [ ] Auth/session flow restored and stable.
 - [ ] Core CRUD routes return expected success/error contracts.
 - [ ] Error-rate and latency return within baseline thresholds.
+
+## KPI Assessment - Backup and Restore (Important)
+
+Target:
+
+- RTO less than or equal to `60 minutes`
+- RPO less than or equal to `15 minutes`
+- Scope: timed staging restore drill with integrity checklist
+
+Evidence available:
+
+- Stage 1 restore drill checklist items exist, but execution checkboxes remain incomplete in this document.
+- No committed timed-run result artifact (start/end times, validated data recovery points) is linked.
+
+Result:
+
+- FAIL for KPI acceptance criteria (timed staging restore evidence not yet committed).
+
+## Infrastructure Drift Review Process
+
+1. Generate a drift snapshot before staging deploy (`terraform plan` using current branch IaC and target workspace/state).
+2. Compare plan output with the last approved production baseline.
+3. If drift is expected, link change request/approval and proceed.
+4. If drift is unexpected, stop rollout and open infra incident or remediation ticket.
+5. Re-run drift snapshot after rollout and store both snapshots in release evidence.

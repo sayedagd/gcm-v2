@@ -1,0 +1,47 @@
+{
+  "status": "success",
+  "generatedAt": "2026-06-09T11:30:17.390Z",
+  "source": {
+    "path": "C:\\Users\\Elsayed\\Documents\\GitHub\\gcm-v2\\backend\\docs\\evidence\\gameday-scenarios-input.json",
+    "scenarios": 3
+  },
+  "scenarios": [
+    {
+      "id": "api-outage",
+      "triggered": true,
+      "severity": "sev1",
+      "actionPlan": [
+        "Declare incident and freeze schema-changing deploys.",
+        "Switch to degraded mode for non-critical endpoints.",
+        "Validate DB and dependency health before restart."
+      ],
+      "pass": true
+    },
+    {
+      "id": "broker-outage",
+      "triggered": true,
+      "severity": "sev2",
+      "actionPlan": [
+        "Keep API online with local event fanout fallback.",
+        "Restart broker clients and validate channel subscriptions.",
+        "Validate Last-Event-ID replay catch-up after recovery."
+      ],
+      "pass": true
+    },
+    {
+      "id": "worker-backlog",
+      "triggered": true,
+      "severity": "sev2",
+      "actionPlan": [
+        "Scale worker replicas and verify claim/ack health.",
+        "Prioritize critical jobs and throttle non-critical producers.",
+        "Triage dead-letter jobs by error class and retry policy."
+      ],
+      "pass": true
+    }
+  ],
+  "summary": {
+    "passedScenarios": 3,
+    "totalScenarios": 3
+  }
+}

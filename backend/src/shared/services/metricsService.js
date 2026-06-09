@@ -17,9 +17,16 @@ const thresholds = {
 const state = {
     startedAt: Date.now(),
     requests: [],
+    dbQueries: [],
     authFailures: [],
     backupFailures: [],
     sseDisconnects: [],
+    sseConnectedCurrent: 0,
+    queueDepths: {
+        ocr: null,
+        backups: null,
+        whatsapp: null,
+    },
     latestAlerts: [],
 };
 
@@ -43,6 +50,14 @@ const addAlert = (name, value, threshold, window) => {
     }
 };
 
+const percentile = (values, p) => {
+    if (!Array.isArray(values) || values.length === 0) return 0;
+    const sorted = [...values].sort((a, b) => a - b);
+    const index = Math.ceil((p / 100) * sorted.length) - 1;
+    const bounded = Math.max(0, Math.min(sorted.length - 1, index));
+    return sorted[bounded];
+};
+
 const observeRequest = ({ path, statusCode, durationMs }) => {
     state.requests.push({
         ts: Date.now(),
@@ -51,6 +66,17 @@ const observeRequest = ({ path, statusCode, durationMs }) => {
         durationMs,
     });
     prune(state.requests, WINDOW_15M_MS);
+};
+
+const observeDbQuery = ({ durationMs, queryTag = null, queryFingerprint = null, isSlow = false }) => {
+    state.dbQueries.push({
+        ts: Date.now(),
+        durationMs,
+        queryTag,
+        queryFingerprint,
+        isSlow: Boolean(isSlow),
+    });
+    prune(state.dbQueries, WINDOW_15M_MS);
 };
 
 const recordAuthFailure = ({ code }) => {
@@ -68,8 +94,20 @@ const recordSseDisconnect = () => {
     prune(state.sseDisconnects, WINDOW_15M_MS);
 };
 
+const setSseConnectedCount = (count) => {
+    const parsed = Number(count);
+    state.sseConnectedCurrent = Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
+};
+
+const setQueueDepth = ({ queueName, depth }) => {
+    if (!queueName) return;
+    const parsedDepth = Number(depth);
+    state.queueDepths[queueName] = Number.isFinite(parsedDepth) && parsedDepth >= 0 ? parsedDepth : null;
+};
+
 const evaluateAlerts = () => {
     prune(state.requests, WINDOW_15M_MS);
+    prune(state.dbQueries, WINDOW_15M_MS);
     prune(state.authFailures, WINDOW_15M_MS);
     prune(state.sseDisconnects, WINDOW_15M_MS);
     prune(state.backupFailures, WINDOW_24H_MS);
@@ -144,6 +182,7 @@ const evaluateAlerts = () => {
 
 const getMetricsSnapshot = () => {
     prune(state.requests, WINDOW_15M_MS);
+    prune(state.dbQueries, WINDOW_15M_MS);
     prune(state.authFailures, WINDOW_15M_MS);
     prune(state.sseDisconnects, WINDOW_15M_MS);
     prune(state.backupFailures, WINDOW_24H_MS);
@@ -155,6 +194,25 @@ const getMetricsSnapshot = () => {
             ? state.requests.reduce((sum, r) => sum + Number(r.durationMs || 0), 0) / requestCount
             : 0;
     const errorRatePercent = requestCount > 0 ? (requestErrors / requestCount) * 100 : 0;
+    const requestDurations = state.requests.map((r) => Number(r.durationMs || 0));
+    const dbQueryCount = state.dbQueries.length;
+    const dbQueryDurations = state.dbQueries.map((q) => Number(q.durationMs || 0));
+    const slowQueries = state.dbQueries.filter((q) => q.isSlow);
+    const slowQueryCount = slowQueries.length;
+    const slowFingerprintBuckets = new Map();
+    slowQueries.forEach((queryMetric) => {
+        const key = queryMetric.queryFingerprint || 'unknown';
+        const existing = slowFingerprintBuckets.get(key) || 0;
+        slowFingerprintBuckets.set(key, existing + 1);
+    });
+    const topSlowFingerprints = [...slowFingerprintBuckets.entries()]
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 3)
+        .map(([fingerprint, count]) => ({ fingerprint, count }));
+    const dbAvgLatencyMs =
+        dbQueryCount > 0
+            ? state.dbQueries.reduce((sum, q) => sum + Number(q.durationMs || 0), 0) / dbQueryCount
+            : 0;
 
     const activeAlerts = evaluateAlerts();
 
@@ -166,10 +224,22 @@ const getMetricsSnapshot = () => {
             requestCount15m: requestCount,
             requestErrors15m: requestErrors,
             avgLatencyMs15m: Number(avgLatencyMs.toFixed(2)),
+            latencyP50Ms15m: Number(percentile(requestDurations, 50).toFixed(2)),
+            latencyP95Ms15m: Number(percentile(requestDurations, 95).toFixed(2)),
+            latencyP99Ms15m: Number(percentile(requestDurations, 99).toFixed(2)),
             errorRatePercent15m: Number(errorRatePercent.toFixed(2)),
+            dbQueryCount15m: dbQueryCount,
+            dbAvgLatencyMs15m: Number(dbAvgLatencyMs.toFixed(2)),
+            dbLatencyP50Ms15m: Number(percentile(dbQueryDurations, 50).toFixed(2)),
+            dbLatencyP95Ms15m: Number(percentile(dbQueryDurations, 95).toFixed(2)),
+            dbLatencyP99Ms15m: Number(percentile(dbQueryDurations, 99).toFixed(2)),
+            dbSlowQueryCount15m: slowQueryCount,
+            dbTopSlowFingerprints15m: topSlowFingerprints,
             authFailures15m: state.authFailures.length,
+            sseConnectedCurrent: state.sseConnectedCurrent,
             sseDisconnects15m: state.sseDisconnects.length,
             backupFailures24h: state.backupFailures.length,
+            queueDepths: { ...state.queueDepths },
         },
         activeAlerts,
         latestAlerts: state.latestAlerts,
@@ -178,14 +248,18 @@ const getMetricsSnapshot = () => {
 
 module.exports = {
     observeRequest,
+    observeDbQuery,
     recordAuthFailure,
     recordBackupFailure,
+    setSseConnectedCount,
     recordSseDisconnect,
+    setQueueDepth,
     getMetricsSnapshot,
     _internal: {
         state,
         thresholds,
         prune,
+        percentile,
         evaluateAlerts,
     },
 };

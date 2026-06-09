@@ -1,6 +1,7 @@
 const { buildRateLimitPolicies } = require('../../shared/middleware/rateLimitPolicies');
 
 describe('rateLimitPolicies', () => {
+  const originalNodeEnv = process.env.NODE_ENV;
   const envKeys = [
     'RL_GLOBAL_WINDOW_MS',
     'RL_GLOBAL_MAX',
@@ -28,6 +29,11 @@ describe('rateLimitPolicies', () => {
 
   afterEach(() => {
     clearEnv();
+    if (originalNodeEnv === undefined) {
+      delete process.env.NODE_ENV;
+    } else {
+      process.env.NODE_ENV = originalNodeEnv;
+    }
   });
 
   test('uses expected default limit tiers', () => {
@@ -51,5 +57,24 @@ describe('rateLimitPolicies', () => {
     expect(policies.limits.auth.max).toBe(12);
     expect(policies.limits.publicWrite.max).toBe(25);
     expect(policies.limits.admin.max).toBe(9);
+  });
+
+  test('enables Redis-backed rate-limit store in production by default', () => {
+    process.env.NODE_ENV = 'production';
+    process.env.REDIS_ENABLED = 'true';
+    process.env.REDIS_URL = 'redis://localhost:6379';
+
+    const limiterCalls = [];
+    const fakeRateLimitLib = (options) => {
+      limiterCalls.push(options);
+      return () => {};
+    };
+
+    buildRateLimitPolicies(fakeRateLimitLib);
+
+    expect(limiterCalls.length).toBeGreaterThan(0);
+    for (const call of limiterCalls) {
+      expect(call.store).toBeDefined();
+    }
   });
 });

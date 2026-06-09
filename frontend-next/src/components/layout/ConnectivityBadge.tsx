@@ -8,7 +8,7 @@
 import React, { useState, useEffect } from 'react';
 import { useStore } from '../../context';
 import { useTranslation } from '../../hooks/useTranslation';
-import { createApiClient } from '@/api/client';
+import { createTypedApiSdk } from '@/api/sdk';
 
 const ConnectivityBadge: React.FC = () => {
     const { saasConfig } = useStore();
@@ -16,7 +16,7 @@ const ConnectivityBadge: React.FC = () => {
     const [status, setStatus] = useState<'online' | 'offline' | 'checking'>('checking');
 
     useEffect(() => {
-        const api = createApiClient();
+        const api = createTypedApiSdk();
         const check = async () => {
             try {
                 await api.getConfig();

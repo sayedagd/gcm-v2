@@ -28,6 +28,7 @@ describe("loginAction", () => {
     redirectMock.mockClear();
     fetchMock.mockReset();
     process.env = { ...originalEnv };
+    process.env.API_BASE_URL = "http://localhost:8080";
     vi.stubGlobal("fetch", fetchMock);
   });
 

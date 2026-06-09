@@ -25,6 +25,19 @@ const nextConfig: NextConfig = {
         ]
       : [],
   },
+  async rewrites() {
+    if (!apiBaseUrl) {
+      return [];
+    }
+
+    const normalizedBaseUrl = apiBaseUrl.replace(/\/$/, "");
+    return [
+      {
+        source: "/api/v1/:path*",
+        destination: `${normalizedBaseUrl}/api/v1/:path*`,
+      },
+    ];
+  },
 };
 
 export default nextConfig;

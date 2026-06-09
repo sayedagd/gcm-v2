@@ -1,0 +1,50 @@
+{
+  "status": "success",
+  "baseUrl": "http://localhost:8080",
+  "startedAt": "2026-06-09T11:38:49.732Z",
+  "endedAt": "2026-06-09T11:39:07.266Z",
+  "rtoMinutes": 0.29,
+  "rpoMinutes": 0.08,
+  "targets": {
+    "rtoMaxMinutes": 60,
+    "rpoMaxMinutes": 15
+  },
+  "pass": {
+    "rto": true,
+    "rpo": true
+  },
+  "backup": {
+    "jobId": 4,
+    "trigger": {
+      "status": "queued",
+      "jobId": 4,
+      "requestedAt": "2026-06-09T08:38:51.104Z",
+      "triggerSource": "restore-drill"
+    },
+    "status": {
+      "jobId": 4,
+      "status": "success",
+      "triggerSource": "restore-drill",
+      "requestedAt": "2026-06-09T08:38:51.104Z",
+      "finishedAt": "2026-06-09T08:38:59.520Z",
+      "artifactId": "7",
+      "fileName": "GCM_BACKUP_2026-06-09T11-38-58-152Z.sql",
+      "format": "sql",
+      "errorMessage": null
+    },
+    "artifactFileName": "restore-drill-1781005144857.sql",
+    "artifactBytes": 12768
+  },
+  "restore": {
+    "payload": {
+      "status": "success",
+      "message": "System restored successfully"
+    },
+    "verification": {
+      "projects": 200,
+      "companies": 200,
+      "trips": 200,
+      "backupStatus": 200
+    }
+  }
+}

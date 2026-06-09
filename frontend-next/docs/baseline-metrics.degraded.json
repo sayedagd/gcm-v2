@@ -1,0 +1,25 @@
+{
+  "capturedAt": "2026-06-09T09:22:03.225Z",
+  "profile": {
+    "name": "10x-load-profile",
+    "endpoint": "https://gcm-back.twision.agency/api/v1/ping",
+    "durationSeconds": 10,
+    "concurrency": 80,
+    "rampUpSeconds": 5,
+    "timeoutMs": 3000
+  },
+  "results": {
+    "totalRequests": 2811,
+    "successfulRequests": 2811,
+    "failedRequests": 0,
+    "successRate": 100,
+    "requestsPerSecond": 273.12,
+    "latencyMs": {
+      "p50": 202,
+      "p95": 263,
+      "p99": 407,
+      "max": 1149
+    },
+    "maxInFlight": 80
+  }
+}

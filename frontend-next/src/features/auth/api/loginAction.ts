@@ -10,6 +10,7 @@ import {
   SESSION_MAX_AGE_SECONDS,
 } from "@/features/auth/model/sessionCookies";
 import { getRoleHome, isGcmRole } from "@/lib/auth";
+import { HttpResponseError, performHttpJsonRequest } from "@/api/http";
 
 export type LoginActionState = {
   error: string | null;
@@ -89,7 +90,14 @@ const resolveAppCookieOptions = (maxAge: number) => {
 };
 
 const getApiBaseUrl = () => {
-  return process.env.API_BASE_URL || process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080";
+  const configured = process.env.API_BASE_URL || process.env.NEXT_PUBLIC_API_BASE_URL;
+  if (configured) {
+    return configured;
+  }
+
+  return process.env.NODE_ENV === "development" || process.env.NODE_ENV === "test"
+    ? "http://localhost:8080"
+    : "";
 };
 
 const isSafeNextPath = (path: string) => {
@@ -118,6 +126,9 @@ export async function loginAction(_: LoginActionState, formData: FormData): Prom
   }
 
   const apiBaseUrl = getApiBaseUrl();
+  if (!apiBaseUrl) {
+    return { error: "Server connection is not configured. Please contact support." };
+  }
   let role: string | undefined;
   let expiresInSeconds = SESSION_MAX_AGE_SECONDS;
   let payload: BackendLoginResponse | null = null;
@@ -125,7 +136,7 @@ export async function loginAction(_: LoginActionState, formData: FormData): Prom
   let csrfToken: string | null = null;
 
   try {
-    const response = await fetch(`${apiBaseUrl}/api/v1/auth/login`, {
+    const { data, response } = await performHttpJsonRequest<BackendLoginResponse>(`${apiBaseUrl}/api/v1/auth/login`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -135,15 +146,7 @@ export async function loginAction(_: LoginActionState, formData: FormData): Prom
       cache: "no-store",
     });
 
-    if (!response.ok) {
-      if (response.status === 401) {
-        return { error: "Invalid email or password." };
-      }
-
-      return { error: "Unable to sign in right now. Please try again." };
-    }
-
-    payload = (await response.json().catch(() => null)) as BackendLoginResponse | null;
+    payload = data || null;
     backendSessionToken = extractCookieValueFromSetCookie(
       response.headers.get("set-cookie"),
       getAuthBackendCookieName(),
@@ -161,7 +164,15 @@ export async function loginAction(_: LoginActionState, formData: FormData): Prom
       typeof payload?.tokenExpiresInSeconds === "number" && payload.tokenExpiresInSeconds > 0
         ? payload.tokenExpiresInSeconds
         : SESSION_MAX_AGE_SECONDS;
-  } catch {
+  } catch (error) {
+    if (error instanceof HttpResponseError && error.status === 401) {
+      return { error: "Invalid email or password." };
+    }
+
+    if (error instanceof HttpResponseError && error.code !== "FETCH_NETWORK_ERROR") {
+      return { error: "Unable to sign in right now. Please try again." };
+    }
+
     return { error: "Unable to reach the server. Check your connection and try again." };
   }
 

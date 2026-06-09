@@ -1,0 +1,33 @@
+{
+  "capturedAt": "2026-06-09T11:23:54.651Z",
+  "ordering": [
+    "staging",
+    "production-like"
+  ],
+  "config": {
+    "endpointPath": "/api/v1/ping",
+    "durationSeconds": 10,
+    "concurrency": 40,
+    "timeoutMs": 5000
+  },
+  "results": {
+    "staging": {
+      "label": "staging",
+      "endpoint": "https://gcm-back.twision.agency/api/v1/ping",
+      "totalRequests": 1789,
+      "successRate": 100,
+      "p95Ms": 269,
+      "p99Ms": 458,
+      "maxMs": 546
+    },
+    "productionLike": {
+      "label": "production-like",
+      "endpoint": "https://gcm-back.twision.agency/api/v1/ping",
+      "totalRequests": 1837,
+      "successRate": 100,
+      "p95Ms": 248,
+      "p99Ms": 301,
+      "maxMs": 548
+    }
+  }
+}

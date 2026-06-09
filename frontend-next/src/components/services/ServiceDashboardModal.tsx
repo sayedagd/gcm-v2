@@ -62,7 +62,7 @@ export const ServiceDashboardModal: React.FC<ServiceDashboardModalProps> = ({ is
             tanks.filter(t => linkedAssetIds.has(t.tank_id)).length;
 
         // 6. Chart Data Preparation
-        let chartData: any[] = [];
+        const chartData: any[] = [];
         if (chartMode === 'monthly') {
             // Last 30 days
             for (let i = 29; i >= 0; i--) {

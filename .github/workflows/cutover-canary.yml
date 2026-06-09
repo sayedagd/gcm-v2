@@ -4,6 +4,23 @@ on:
   schedule:
     - cron: '*/30 * * * *'
   workflow_dispatch:
+    inputs:
+      cutover_frontend_base_url:
+        description: Frontend canary base URL
+        required: false
+        default: https://gcm.twision.agency
+      cutover_backend_base_url:
+        description: Backend canary base URL
+        required: false
+        default: https://gcm-back.twision.agency
+      cutover_watch_samples:
+        description: Number of health-check samples
+        required: false
+        default: '3'
+      cutover_timeout_ms:
+        description: Curl timeout in milliseconds
+        required: false
+        default: '10000'
 
 permissions:
   contents: read
@@ -16,19 +33,75 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Gitleaks secret scan
+        uses: gitleaks/gitleaks-action@v2
 
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      - name: Run cutover canary watch
+      - name: Install backend deps (OpenAPI gate)
+        working-directory: backend
+        run: npm ci
+
+      - name: OpenAPI sync gate (release blocker)
+        working-directory: backend
+        run: npm run check:openapi-sync
+
+      - name: Run rolling health-checked canary watch
         env:
-          CUTOVER_FRONTEND_BASE_URL: ${{ vars.CUTOVER_FRONTEND_BASE_URL || 'https://gcm.twision.agency' }}
-          CUTOVER_BACKEND_BASE_URL: ${{ vars.CUTOVER_BACKEND_BASE_URL || 'https://gcm-back.twision.agency' }}
-          CUTOVER_WATCH_SAMPLES: ${{ vars.CUTOVER_WATCH_SAMPLES || '3' }}
-          CUTOVER_TIMEOUT_MS: ${{ vars.CUTOVER_TIMEOUT_MS || '10000' }}
-        run: node scripts/release/cutover-watch.mjs
+          CUTOVER_FRONTEND_BASE_URL: ${{ github.event.inputs.cutover_frontend_base_url || 'https://gcm.twision.agency' }}
+          CUTOVER_BACKEND_BASE_URL: ${{ github.event.inputs.cutover_backend_base_url || 'https://gcm-back.twision.agency' }}
+          CUTOVER_WATCH_SAMPLES: ${{ github.event.inputs.cutover_watch_samples || '3' }}
+          CUTOVER_TIMEOUT_MS: ${{ github.event.inputs.cutover_timeout_ms || '10000' }}
+        run: |
+          set -euo pipefail
+
+          FRONTEND_URL="${CUTOVER_FRONTEND_BASE_URL%/}/landing"
+          BACKEND_URL="${CUTOVER_BACKEND_BASE_URL%/}/api/v1/ping"
+          SAMPLES="${CUTOVER_WATCH_SAMPLES}"
+          TIMEOUT_SECONDS="$((CUTOVER_TIMEOUT_MS / 1000))"
+          if [ "$TIMEOUT_SECONDS" -lt 5 ]; then TIMEOUT_SECONDS=5; fi
+
+          FRONTEND_FAILS=0
+          BACKEND_FAILS=0
+
+          for i in $(seq 1 "$SAMPLES"); do
+            FRONTEND_STATUS=$(curl -sS -o /dev/null -w "%{http_code}" --max-time "$TIMEOUT_SECONDS" "$FRONTEND_URL" || echo "000")
+            BACKEND_STATUS=$(curl -sS -o /dev/null -w "%{http_code}" --max-time "$TIMEOUT_SECONDS" "$BACKEND_URL" || echo "000")
+
+            echo "[canary] sample=$i frontend_status=$FRONTEND_STATUS backend_status=$BACKEND_STATUS"
+
+            if [ "$FRONTEND_STATUS" -lt 200 ] || [ "$FRONTEND_STATUS" -ge 400 ]; then
+              FRONTEND_FAILS=$((FRONTEND_FAILS + 1))
+            fi
+
+            if [ "$BACKEND_STATUS" -lt 200 ] || [ "$BACKEND_STATUS" -ge 400 ]; then
+              BACKEND_FAILS=$((BACKEND_FAILS + 1))
+            fi
+          done
+
+          echo "[canary] frontend_failures=$FRONTEND_FAILS backend_failures=$BACKEND_FAILS"
+
+          # Automatic rollback criteria:
+          # 1) any backend health check failure
+          # 2) more than 50% frontend canary failures
+          if [ "$BACKEND_FAILS" -gt 0 ]; then
+            echo "[canary] backend health check failed; rollout must rollback."
+            exit 1
+          fi
+
+          FRONTEND_THRESHOLD=$(( (SAMPLES + 1) / 2 ))
+          if [ "$FRONTEND_FAILS" -ge "$FRONTEND_THRESHOLD" ]; then
+            echo "[canary] frontend failure threshold exceeded; rollout must rollback."
+            exit 1
+          fi
+
+          echo "[canary] rollout health checks passed."
 
   alert-on-failure:
     needs:
@@ -59,4 +132,25 @@ jobs:
               title,
               body,
               labels: ['ops', 'cutover', 'canary-failure']
+            });
+
+  rollback-on-failure:
+    needs:
+      - cutover-watch
+    if: ${{ failure() }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Signal rollback-required event
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.repos.createDispatchEvent({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              event_type: 'cutover_rollback_required',
+              client_payload: {
+                reason: 'cutover-canary-failure',
+                runId: context.runId,
+                sha: context.sha,
+              },
             });

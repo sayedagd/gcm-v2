@@ -1,0 +1,42 @@
+{
+  "status": "success",
+  "generatedAt": "2026-06-09T11:30:16.688Z",
+  "summary": {
+    "totalRunbooks": 4,
+    "passedRunbooks": 4
+  },
+  "runbooks": [
+    {
+      "path": "docs/backup-operations-runbook.md",
+      "status": "present",
+      "hasPrimary": true,
+      "hasSecondary": true,
+      "hasLastReviewed": true,
+      "pass": true
+    },
+    {
+      "path": "docs/restore-drill-runbook.md",
+      "status": "present",
+      "hasPrimary": true,
+      "hasSecondary": true,
+      "hasLastReviewed": true,
+      "pass": true
+    },
+    {
+      "path": "docs/background-job-retry-policy.md",
+      "status": "present",
+      "hasPrimary": true,
+      "hasSecondary": true,
+      "hasLastReviewed": true,
+      "pass": true
+    },
+    {
+      "path": "docs/realtime-broker-setup.md",
+      "status": "present",
+      "hasPrimary": true,
+      "hasSecondary": true,
+      "hasLastReviewed": true,
+      "pass": true
+    }
+  ]
+}

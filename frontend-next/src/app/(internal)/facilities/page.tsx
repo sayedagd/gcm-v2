@@ -66,7 +66,7 @@ const Facilities: React.FC = () => {
 
     // --- Filtering & Pagination ---
     const filtered = useMemo(() => {
-        let base = facilities || [];
+        const base = facilities || [];
 
         return base.filter(f => {
             const name = (f.name || '').toLowerCase();
