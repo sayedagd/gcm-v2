@@ -35,12 +35,12 @@ prev adv dep/GCM_DEPLOY-low.zip
 temp_*
 
 # Environment files
-.env
-.env.local
-.env.*.local
-.env.development
-.env.test
-.env.production
+!.env
+!.env.local
+!.env.*.local
+!.env.development
+!.env.test
+!.env.production
 
 # Sensitive data dumps
 gcm_production_dump.sql
