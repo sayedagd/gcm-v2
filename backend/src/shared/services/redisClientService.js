@@ -1,4 +1,8 @@
 const { log } = require('../utils/logger');
+const getEnvValue = (key) => {
+    const value = process.env[key];
+    return typeof value === 'string' ? value.trim() : value;
+};
 
 let redisLib = null;
 try {
@@ -11,7 +15,7 @@ let clientPromise = null;
 let ready = false;
 
 const isRedisEnabled = () => {
-    return process.env.REDIS_ENABLED === 'true' && Boolean(process.env.REDIS_URL);
+    return getEnvValue('REDIS_ENABLED') === 'true' && Boolean(getEnvValue('REDIS_URL'));
 };
 
 const getRedisClient = async () => {
@@ -20,7 +24,7 @@ const getRedisClient = async () => {
 
     if (!clientPromise) {
         clientPromise = (async () => {
-            const client = redisLib.createClient({ url: process.env.REDIS_URL });
+            const client = redisLib.createClient({ url: getEnvValue('REDIS_URL') });
             client.on('error', (error) => {
                 ready = false;
                 log(`[REDIS] Client error: ${error.message}`);

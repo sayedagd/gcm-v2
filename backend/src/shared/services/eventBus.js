@@ -12,6 +12,10 @@ const { query } = require('../../../database');
 const metricsService = require('./metricsService');
 const recordSseDisconnect = metricsService.recordSseDisconnect || (() => {});
 const setSseConnectedCount = metricsService.setSseConnectedCount || (() => {});
+const getEnvValue = (key) => {
+    const value = process.env[key];
+    return typeof value === 'string' ? value.trim() : value;
+};
 
 let redisLib = null;
 try {
@@ -27,9 +31,9 @@ let redisReady = false;
 let redisPub = null;
 let redisSub = null;
 
-const brokerEnabled = process.env.EVENT_BUS_BROKER === 'redis';
-const redisChannel = process.env.EVENT_BUS_REDIS_CHANNEL || 'gcm:event-bus';
-const redisUrl = process.env.REDIS_URL;
+const brokerEnabled = getEnvValue('EVENT_BUS_BROKER') === 'redis';
+const redisChannel = getEnvValue('EVENT_BUS_REDIS_CHANNEL') || 'gcm:event-bus';
+const redisUrl = getEnvValue('REDIS_URL');
 const replayLimit = Number.parseInt(process.env.EVENT_BUS_REPLAY_LIMIT || '200', 10);
 const replayRetentionDays = Number.parseInt(process.env.EVENT_BUS_REPLAY_RETENTION_DAYS || '7', 10);
 const maxConnectionsGlobal = Number.parseInt(process.env.SSE_MAX_CONNECTIONS_GLOBAL || '1000', 10);

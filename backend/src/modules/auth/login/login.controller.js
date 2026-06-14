@@ -26,6 +26,10 @@ const getQuery = () => {
 const COOKIE_NAME = process.env.AUTH_COOKIE_NAME || 'gcm_jwt';
 const CSRF_COOKIE_NAME = process.env.AUTH_CSRF_COOKIE_NAME || 'gcm_csrf';
 const BCRYPT_HASH_PATTERN = /^\$2[aby]\$\d{2}\$/;
+const getEnvValue = (key) => {
+    const value = process.env[key];
+    return typeof value === 'string' ? value.trim() : value;
+};
 const loginPayloadSchema = Joi.object({
     email: Joi.string().email({ tlds: false }).required(),
     password: Joi.string().min(1).required(),
@@ -55,9 +59,9 @@ const hashPassword = async (password) => {
 };
 
 const buildCookieOptions = (maxAgeMs) => {
-    const sameSiteRaw = (process.env.AUTH_COOKIE_SAMESITE || 'lax').toLowerCase();
+    const sameSiteRaw = (getEnvValue('AUTH_COOKIE_SAMESITE') || 'lax').toLowerCase();
     const sameSite = ['lax', 'strict', 'none'].includes(sameSiteRaw) ? sameSiteRaw : 'lax';
-    const secure = process.env.AUTH_COOKIE_SECURE === 'true' || process.env.NODE_ENV === 'production' || sameSite === 'none';
+    const secure = getEnvValue('AUTH_COOKIE_SECURE') === 'true' || process.env.NODE_ENV === 'production' || sameSite === 'none';
 
     return {
         httpOnly: true,
@@ -200,9 +204,9 @@ const login = async (req, res) => {
 };
 
 const logout = async (req, res) => {
-    const sameSiteRaw = (process.env.AUTH_COOKIE_SAMESITE || 'lax').toLowerCase();
+    const sameSiteRaw = (getEnvValue('AUTH_COOKIE_SAMESITE') || 'lax').toLowerCase();
     const sameSite = ['lax', 'strict', 'none'].includes(sameSiteRaw) ? sameSiteRaw : 'lax';
-    const secure = process.env.AUTH_COOKIE_SECURE === 'true' || process.env.NODE_ENV === 'production' || sameSite === 'none';
+    const secure = getEnvValue('AUTH_COOKIE_SECURE') === 'true' || process.env.NODE_ENV === 'production' || sameSite === 'none';
 
     res.clearCookie(COOKIE_NAME, {
         httpOnly: true,

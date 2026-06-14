@@ -18,8 +18,10 @@ const jwt = require('jsonwebtoken');
 const { getJwtSecret } = require('./src/shared/config/auth');
 const { validateRuntimeConfig } = require('./src/shared/config/runtimeConfig');
 
-// Environment Setup (load backend/.env FIRST before anything else)
+// Environment Setup (load backend/.env locally only; Vercel should use platform envs)
 const findEnv = () => {
+    if (process.env.VERCEL === '1') return null;
+
     const paths = [path.join(__dirname, '.env')];
     for (const p of paths) if (fs.existsSync(p)) return p;
     return null;

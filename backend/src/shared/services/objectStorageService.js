@@ -1,20 +1,25 @@
 const { S3Client, PutObjectCommand, GetObjectCommand } = require('@aws-sdk/client-s3');
 const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
 
+const getEnvValue = (key) => {
+    const value = process.env[key];
+    return typeof value === 'string' ? value.trim() : value;
+};
+
 const isProduction = process.env.NODE_ENV === 'production';
 
 const getObjectStorageConfig = () => {
-    const provider = (process.env.BACKUP_STORAGE_PROVIDER || '').toLowerCase();
+    const provider = (getEnvValue('BACKUP_STORAGE_PROVIDER') || '').toLowerCase();
     if (provider !== 's3') {
         return null;
     }
 
-    const bucket = process.env.S3_BACKUP_BUCKET;
-    const region = process.env.S3_BACKUP_REGION || 'us-east-1';
-    const accessKeyId = process.env.S3_BACKUP_ACCESS_KEY_ID;
-    const secretAccessKey = process.env.S3_BACKUP_SECRET_ACCESS_KEY;
-    const endpoint = process.env.S3_BACKUP_ENDPOINT || undefined;
-    const forcePathStyle = process.env.S3_BACKUP_FORCE_PATH_STYLE === 'true';
+    const bucket = getEnvValue('S3_BACKUP_BUCKET');
+    const region = getEnvValue('S3_BACKUP_REGION') || 'us-east-1';
+    const accessKeyId = getEnvValue('S3_BACKUP_ACCESS_KEY_ID');
+    const secretAccessKey = getEnvValue('S3_BACKUP_SECRET_ACCESS_KEY');
+    const endpoint = getEnvValue('S3_BACKUP_ENDPOINT') || undefined;
+    const forcePathStyle = getEnvValue('S3_BACKUP_FORCE_PATH_STYLE') === 'true';
 
     if (!bucket || !accessKeyId || !secretAccessKey) {
         return null;

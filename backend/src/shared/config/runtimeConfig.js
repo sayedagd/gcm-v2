@@ -1,4 +1,8 @@
 const hasValue = (value) => typeof value === 'string' && value.trim().length > 0;
+const getEnvValue = (key) => {
+    const value = process.env[key];
+    return typeof value === 'string' ? value.trim() : value;
+};
 const DB_POOL_MODES = new Set(['auto', 'pgbouncer', 'direct']);
 
 const isPositiveInteger = (value) => {
@@ -33,7 +37,7 @@ const collectRuntimeConfigErrors = () => {
     }
 
     const poolMode = (process.env.DB_POOL_MODE || 'auto').toLowerCase();
-    const poolUrl = process.env.DATABASE_POOL_URL;
+    const poolUrl = getEnvValue('DATABASE_POOL_URL');
     if (!DB_POOL_MODES.has(poolMode)) {
         errors.push('DB_POOL_MODE must be one of: auto, pgbouncer, direct');
     }
@@ -72,7 +76,7 @@ const collectRuntimeConfigErrors = () => {
         }
     }
 
-    if (isProduction && process.env.AUTH_COOKIE_SECURE !== 'true') {
+    if (isProduction && getEnvValue('AUTH_COOKIE_SECURE') !== 'true') {
         errors.push('AUTH_COOKIE_SECURE must be true in production');
     }
 
@@ -84,31 +88,31 @@ const collectRuntimeConfigErrors = () => {
         errors.push('DB_POOL_MODE must not be "direct" in production');
     }
 
-    if (isProduction && process.env.EVENT_BUS_BROKER !== 'redis') {
+    if (isProduction && getEnvValue('EVENT_BUS_BROKER') !== 'redis') {
         errors.push('EVENT_BUS_BROKER must be set to "redis" in production');
     }
 
-    if (isProduction && !hasValue(process.env.REDIS_URL)) {
+    if (isProduction && !hasValue(getEnvValue('REDIS_URL'))) {
         errors.push('REDIS_URL is required in production for Redis event bus broker');
     }
 
-    if (isProduction && process.env.REDIS_ENABLED !== 'true') {
+    if (isProduction && getEnvValue('REDIS_ENABLED') !== 'true') {
         errors.push('REDIS_ENABLED must be true in production for Redis-backed runtime services');
     }
 
-    const backupStorageProvider = (process.env.BACKUP_STORAGE_PROVIDER || '').toLowerCase();
+    const backupStorageProvider = (getEnvValue('BACKUP_STORAGE_PROVIDER') || '').toLowerCase();
     if (isProduction && backupStorageProvider !== 's3') {
         errors.push('BACKUP_STORAGE_PROVIDER must be set to "s3" in production');
     }
 
     if (isProduction && backupStorageProvider === 's3') {
-        if (!hasValue(process.env.S3_BACKUP_BUCKET)) {
+        if (!hasValue(getEnvValue('S3_BACKUP_BUCKET'))) {
             errors.push('S3_BACKUP_BUCKET is required in production when BACKUP_STORAGE_PROVIDER=s3');
         }
-        if (!hasValue(process.env.S3_BACKUP_ACCESS_KEY_ID)) {
+        if (!hasValue(getEnvValue('S3_BACKUP_ACCESS_KEY_ID'))) {
             errors.push('S3_BACKUP_ACCESS_KEY_ID is required in production when BACKUP_STORAGE_PROVIDER=s3');
         }
-        if (!hasValue(process.env.S3_BACKUP_SECRET_ACCESS_KEY)) {
+        if (!hasValue(getEnvValue('S3_BACKUP_SECRET_ACCESS_KEY'))) {
             errors.push('S3_BACKUP_SECRET_ACCESS_KEY is required in production when BACKUP_STORAGE_PROVIDER=s3');
         }
     }

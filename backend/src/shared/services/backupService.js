@@ -4,7 +4,6 @@
 const fs = require('fs');
 const path = require('path');
 const cron = require('node-cron');
-const archiver = require('archiver');
 const { query } = require('../../../database');
 const { log } = require('../utils/logger');
 const { SCHEMA } = require('../config/constants');
@@ -23,6 +22,11 @@ if (!fs.existsSync(BACKUPS_DIR)) {
 }
 
 const isProduction = process.env.NODE_ENV === 'production';
+
+const loadArchiver = async () => {
+    const mod = await import('archiver');
+    return mod.default || mod;
+};
 
 const contentTypeForFormat = (format) => {
     if (format === 'json') return 'application/json';
@@ -249,15 +253,18 @@ const performSystemBackup = async (format = 'sql') => {
             return new Promise((resolve, reject) => {
                 const tempZipPath = path.join(BACKUPS_DIR, `tmp_${fileName}`);
                 const output = fs.createWriteStream(tempZipPath);
-                const archive = archiver('zip', { zlib: { level: 9 } });
 
-                output.on('close', async () => {
-                    try {
-                        const content = fs.readFileSync(tempZipPath);
-                        const stored = await uploadArchiveWithMetadata({
-                            format,
-                            fileName,
-                            buffer: content,
+                loadArchiver()
+                    .then((archiver) => {
+                        const archive = archiver('zip', { zlib: { level: 9 } });
+
+                        output.on('close', async () => {
+                            try {
+                                const content = fs.readFileSync(tempZipPath);
+                                const stored = await uploadArchiveWithMetadata({
+                                    format,
+                                    fileName,
+                                    buffer: content,
                             includesMedia: true,
                             localPathForFallback: latestPath
                         });
@@ -284,54 +291,51 @@ const performSystemBackup = async (format = 'sql') => {
                     reject(err);
                 });
 
-                archive.pipe(output);
+                                resolve({
+                                    archivePath: tempZipPath,
+                                    artifactId: stored.artifactId,
+                                    fileName,
+                                    format
+                                });
+                            } catch (error) {
+                                reject(error);
+                            } finally {
+                                try { fs.unlinkSync(tempZipPath); } catch (_) {}
+                            }
+                        });
 
-                // Add SQL file to zip
-                archive.append(sqlContent, { name: 'database_dump.sql' });
+                        archive.on('error', reject);
+                        archive.pipe(output);
 
-                // Add uploads folder to zip
-                const uploadsDir = path.join(__dirname, '..', '..', '..', 'uploads');
-                if (fs.existsSync(uploadsDir)) {
-                    archive.directory(uploadsDir, 'uploads');
-                } else {
-                    log(`[AUTO-BACKUP] Warning: Uploads directory not found at ${uploadsDir}`);
-                }
+                        for (const table of tablesToExport) {
+                            const rows = fullData[table];
+                            const data = JSON.stringify(rows, null, 2);
+                            archive.append(data, { name: `${table}.json` });
+                        }
 
-                archive.finalize();
+                        archive.append(sqlContent, { name: `${fileName.replace(/\.zip$/, '')}.sql` });
+                        archive.finalize();
+                    })
+                    .catch(reject);
+
+                output.on('error', reject);
             });
-        } else {
-            // Only SQL or JSON (fallback to JSON if requested)
-            const contentToSave = format === 'json' ? JSON.stringify(fullData, null, 2) : sqlContent;
-            const contentBuffer = Buffer.from(contentToSave, 'utf8');
-            const stored = await uploadArchiveWithMetadata({
-                format,
-                fileName,
-                buffer: contentBuffer,
-                includesMedia: false,
-                localPathForFallback: latestPath
-            });
-
-            log(`[AUTO-BACKUP] SUCCESS: Stored backup ${fileName}`);
-            return {
-                status: 'success',
-                format,
-                fileName,
-                storageProvider: stored.storageProvider,
-                path: stored.localPath || null,
-                objectKey: stored.objectKey || null,
-                artifactId: stored.artifactId,
-                createdAt: stored.createdAt
-            };
         }
-    } catch (e) {
-        log(`[AUTO-BACKUP ERROR] ${e.message}`);
-        throw e;
-    }
-};
 
-const getBackupStatus = async () => {
-    try {
-        const latest = await getLatestBackupArtifact();
+        const stored = await uploadArchiveWithMetadata({
+            format,
+            fileName,
+            buffer: Buffer.from(sqlContent, 'utf8'),
+            includesMedia: false,
+            localPathForFallback: latestPath
+        });
+
+        return {
+            archivePath: latestPath,
+            artifactId: stored.artifactId,
+            fileName,
+            format
+        };
         if (!latest) return { lastBackupDate: null, isMediaIncluded: false };
         return {
             lastBackupDate: new Date(latest.created_at).toISOString(),
