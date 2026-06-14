@@ -31,6 +31,7 @@ dotenv.config({ path: findEnv() });
 validateRuntimeConfig();
 
 const app = express();
+app.set('trust proxy', 1); // Trust first proxy (Vercel, Cloudflare, Passenger, etc.)
 const port = process.env.PORT || 8080;
 const processRole = process.env.PROCESS_ROLE || 'api';
 const enableInProcessJobsRequested = process.env.ENABLE_IN_PROCESS_JOBS === 'true';
@@ -77,9 +78,6 @@ const STARTUP_MODULE_POLICY = Object.freeze({
         'contact',
         'store',
         'carbon',
-        'shadi',
-        'ai-analytics',
-        'ocr',
         'suppliers',
         'project_services',
         'supplier_rates',
@@ -212,7 +210,6 @@ const buildRateLimitPolicies = rateLimitPoliciesModule.buildRateLimitPolicies ||
     authLimiter: (req, res, next) => next(),
     publicWriteLimiter: (req, res, next) => next(),
     sseTokenLimiter: (req, res, next) => next(),
-    aiLimiter: (req, res, next) => next(),
     adminOpsLimiter: (req, res, next) => next(),
 }));
 
@@ -270,7 +267,6 @@ const {
     authLimiter,
     publicWriteLimiter,
     sseTokenLimiter,
-    aiLimiter,
     adminOpsLimiter,
 } = buildRateLimitPolicies(rateLimit);
 
@@ -295,9 +291,6 @@ const landingRoutes = requireByStartupPolicy('./src/modules/public/landing/landi
 const contactRoutes = requireByStartupPolicy('./src/modules/public/contact/contact.routes', 'contact');
 const storeRoutes = requireByStartupPolicy('./src/modules/public/store/store.routes', 'store');
 const carbonRoutes = requireByStartupPolicy('./src/modules/public/carbon/carbon.routes', 'carbon');
-const shadiRoutes = safeLazyRouter('./src/modules/ai/shadi/shadi.routes', 'shadi');
-const aiAnalyticsRoutes = safeLazyRouter('./src/modules/ai/analytics/analytics.routes', 'ai-analytics');
-const ocrRoutes = safeLazyRouter('./src/modules/ai/ocr/ocr.routes', 'ocr');
 const healthRoutes = requireByStartupPolicy('./src/modules/infrastructure/health/health.routes', 'health');
 const backupRoutes = requireByStartupPolicy('./src/modules/infrastructure/backup/backup.routes', 'backup');
 const settingsRoutes = requireByStartupPolicy('./src/modules/infrastructure/settings/settings.routes', 'settings');
@@ -358,11 +351,9 @@ const uploadJsonBodyLimit = process.env.BODY_LIMIT_UPLOAD_JSON || '25mb';
 const uploadUrlEncodedBodyLimit = process.env.BODY_LIMIT_UPLOAD_URLENCODED || '10mb';
 
 const uploadHeavyPrefixes = [
-    '/api/ai/ocr',
     '/api/trips',
     '/api/asset_requests',
     '/api/requests',
-    '/ai/ocr',
     '/trips',
     '/asset_requests',
     '/requests',
@@ -583,9 +574,6 @@ mountApiUse('/api/project_services', protect, projectServicesRoutes);
 mountApiUse('/api/project_supplier_rates', protect, supplierRatesRoutes);
 mountApiUse('/api/asset-service-links', protect, assetServiceLinksRoutes);
 mountApiGet('/api/logs', protect, authorizeRoles('ADMIN'), systemController.getLogs || ((req, res) => res.status(503).json({ error: 'Logs unavailable' })));
-mountApiUse('/api/ai/ocr', aiLimiter, protect, ocrRoutes);
-mountApiUse('/api/ai', aiLimiter, protect, shadiRoutes);
-mountApiUse('/api/ai', aiLimiter, protect, aiAnalyticsRoutes);
 mountApiUse('/api/system/health', protect, authorizeRoles('ADMIN'), healthRoutes);
 mountApiUse('/api/admin/health', protect, authorizeRoles('ADMIN'), healthRoutes);
 mountApiGet('/api/system/metrics', adminOpsLimiter, protect, authorizeRoles('ADMIN'), systemController.getMetrics || ((req, res) => res.status(503).json({ error: 'Metrics unavailable' })));

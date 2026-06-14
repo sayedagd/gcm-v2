@@ -5,11 +5,14 @@ class RedisRateLimitStore {
         this.windowMs = windowMs;
     }
 
-    async increment(key, cb) {
+    async increment(key) {
         try {
             const client = await getRedisClient();
             if (!client) {
-                return cb(null, 1, new Date(Date.now() + this.windowMs));
+                return {
+                    totalHits: 1,
+                    resetTime: new Date(Date.now() + this.windowMs)
+                };
             }
 
             const nowMs = Date.now();
@@ -22,22 +25,41 @@ class RedisRateLimitStore {
 
             const ttl = await client.ttl(key);
             const resetTime = new Date(nowMs + (Math.max(0, ttl) * 1000));
-            return cb(null, count, resetTime);
+            
+            return {
+                totalHits: count,
+                resetTime
+            };
         } catch (error) {
-            return cb(error);
+            // Log the error but fallback to mock values to prevent crashing the request
+            console.error('[REDIS Store] Increment error:', error.message);
+            return {
+                totalHits: 1,
+                resetTime: new Date(Date.now() + this.windowMs)
+            };
         }
     }
 
-    decrement(key) {
-        getRedisClient()
-            .then((client) => client && client.decr(key))
-            .catch(() => {});
+    async decrement(key) {
+        try {
+            const client = await getRedisClient();
+            if (client) {
+                await client.decr(key);
+            }
+        } catch (error) {
+            console.error('[REDIS Store] Decrement error:', error.message);
+        }
     }
 
-    resetKey(key) {
-        getRedisClient()
-            .then((client) => client && client.del(key))
-            .catch(() => {});
+    async resetKey(key) {
+        try {
+            const client = await getRedisClient();
+            if (client) {
+                await client.del(key);
+            }
+        } catch (error) {
+            console.error('[REDIS Store] resetKey error:', error.message);
+        }
     }
 }
 

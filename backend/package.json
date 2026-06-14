@@ -8,7 +8,6 @@
         "start": "node app.js",
         "dev": "nodemon app.js",
         "worker:scheduler": "node src/workers/scheduler.worker.js",
-        "worker:ocr": "node src/workers/ocr.worker.js",
         "worker:whatsapp": "node src/workers/whatsapp.worker.js",
         "test": "jest",
         "check:runtime-config-guards": "npm run test -- --runInBand src/__tests__/unit/runtimeConfig.test.js",
@@ -43,7 +42,6 @@
     "dependencies": {
         "@aws-sdk/client-s3": "^3.1057.0",
         "@aws-sdk/s3-request-presigner": "^3.1057.0",
-        "@google/generative-ai": "^0.24.1",
         "adm-zip": "^0.5.17",
         "archiver": "^8.0.0",
         "bcryptjs": "^2.4.3",

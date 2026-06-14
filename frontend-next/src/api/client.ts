@@ -356,17 +356,6 @@ export const createApiClient = (baseUrl: BaseUrlResolver = '') => {
         upsertFacility: (data: FacilityUpsertPayload, skipValidation?: boolean) => requestServerWrite('/api/write/facilities', { method: 'POST', body: JSON.stringify(data), headers: skipValidation ? { 'x-skip-validation': 'true' } : {} }, 'facilities'),
         deleteFacility: (id: string) => requestServerWrite(`/api/write/facilities/${id}`, { method: 'DELETE' }, 'facilities'),
 
-        // AI Sessions
-        logAISession: (data: JsonObjectPayload) => request(ENDPOINTS.AI.LOG_SESSION, { method: 'POST', body: JSON.stringify(data) }),
-        getAISessions: (params?: Record<string, string>) => {
-            const qs = params ? '?' + new URLSearchParams(params).toString() : '';
-            return request(`${ENDPOINTS.AI.SESSIONS}${qs}`);
-        },
-        getAISessionById: (id: string) => request(ENDPOINTS.AI.SESSION_BY_ID(id)),
-        getAIAnalytics: () => request(ENDPOINTS.AI.ANALYTICS),
-        rateAISession: (id: string, data: { rating?: number; flagged?: boolean }) => request(ENDPOINTS.AI.RATE_SESSION(id), { method: 'PATCH', body: JSON.stringify(data) }),
-        chatWithAI: (messages: unknown[], context: unknown) => request(ENDPOINTS.AI.CHAT, { method: 'POST', body: JSON.stringify({ messages, context }) }),
-
         // Asset Requests
         getAssetRequests: () => request('/api/v1/asset_requests'),
         upsertAssetRequest: (data: JsonObjectPayload) => request('/api/v1/asset_requests', { method: 'POST', body: JSON.stringify(data) }),
@@ -376,8 +365,16 @@ export const createApiClient = (baseUrl: BaseUrlResolver = '') => {
         syncAssetServiceLinks: (assetType: string, assetId: string, serviceIds: string[]) =>
             request(`/api/v1/asset-service-links/${assetType}/${assetId}`, { method: 'PUT', body: JSON.stringify({ service_ids: serviceIds }) }),
 
-        // AI OCR
-        processOcrVision: (base64: string) => request('/api/v1/ai/ocr/vision', { method: 'POST', body: JSON.stringify({ image: base64 }) }),
+        // AI Sessions
+        logAISession: (data: JsonObjectPayload) => request(ENDPOINTS.AI.LOG_SESSION, { method: 'POST', body: JSON.stringify(data) }),
+        getAISessions: (params?: Record<string, string>) => {
+            const qs = params ? '?' + new URLSearchParams(params).toString() : '';
+            return request(`${ENDPOINTS.AI.SESSIONS}${qs}`);
+        },
+        getAISessionById: (id: string) => request(ENDPOINTS.AI.SESSION_BY_ID(id)),
+        getAIAnalytics: () => request(ENDPOINTS.AI.ANALYTICS),
+        rateAISession: (id: string, data: { rating?: number; flagged?: boolean }) => request(ENDPOINTS.AI.RATE_SESSION(id), { method: 'PATCH', body: JSON.stringify(data) }),
+        chatWithAI: (messages: any[], context: any) => request(ENDPOINTS.AI.CHAT, { method: 'POST', body: JSON.stringify({ messages, context }) }),
 
         // System
         getSystemMetrics: () => request('/api/v1/system/metrics'),

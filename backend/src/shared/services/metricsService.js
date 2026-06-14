@@ -23,7 +23,6 @@ const state = {
     sseDisconnects: [],
     sseConnectedCurrent: 0,
     queueDepths: {
-        ocr: null,
         backups: null,
         whatsapp: null,
     },

@@ -55,8 +55,8 @@ const logPoolSizingAdvisory = () => {
 };
 
 const resolveConnectionString = () => {
-    const pooledUrl = process.env.DATABASE_POOL_URL;
-    const directUrl = process.env.DATABASE_URL;
+    const pooledUrl = typeof process.env.DATABASE_POOL_URL === 'string' ? process.env.DATABASE_POOL_URL.trim() : null;
+    const directUrl = typeof process.env.DATABASE_URL === 'string' ? process.env.DATABASE_URL.trim() : null;
 
     if (DB_POOL_MODE === 'pgbouncer' && pooledUrl) {
         return { connectionString: pooledUrl, source: 'DATABASE_POOL_URL' };

@@ -38,7 +38,6 @@ const getRouteLabel = (path: string, isAr: boolean): string | null => {
     '/system-monitor': ['المراقبة', 'System Monitor'],
     '/landing-settings': ['إعدادات الموقع', 'Landing Settings'],
     '/equipment-admin': ['إدارة المتجر', 'Store Management'],
-    '/ai-sessions': ['جلسات الذكاء', 'AI Sessions'],
     '/profile': ['الملف الشخصي', 'Profile'],
     '/client/dashboard': ['لوحة العميل', 'Client Dashboard'],
     '/client/reports': ['تقارير العميل', 'Client Reports'],
@@ -74,7 +73,6 @@ const getGroupForPath = (path: string, isAr: boolean): string | null => {
     '/system-monitor': ['الإدارة', 'Admin'],
     '/landing-settings': ['الإدارة', 'Admin'],
     '/equipment-admin': ['الإدارة', 'Admin'],
-    '/ai-sessions': ['الإدارة', 'Admin'],
   };
   const entry = groupMap[path];
   return entry ? (isAr ? entry[0] : entry[1]) : null;

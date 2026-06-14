@@ -1,8 +1,8 @@
 
 import {
     LayoutDashboard, Building2, Briefcase, ClipboardList, BarChart3,
-    Truck, Package, HardHat, Users, Box, Activity, ScrollText, MapPin, Zap, Layout as LayoutIcon,
-    FileText, Map, User, FolderOpen, Headphones
+    Truck, Package, HardHat, Users, Box, Activity, ScrollText, MapPin, Layout as LayoutIcon,
+    FileText, Map, User, FolderOpen, Headphones, Zap
 } from 'lucide-react';
 import { Role } from '../../types';
 

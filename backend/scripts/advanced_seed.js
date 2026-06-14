@@ -18,7 +18,7 @@ const runSeed = async () => {
             trips, notifications, activity_logs, project_services, 
             projects, companies, users, vehicles, drivers, 
             containers, tanks, scales, suppliers, environmental_equipments, equipment_inquiries,
-            project_supplier_rates, ai_sessions, ai_messages, facilities
+            project_supplier_rates, facilities
             RESTART IDENTITY CASCADE`);
 
         // 1. Create System & Global Admin

@@ -35,7 +35,6 @@ export const ACCESS_POLICIES: Array<{ prefix: string; roles: readonly GcmRole[] 
   { prefix: "/settings", roles: ADMIN_ONLY },
   { prefix: "/system-monitor", roles: ADMIN_ONLY },
   { prefix: "/landing-settings", roles: ADMIN_ONLY },
-  { prefix: "/ai-sessions", roles: ADMIN_ONLY },
   { prefix: "/equipment-admin", roles: ADMIN_ONLY },
 ];
 

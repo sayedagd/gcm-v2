@@ -7,7 +7,7 @@ import { useDisclosure } from '@mantine/hooks';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
-import { LogOut, Sun, Moon, Globe, Bell, ExternalLink, ChevronRight, Sparkles, Headphones, Search, Phone, MessageCircle, X } from 'lucide-react';
+import { LogOut, Sun, Moon, Globe, Bell, ExternalLink, ChevronRight, Sparkles, Headphones, Search, Phone, MessageCircle, X, User } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useStore } from '@/context';
 import { getMenuGroups } from './MenuConfig';
@@ -18,8 +18,8 @@ import { formatRole } from '@/utils/helpers';
 import { Role } from '@/types';
 
 const translations = {
-    ar: { ops: 'العمليات', logistics: 'اللوجستيات', admin: 'الإدارة', dashboard: 'الرئيسية', companies: 'الشركات', projects: 'المشاريع', trips: 'الرحلات', reports: 'التحليلات', fleet: 'الأسطول', inventory: 'المخزون', drivers: 'الموظفين', suppliers: 'الموردين', facilities: 'المرافق', accounting: 'المحاسبة', users: 'الفريق', services: 'الخدمات', settings: 'الإعدادات', landing: 'الموقع', monitor: 'المراقبة', logout: 'خروج', logs: 'سجل الأنشطة', notifs: 'الإشعارات' },
-    en: { ops: 'Operations', logistics: 'Logistics', admin: 'Admin', dashboard: 'Dashboard', companies: 'Companies', projects: 'Projects', trips: 'Trips', reports: 'Analytics', fleet: 'Fleet', inventory: 'Inventory', drivers: 'Staff Hub', suppliers: 'Suppliers Hub', facilities: 'Facilities Hub', accounting: 'Finance', users: 'Team', services: 'Services', settings: 'Settings', landing: 'Landing', monitor: 'Monitor', logout: 'Logout', logs: 'Activity Logs', notifs: 'Notifications' }
+    ar: { ops: 'العمليات', logistics: 'اللوجستيات', admin: 'الإدارة', dashboard: 'الرئيسية', companies: 'الشركات', projects: 'المشاريع', trips: 'الرحلات', reports: 'التحليلات', fleet: 'الأسطول', inventory: 'المخزون', drivers: 'الموظفين', suppliers: 'الموردين', facilities: 'المرافق', accounting: 'المحاسبة', users: 'الفريق', services: 'الخدمات', settings: 'الإعدادات', landing: 'الموقع', monitor: 'المراقبة', profile: 'الملف الشخصي', logout: 'خروج', logs: 'سجل الأنشطة', notifs: 'الإشعارات' },
+    en: { ops: 'Operations', logistics: 'Logistics', admin: 'Admin', dashboard: 'Dashboard', companies: 'Companies', projects: 'Projects', trips: 'Trips', reports: 'Analytics', fleet: 'Fleet', inventory: 'Inventory', drivers: 'Staff Hub', suppliers: 'Suppliers Hub', facilities: 'Facilities Hub', accounting: 'Finance', users: 'Team', services: 'Services', settings: 'Settings', landing: 'Landing', monitor: 'Monitor', profile: 'My Profile', logout: 'Logout', logs: 'Activity Logs', notifs: 'Notifications' }
 };
 
 interface MainLayoutProps {
@@ -253,6 +253,13 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                                 </UnstyledButton>
                             </Menu.Target>
                             <Menu.Dropdown>
+                                <Menu.Item
+                                    leftSection={<User size={14} />}
+                                    onClick={() => router.push('/profile')}
+                                >
+                                    {t.profile}
+                                </Menu.Item>
+                                <Menu.Divider />
                                 <Menu.Item
                                     leftSection={<LogOut size={14} />}
                                     color="red"

@@ -23,8 +23,6 @@ const SCHEMA = {
     contact_submissions: ['id', 'name', 'email', 'phone', 'company', 'subject', 'message', 'created_at'],
     saas_config: ['id', 'app_name_ar', 'app_name_en', 'app_slogan_ar', 'app_slogan_en', 'primary_color', 'logo_url', 'logo_dark_url', 'language', 'landing_page', 'store_page', 'template_config', 'ai_assistant', 'management_controls_enabled', 'boot_config', 'support_phone', 'support_whatsapp'],
     project_supplier_rates: ['id', 'project_id', 'supplier_id', 'service_id', 'cost_price', 'currency'],
-    ai_sessions: ['id', 'user_id', 'user_name', 'user_role', 'action_type', 'language', 'status', 'started_at', 'ended_at', 'duration_seconds', 'trip_reference', 'error_message', 'trip_data_summary', 'rating', 'ai_confidence_score', 'flagged', 'ip_address'],
-    ai_messages: ['id', 'session_id', 'sender', 'message', 'timestamp'],
     facilities: ['facility_id', 'name', 'type', 'contract_no', 'contract_file', 'contract_start', 'contract_end', 'accepted_services', 'location_url', 'status', 'details'],
     environmental_equipments: ['equipment_id', 'name_ar', 'name_en', 'description_ar', 'description_en', 'image_url', 'additional_images', 'status', 'catalog_url', 'data_sheet_url', 'specifications', 'share_count', 'created_at'],
     equipment_inquiries: ['id', 'customer_name', 'email', 'phone', 'company', 'message', 'equipment_id', 'admin_reply', 'status', 'created_at'],
@@ -37,7 +35,7 @@ const PK_MAP = {
     drivers: 'driver_id', users: 'id', trips: 'trip_id', notifications: 'id',
     permission_requests: 'id', activity_logs: 'id', contact_submissions: 'id', project_services: 'id',
     inventory_sizes: 'size_id', containers: 'container_id', tanks: 'tank_id', scales: 'scale_id', suppliers: 'supplier_id', saas_config: 'id',
-    project_supplier_rates: 'id', ai_sessions: 'id', ai_messages: 'id', facilities: 'facility_id',
+    project_supplier_rates: 'id', facilities: 'facility_id',
     environmental_equipments: 'equipment_id', equipment_inquiries: 'id', asset_requests: 'id',
     asset_service_links: 'id'
 };

@@ -320,16 +320,6 @@ const getQueueVisibilityMetrics = async () => {
     const result = await dbQuery(
         `WITH queue_rows AS (
             SELECT
-                'ocr'::text AS queue_name,
-                COALESCE(SUM(CASE WHEN status = 'PENDING' THEN 1 ELSE 0 END), 0)::int AS queued_count,
-                COALESCE(SUM(CASE WHEN status = 'RETRY' THEN 1 ELSE 0 END), 0)::int AS retry_count,
-                COALESCE(SUM(CASE WHEN status = 'DEAD_LETTER' THEN 1 ELSE 0 END), 0)::int AS dead_letter_count,
-                COALESCE(SUM(CASE WHEN status = 'PROCESSING' THEN 1 ELSE 0 END), 0)::int AS running_count
-            FROM ocr_jobs
-
-            UNION ALL
-
-            SELECT
                 'whatsapp'::text AS queue_name,
                 COALESCE(SUM(CASE WHEN status = 'PENDING' THEN 1 ELSE 0 END), 0)::int AS queued_count,
                 COALESCE(SUM(CASE WHEN status = 'RETRY' THEN 1 ELSE 0 END), 0)::int AS retry_count,

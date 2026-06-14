@@ -147,18 +147,6 @@ const EXPECTED_TABLES = {
         },
         pk: 'id'
     },
-    ocr_jobs: {
-        columns: {
-            job_id: 'varchar', status: "varchar DEFAULT 'PENDING'", image_data: 'text',
-            mime_type: 'varchar', callback_url: 'text', requested_by: 'varchar',
-            extracted_data: "jsonb DEFAULT '{}'::jsonb", error_message: 'text',
-            attempts: 'integer DEFAULT 0', created_at: 'timestamp DEFAULT CURRENT_TIMESTAMP',
-            started_at: 'timestamp', completed_at: 'timestamp',
-            next_attempt_at: 'timestamp DEFAULT CURRENT_TIMESTAMP', dead_lettered_at: 'timestamp',
-            updated_at: 'timestamp DEFAULT CURRENT_TIMESTAMP'
-        },
-        pk: 'job_id'
-    },
     whatsapp_jobs: {
         columns: {
             id: 'serial', status: "varchar DEFAULT 'PENDING'", payload: "jsonb DEFAULT '{}'::jsonb",
@@ -252,7 +240,6 @@ const EXPECTED_INDEXES = [
     { name: 'idx_containers_project', table: 'containers', columns: 'project_id' },
     { name: 'idx_asl_asset', table: 'asset_service_links', columns: 'asset_type, asset_id' },
     { name: 'idx_asl_service', table: 'asset_service_links', columns: 'service_id' },
-    { name: 'idx_ocr_jobs_status_created_at', table: 'ocr_jobs', columns: 'status, created_at' },
     { name: 'idx_whatsapp_jobs_status_created_at', table: 'whatsapp_jobs', columns: 'status, created_at' },
     { name: 'idx_event_bus_replay_created_at', table: 'event_bus_replay', columns: 'created_at' },
     { name: 'idx_event_bus_replay_event_name', table: 'event_bus_replay', columns: 'event_name' }

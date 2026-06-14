@@ -8,7 +8,7 @@ import { exportMultiSheetExcel } from '@/utils/excelUtils';
 import axios from 'axios';
 import {
   Palette, Globe, Layout, CheckCircle, Save, Languages, Monitor,
-  Upload, Image as ImageIcon, Zap, Download, Link2, Bot, Sparkles, FileText, Smartphone, Phone
+  Upload, Image as ImageIcon, Zap, Download, Link2, FileText, Smartphone, Phone
 } from 'lucide-react';
 import { Input, Card, Modal, Button, SystemAudit } from '@/components';
 import TemplateSettings from './TemplateSettings';
@@ -16,7 +16,7 @@ import { toast } from '@/utils/toast';
 import { ShieldAlert } from 'lucide-react';
 import { getClientAuthHeaders } from '@/lib/clientAuth';
 
-type SettingsTab = 'identity' | 'operations' | 'interface' | 'ai' | 'templates' | 'audit';
+type SettingsTab = 'identity' | 'operations' | 'interface' | 'templates' | 'audit';
 
 const Settings: React.FC = () => {
   const { saasConfig, updateSaaS, darkMode, setDarkMode, exportEnabled, setExportEnabled, currentUser, api } = useStore();
@@ -103,7 +103,6 @@ const Settings: React.FC = () => {
     { key: 'identity', label: isAr ? 'هوية المنصة' : 'Platform Identity', icon: Palette },
     { key: 'operations', label: isAr ? 'التحكم والعمليات' : 'Data & Ops', icon: Zap },
     { key: 'interface', label: isAr ? 'مظهر الواجهة' : 'Appearance', icon: Monitor },
-    { key: 'ai', label: isAr ? 'الذكاء الاصطناعي' : 'AI Engine', icon: Bot },
     { key: 'templates', label: isAr ? 'قوالب التقارير' : 'Print Templates', icon: FileText },
     { key: 'audit', label: isAr ? 'التدقيق والتعارضات' : 'Audit & Integrity', icon: ShieldAlert },
   ];
@@ -590,50 +589,6 @@ const Settings: React.FC = () => {
                 </button>
               </div>
             </Card>
-          </div>
-        )}
-
-        {/* --- AI TAB --- */}
-        {activeTab === 'ai' && (
-          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              <Card className={`p-8 flex flex-col justify-between transition-all ${(saasConfig.aiAssistant?.enabled !== false) ? 'border-primary/30' : ''}`}>
-                <div className="mb-6">
-                  <h3 className="text-lg font-bold flex items-center gap-2 mb-2">
-                    <Sparkles size={20} className={(saasConfig.aiAssistant?.enabled !== false) ? 'text-primary' : 'text-text-subtle'} />
-                    {isAr ? 'تفعيل المساعد شادي' : 'Activate AI Shady'}
-                  </h3>
-                  <p className="text-xs font-medium text-text-subtle leading-relaxed">
-                    {isAr ? 'عرض أيقونة المساعد الذكي في كافة الصفحات.' : 'Show AI assistant icon across the platform.'}
-                  </p>
-                </div>
-                <div className="flex items-center justify-between bg-surface-subtle p-4 rounded-2xl border border-border">
-                  <span className={`text-xs font-bold uppercase tracking-widest ${(saasConfig.aiAssistant?.enabled !== false) ? 'text-primary' : 'text-text-subtle'}`}>
-                    {(saasConfig.aiAssistant?.enabled !== false) ? (isAr ? 'مفعل' : 'Active') : (isAr ? 'معطل' : 'Disabled')}
-                  </span>
-                  <button
-                    onClick={() => updateSaaS({ aiAssistant: { ...saasConfig.aiAssistant, enabled: !(saasConfig.aiAssistant?.enabled !== false) } })}
-                    className={`w-14 h-8 rounded-full transition-all relative ${(saasConfig.aiAssistant?.enabled !== false) ? 'bg-primary' : 'bg-border'}`}
-                  >
-                    <div className={`absolute top-1 w-6 h-6 bg-surface rounded-full transition-all shadow-sm ${(saasConfig.aiAssistant?.enabled !== false) ? 'left-7' : 'left-1'}`} />
-                  </button>
-                </div>
-              </Card>
-
-              <Card className="p-8 lg:col-span-2 space-y-6">
-                <h3 className="text-lg font-bold">{isAr ? 'مظهر وتخصيص المساعد' : 'Assistant Customization'}</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <div className="space-y-4">
-                    <label className="text-[10px] font-black uppercase text-text-subtle tracking-widest">{isAr ? 'الاسم (عربي)' : 'Name (AR)'}</label>
-                    <Input value={saasConfig.aiAssistant?.nameAr || 'شادي'} onChange={val => updateSaaS({ aiAssistant: { ...saasConfig.aiAssistant, enabled: saasConfig.aiAssistant?.enabled !== false, nameAr: val } })} dir="rtl" />
-                  </div>
-                  <div className="space-y-4">
-                    <label className="text-[10px] font-black uppercase text-text-subtle tracking-widest">{isAr ? 'الاسم (إنجليزي)' : 'Name (EN)'}</label>
-                    <Input value={saasConfig.aiAssistant?.name || 'Shady'} onChange={val => updateSaaS({ aiAssistant: { ...saasConfig.aiAssistant, enabled: saasConfig.aiAssistant?.enabled !== false, name: val } })} dir="ltr" />
-                  </div>
-                </div>
-              </Card>
-            </div>
           </div>
         )}
 

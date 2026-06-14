@@ -4,6 +4,7 @@ const parsePositiveInt = (value, fallback) => {
 };
 
 const { RedisRateLimitStore } = require('./redisRateLimitStore');
+const { isRedisEnabled } = require('../services/redisClientService');
 
 const noop = (req, res, next) => next();
 
@@ -33,14 +34,12 @@ const buildRateLimitPolicies = (rateLimitLib) => {
     const publicWriteMax = parsePositiveInt(process.env.RL_PUBLIC_WRITE_MAX, 40);
     const sseWindowMs = parsePositiveInt(process.env.RL_SSE_WINDOW_MS, 15 * 60 * 1000);
     const sseMax = parsePositiveInt(process.env.RL_SSE_MAX, 30);
-    const aiWindowMs = parsePositiveInt(process.env.RL_AI_WINDOW_MS, 15 * 60 * 1000);
-    const aiMax = parsePositiveInt(process.env.RL_AI_MAX, 120);
     const adminWindowMs = parsePositiveInt(process.env.RL_ADMIN_WINDOW_MS, 15 * 60 * 1000);
     const adminMax = parsePositiveInt(process.env.RL_ADMIN_MAX, 30);
     const useRedisStore = process.env.NODE_ENV === 'production' || process.env.RL_USE_REDIS_STORE === 'true';
 
     const buildStore = (windowMs) => {
-        if (!useRedisStore) return null;
+        if (!useRedisStore || !isRedisEnabled()) return null;
         return new RedisRateLimitStore(windowMs);
     };
 
@@ -70,12 +69,6 @@ const buildRateLimitPolicies = (rateLimitLib) => {
             store: buildStore(sseWindowMs),
             message: 'Too many SSE token requests, please try again later',
         }),
-        aiLimiter: buildLimiter(rateLimitLib, {
-            windowMs: aiWindowMs,
-            max: aiMax,
-            store: buildStore(aiWindowMs),
-            message: 'Too many AI requests, please try again later',
-        }),
         adminOpsLimiter: buildLimiter(rateLimitLib, {
             windowMs: adminWindowMs,
             max: adminMax,
@@ -87,7 +80,6 @@ const buildRateLimitPolicies = (rateLimitLib) => {
             auth: { windowMs: authWindowMs, max: authMax },
             publicWrite: { windowMs: publicWriteWindowMs, max: publicWriteMax },
             sse: { windowMs: sseWindowMs, max: sseMax },
-            ai: { windowMs: aiWindowMs, max: aiMax },
             admin: { windowMs: adminWindowMs, max: adminMax },
         },
     };

@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import NextImage from 'next/image';
 import { useStore } from '@/context';
 import {
     Building2, MapPin, ArrowRight, UserCheck, Truck, HardHat,
     Activity, FileText, FileCheck, Recycle, Package, Navigation, AlertCircle,
-    Upload, Wand2, Copy, CheckCircle2, RefreshCw, Clock, ScanLine
+    Upload, Wand2, Copy, CheckCircle2, RefreshCw, Clock
 } from 'lucide-react';
 import { Trip, TripStatus, Role, NotificationType } from '@/types';
 import { Modal, Button, Input, SearchableSelect, FileUploader, Card } from '@/components';
@@ -30,7 +30,7 @@ const TripWizard: React.FC<TripWizardProps> = ({ isOpen, onClose, tripToEdit, in
     const {
         projects, services, companies, vehicles, drivers,
         containers, inventorySizes, projectServices, upsertTrip, trips, tanks,
-        saasConfig, users, addNotification, suppliers, currentUser, facilities, api,
+        saasConfig, users, addNotification, suppliers, currentUser, facilities,
         assetServiceLinks
     } = useStore();
 
@@ -48,227 +48,6 @@ const TripWizard: React.FC<TripWizardProps> = ({ isOpen, onClose, tripToEdit, in
     const [submissionError, setSubmissionError] = useState('');
     const [showConfirmation, setShowConfirmation] = useState(false);
     const [pendingSaveMode, setPendingSaveMode] = useState<'save' | 'clone'>('save');
-    const [isOcrProcessing, setIsOcrProcessing] = useState(false);
-    const [isOcrScanning, setIsOcrScanning] = useState(false);
-    const ocrScanInputRef = useRef<HTMLInputElement>(null);
-
-    // Creates a cropped version of the top X% of the image to avoid scanning tables/irrelevant numbers
-    const cropImageTop = (base64: string, heightRatio: number = 0.25): Promise<string> => {
-        return new Promise((resolve) => {
-            const img = new globalThis.Image();
-            img.onload = () => {
-                const canvas = document.createElement('canvas');
-                const ctx = canvas.getContext('2d');
-                canvas.width = img.width;
-                canvas.height = img.height * heightRatio;
-                if (ctx) {
-                    ctx.drawImage(img, 0, 0, img.width, img.height * heightRatio, 0, 0, canvas.width, canvas.height);
-                    resolve(canvas.toDataURL('image/png'));
-                } else {
-                    resolve(base64); // Fallback
-                }
-            };
-            img.onerror = () => resolve(base64);
-            img.src = base64;
-        });
-    };
-
-    // Copes with Arabic-Indic digits
-    const arabicToEnglishNumbers = (str: string) => {
-        return str.replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d).toString());
-    };
-
-    const processOcr = async (base64: string, type: 'MANIFEST' | 'DELIVERY_NOTE' | 'RECYCLE') => {
-        setIsOcrProcessing(true);
-        try {
-            addNotification({
-                title: isAr ? 'تحليل الصورة الذكي' : 'Smart Image Analysis',
-                message: isAr ? 'يتم تحديد الرقم باستخدام الذكاء الاصطناعي...' : 'Extracting using AI Vision...',
-                type: NotificationType.INFO,
-            });
-
-            const response = await api.processOcrVision(base64);
-            const data = response.extracted;
-
-            let extracted = '';
-            // Depending on the field requested, extract the relevant data
-            if (type === 'DELIVERY_NOTE' && data.delivery_note_no) {
-                extracted = data.delivery_note_no;
-                if (!extracted.startsWith('DN')) extracted = `DN-${extracted}`;
-                setCurrentTrip(p => ({ ...p, delivery_note_no: extracted }));
-            } else if (type === 'MANIFEST' && data.waste_manifest_no) {
-                extracted = data.waste_manifest_no;
-                if (!extracted.startsWith('M')) extracted = `M-${extracted}`;
-                setCurrentTrip(p => ({ ...p, waste_manifest_no: extracted }));
-            } else if (type === 'RECYCLE' && data.delivery_note_no) { // fallback
-                extracted = data.delivery_note_no;
-                if (!extracted.startsWith('R')) extracted = `R-${extracted}`;
-                setCurrentTrip(p => ({ ...p, recycle_receipt_no: extracted }));
-            }
-
-            if (extracted) {
-                addNotification({ 
-                    title: isAr ? 'نجاح' : 'Success', 
-                    message: isAr ? `تم التقاط: ${extracted}` : `Extracted: ${extracted}`, 
-                    type: NotificationType.SUCCESS 
-                });
-            } else {
-                addNotification({ 
-                    title: isAr ? 'لم يتم العثور على رقم' : 'No Number Found', 
-                    message: isAr ? 'لم يجد الذكاء الأصطناعي رقماً واضحاً.' : 'AI could not find a clear serial number.', 
-                    type: NotificationType.WARNING 
-                });
-            }
-        } catch (err) {
-            console.error('OCR Error:', err);
-            addNotification({ 
-                title: isAr ? 'خطأ' : 'Error', 
-                message: isAr ? 'فشل الاتصال بالذكاء الاصطناعي' : 'AI connection failed.', 
-                type: NotificationType.ERROR 
-            });
-        } finally {
-            setIsOcrProcessing(false);
-        }
-    };
-
-    /**
-     * Full OCR scan of a Delivery Note to auto-fill all trip fields.
-     * Extracts text from the image, then fuzzy-matches against store entities.
-     */
-    const processDeliveryNoteFullOcr = async (base64: string) => {
-        setIsOcrScanning(true);
-        try {
-            addNotification({
-                title: isAr ? 'مسح سند التسليم' : 'Scanning Delivery Note',
-                message: isAr ? 'جاري تحليل الصورة بخوارزميات الذكاء الاصطناعي...' : 'AI Vision is analyzing the document...',
-                type: NotificationType.INFO,
-            });
-
-            const response = await api.processOcrVision(base64);
-            const data = response.extracted;
-
-            console.log('[AI Full Scan] Extracted data:', data);
-
-            const matched: string[] = [];
-            const updates: Partial<typeof currentTrip> = {};
-
-            // --- Extract Exact Match Data ---
-            if (data.delivery_note_no) {
-                const dnStr = data.delivery_note_no.toString().startsWith('DN') ? data.delivery_note_no : `DN-${data.delivery_note_no}`;
-                updates.delivery_note_no = dnStr;
-                matched.push(isAr ? `رقم السند: ${dnStr}` : `DN#: ${dnStr}`);
-            }
-
-            if (data.waste_manifest_no) {
-                const mStr = data.waste_manifest_no.toString().startsWith('M') ? data.waste_manifest_no : `M-${data.waste_manifest_no}`;
-                updates.waste_manifest_no = mStr;
-                matched.push(isAr ? `رقم المانفيست: ${mStr}` : `Manifest#: ${mStr}`);
-            }
-
-            if (data.date) {
-                updates.date = data.date;
-                matched.push(isAr ? `التاريخ: ${data.date}` : `Date: ${data.date}`);
-            }
-
-            if (data.quantity) {
-                updates.quantity = data.quantity.toString();
-                matched.push(isAr ? `الكمية: ${data.quantity}` : `Qty: ${data.quantity}`);
-            }
-            if (data.unit) {
-                updates.unit = data.unit.toUpperCase();
-            }
-
-            // --- Fuzzy match against Store ---
-            if (data.company_name) {
-                const cName = data.company_name.toLowerCase();
-                const matchedCompany = companies.find(c => cName.includes(c.company_name.toLowerCase()) || c.company_name.toLowerCase().includes(cName));
-                if (matchedCompany) {
-                    setSelectedCompanyId(matchedCompany.company_id);
-                    matched.push(isAr ? `الشركة: ${matchedCompany.company_name}` : `Company: ${matchedCompany.company_name}`);
-                }
-            }
-
-            if (data.project_name) {
-                const pName = data.project_name.toLowerCase();
-                const matchedProject = projects.find(p => pName.includes(p.project_name.toLowerCase()) || p.project_name.toLowerCase().includes(pName));
-                if (matchedProject) {
-                    updates.project_id = matchedProject.project_id;
-                    if (!updates.company_id && !selectedCompanyId) {
-                        setSelectedCompanyId(matchedProject.company_id);
-                    }
-                    matched.push(isAr ? `المشروع: ${matchedProject.project_name}` : `Project: ${matchedProject.project_name}`);
-                }
-            }
-
-            if (data.driver_name) {
-                const dName = data.driver_name.toLowerCase();
-                const matchedDriver = drivers.find(d => d.status === 'ACTIVE' && d.name && (dName.includes(d.name.toLowerCase()) || d.name.toLowerCase().includes(dName)));
-                if (matchedDriver) {
-                    updates.driver_id = matchedDriver.driver_id;
-                    if (matchedDriver.ownership_type === 'SUPPLIER' && matchedDriver.supplier_id) {
-                        setTripOwnership('SUPPLIER');
-                        setSelectedSupplierId(matchedDriver.supplier_id);
-                    }
-                    matched.push(isAr ? `السائق: ${matchedDriver.name}` : `Driver: ${matchedDriver.name}`);
-                }
-            }
-
-            if (data.vehicle_plate) {
-                const vPlate = data.vehicle_plate.replace(/[\s-]/g, '').toLowerCase();
-                const matchedVehicle = vehicles.find(v => v.status === 'ACTIVE' && v.plate_no.replace(/[\s-]/g, '').toLowerCase().includes(vPlate));
-                if (matchedVehicle) {
-                    updates.vehicle_id = matchedVehicle.vehicle_id;
-                    matched.push(isAr ? `المركبة: ${matchedVehicle.plate_no}` : `Vehicle: ${matchedVehicle.plate_no}`);
-                }
-            }
-
-            if (data.service_name) {
-                const sName = data.service_name.toLowerCase();
-                const matchedService = services.find(s => s.service_name && (sName.includes(s.service_name.toLowerCase()) || s.service_name.toLowerCase().includes(sName)));
-                if (matchedService) {
-                    updates.service_id = matchedService.service_id;
-                    matched.push(isAr ? `الخدمة: ${matchedService.service_name}` : `Service: ${matchedService.service_name}`);
-                }
-            }
-
-            updates.delivery_note_file = base64;
-
-            if (Object.keys(updates).length > 1) { 
-                setCurrentTrip(prev => ({ ...prev, ...updates }));
-                addNotification({
-                    title: isAr ? 'تم الذكاء بنجاح' : 'AI Scan Complete',
-                    message: matched.length > 0
-                        ? (isAr ? `تم التعرف بدقة على ${matched.length} حقول:\n${matched.join('، ')}` : `Perfectly extracted ${matched.length} fields: ${matched.join(', ')}`)
-                        : (isAr ? 'تم الرفع لكن الذكاء الاصطناعي لم يطابق البيانات.' : 'AI analyzed but no store records matched.'),
-                    type: matched.length > 0 ? NotificationType.SUCCESS : NotificationType.WARNING,
-                });
-            } else {
-                setCurrentTrip(prev => ({ ...prev, delivery_note_file: base64 }));
-            }
-        } catch (err) {
-            console.error('[OCR Full Scan] Error:', err);
-            addNotification({
-                title: isAr ? 'خطأ في الذكاء الاصطناعي' : 'AI Analysis Error',
-                message: isAr ? 'واجه الخادم مشكلة في تحليل الصورة.' : 'The Server AI encountered an error analyzing the image.',
-                type: NotificationType.ERROR,
-            });
-        } finally {
-            setIsOcrScanning(false);
-        }
-    };
-
-    const handleOcrScanUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = () => {
-            const base64 = reader.result as string;
-            processDeliveryNoteFullOcr(base64);
-        };
-        reader.readAsDataURL(file);
-        // Reset input so re-uploading same file triggers onChange
-        if (e.target) e.target.value = '';
-    };
     const [currentTrip, setCurrentTrip] = useState<Partial<Trip>>({
         unit: 'TON',
         proof_images: [],
@@ -1163,7 +942,6 @@ const TripWizard: React.FC<TripWizardProps> = ({ isOpen, onClose, tripToEdit, in
                                         <div className="mt-auto">
                                             <FileUploader value={currentTrip.manifest_file as string} onUpload={(b) => {
                                                 setCurrentTrip(p => ({ ...p, manifest_file: b }));
-                                                if (b) processOcr(b, 'MANIFEST');
                                             }} isAr={isAr} />
                                             {currentTrip.is_manifest_generated && currentTrip.manifest_file && (
                                                 <p className="text-[9px] font-bold text-amber-600 mt-1 text-center">{isAr ? 'ملف يدوي ← أولوية' : 'Manual override'}</p>
@@ -1209,7 +987,6 @@ const TripWizard: React.FC<TripWizardProps> = ({ isOpen, onClose, tripToEdit, in
                                         <div className="mt-auto">
                                             <FileUploader value={currentTrip.delivery_note_file as string} onUpload={(b) => {
                                                 setCurrentTrip(p => ({ ...p, delivery_note_file: b }));
-                                                if (b) processOcr(b, 'DELIVERY_NOTE');
                                             }} isAr={isAr} />
                                             {currentTrip.is_delivery_note_generated && currentTrip.delivery_note_file && (
                                                 <p className="text-[9px] font-bold text-amber-600 mt-1 text-center">{isAr ? 'ملف يدوي ← أولوية' : 'Manual override'}</p>
@@ -1240,7 +1017,6 @@ const TripWizard: React.FC<TripWizardProps> = ({ isOpen, onClose, tripToEdit, in
                                             <div className="mt-auto">
                                                 <FileUploader value={currentTrip.recycle_file as string} onUpload={(b) => {
                                                     setCurrentTrip(p => ({ ...p, recycle_file: b }));
-                                                    if (b) processOcr(b, 'RECYCLE');
                                                 }} isAr={isAr} />
                                             </div>
                                         </div>

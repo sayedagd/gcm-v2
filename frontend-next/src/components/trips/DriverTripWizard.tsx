@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useStore } from '@/context';
 import { Trip, TripStatus, NotificationType } from '@/types';
@@ -7,7 +7,6 @@ import { Building2, MapPin, ArrowRight, Package, CheckCircle2, Camera, AlertCirc
 import { formatDate, compressImage } from '@/utils/helpers';
 import { useTranslation } from '@/hooks/useTranslation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ScanLine } from 'lucide-react';
 
 interface DriverTripWizardProps {
     isOpen: boolean;
@@ -18,15 +17,13 @@ const DriverTripWizard: React.FC<DriverTripWizardProps> = ({ isOpen, onClose }) 
     const {
         projects, companies, vehicles, drivers,
         inventorySizes, services, projectServices,
-        upsertTrip, saasConfig, addNotification, currentUser, api, trips
+        upsertTrip, saasConfig, addNotification, currentUser, trips
     } = useStore();
     const { t, isAr } = useTranslation();
 
     const [step, setStep] = useState(1);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState('');
-    const [isOcrScanning, setIsOcrScanning] = useState(false);
-    const ocrFileInputRef = useRef<HTMLInputElement>(null);
 
     // Type toggle for size selection: CONTAINER or TANK
     const [sizeType, setSizeType] = useState<'CONTAINER' | 'TANK'>('CONTAINER');
@@ -165,73 +162,6 @@ const DriverTripWizard: React.FC<DriverTripWizardProps> = ({ isOpen, onClose }) 
         return true;
     };
 
-    const processDeliveryNoteFullOcr = async (base64: string) => {
-        setIsOcrScanning(true);
-        try {
-            addNotification({
-                title: isAr ? 'مسح سند التسليم' : 'Scanning Delivery Note',
-                message: isAr ? 'جاري تحليل الصورة بخوارزميات الذكاء الاصطناعي...' : 'AI Vision is analyzing the document...',
-                type: NotificationType.INFO,
-            });
-
-            const response = await api.processOcrVision(base64);
-            const data = response.extracted;
-
-            const matched: string[] = [];
-            const updates: Partial<typeof tripData> = {};
-
-            if (data.delivery_note_no) {
-                const dnStr = data.delivery_note_no.toString().startsWith('DN') ? data.delivery_note_no : `DN-${data.delivery_note_no}`;
-                updates.delivery_note_no = dnStr;
-                matched.push(isAr ? `رقم السند: ${dnStr}` : `DN#: ${dnStr}`);
-            }
-
-            if (data.waste_manifest_no) {
-                const mStr = data.waste_manifest_no.toString().startsWith('M') ? data.waste_manifest_no : `M-${data.waste_manifest_no}`;
-                updates.waste_manifest_no = mStr;
-                matched.push(isAr ? `رقم المانفيست: ${mStr}` : `Manifest#: ${mStr}`);
-            }
-
-            if (data.company_name) {
-                const cName = data.company_name.toLowerCase();
-                const matchedCompany = companies.find(c => cName.includes(c.company_name.toLowerCase()) || c.company_name.toLowerCase().includes(cName));
-                if (matchedCompany) updates.company_id = matchedCompany.company_id;
-            }
-
-            if (data.project_name) {
-                const pName = data.project_name.toLowerCase();
-                const matchedProject = projects.find(p => pName.includes(p.project_name.toLowerCase()) || p.project_name.toLowerCase().includes(pName));
-                if (matchedProject) {
-                    updates.project_id = matchedProject.project_id;
-                    if (!updates.company_id) updates.company_id = matchedProject.company_id;
-                    matched.push(isAr ? `المشروع: ${matchedProject.project_name}` : `Project: ${matchedProject.project_name}`);
-                }
-            }
-
-            updates.delivery_note_file = base64;
-
-            if (Object.keys(updates).length > 1) {
-                setTripData(prev => ({ ...prev, ...updates }));
-                addNotification({
-                    title: isAr ? 'تم الذكاء بنجاح' : 'AI Scan Complete',
-                    message: isAr ? `تم التعرف بدقة على ${matched.length} حقول` : `Perfectly extracted ${matched.length} fields`,
-                    type: NotificationType.SUCCESS,
-                });
-            } else {
-                setTripData(prev => ({ ...prev, delivery_note_file: base64 }));
-            }
-        } catch (err) {
-            console.error('[OCR Full Scan] Error:', err);
-            addNotification({
-                title: isAr ? 'خطأ' : 'Error',
-                message: isAr ? 'واجه الخادم مشكلة في تحليل الصورة.' : 'Server AI error.',
-                type: NotificationType.ERROR,
-            });
-        } finally {
-            setIsOcrScanning(false);
-        }
-    };
-
     const handleSave = async () => {
         if (!validateStep(2) || isSubmitting) return;
 
@@ -335,49 +265,6 @@ const DriverTripWizard: React.FC<DriverTripWizardProps> = ({ isOpen, onClose }) 
                 <AnimatePresence mode="wait">
                     {step === 1 && (
                         <motion.div key="s1" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-5">
-
-                            {/* OCR SCAN BUTTON */}
-                            <div className="mb-2">
-                                <input
-                                    type="file"
-                                    accept="image/*"
-                                    capture="environment"
-                                    ref={ocrFileInputRef}
-                                    onChange={async (e) => {
-                                        const file = e.target.files?.[0];
-                                        if (!file) return;
-                                        try {
-                                            const compressed = await compressImage(file);
-                                            await processDeliveryNoteFullOcr(compressed);
-                                        } catch {
-                                            addNotification({ title: 'Error', message: 'Failed to compress image.', type: NotificationType.ERROR });
-                                        }
-                                    }}
-                                    className="hidden"
-                                />
-                                <button
-                                    type="button"
-                                    onClick={() => ocrFileInputRef.current?.click()}
-                                    disabled={isOcrScanning}
-                                    className="w-full flex items-center justify-center p-4 bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-600 hover:to-violet-700 text-white rounded-xl shadow-md transition-all group overflow-hidden relative"
-                                >
-                                    <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
-                                    {isOcrScanning ? (
-                                        <div className="flex items-center space-x-3 rtl:space-x-reverse relative z-10 animate-pulse">
-                                            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                                            <span className="font-semibold">{isAr ? 'جاري تحليل الصورة بخوارزميات AI...' : 'AI Analysis in progress...'}</span>
-                                        </div>
-                                    ) : (
-                                        <div className="flex items-center space-x-3 rtl:space-x-reverse relative z-10">
-                                            <ScanLine className="w-6 h-6 animate-pulse" />
-                                            <div className="text-left rtl:text-right">
-                                                <p className="font-bold text-lg leading-tight">{isAr ? 'المسح الذكي لسند التسليم' : 'Smart Scan Delivery Note'}</p>
-                                                <p className="text-xs text-indigo-100">{isAr ? 'تعبئة معلومات الرحلة تلقائياً' : 'Auto-fill trip details'}</p>
-                                            </div>
-                                        </div>
-                                    )}
-                                </button>
-                            </div>
 
                             <div className="grid grid-cols-1 gap-5">
                                 <SearchableSelect

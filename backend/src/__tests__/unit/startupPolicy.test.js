@@ -13,7 +13,7 @@ describe('startup module policy', () => {
     });
 
     test('returns fallback router for optional module load failure', () => {
-        const fallbackRouter = app._startup.requireByStartupPolicy('./src/does-not-exist.optional', 'shadi');
+        const fallbackRouter = app._startup.requireByStartupPolicy('./src/does-not-exist.optional', 'optional-module');
 
         expect(typeof fallbackRouter).toBe('function');
     });

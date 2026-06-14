@@ -11,7 +11,7 @@ describe('metricsService', () => {
     state.backupFailures.length = 0;
     state.sseDisconnects.length = 0;
     state.sseConnectedCurrent = 0;
-    state.queueDepths = { ocr: null, backups: null, whatsapp: null };
+    state.queueDepths = { backups: null, whatsapp: null };
     state.latestAlerts.length = 0;
   });
 
@@ -53,7 +53,7 @@ describe('metricsService', () => {
     metricsService.recordBackupFailure({ message: 'boom' });
     metricsService.recordSseDisconnect();
     metricsService.setSseConnectedCount(7);
-    metricsService.setQueueDepth({ queueName: 'ocr', depth: 4 });
+    metricsService.setQueueDepth({ queueName: 'backups', depth: 4 });
 
     const snapshot = metricsService.getMetricsSnapshot();
 
@@ -61,7 +61,7 @@ describe('metricsService', () => {
     expect(snapshot.metrics.backupFailures24h).toBe(1);
     expect(snapshot.metrics.sseDisconnects15m).toBe(1);
     expect(snapshot.metrics.sseConnectedCurrent).toBe(7);
-    expect(snapshot.metrics.queueDepths.ocr).toBe(4);
+    expect(snapshot.metrics.queueDepths.backups).toBe(4);
   });
 
   test('triggers sse disconnect alert when threshold is exceeded', () => {

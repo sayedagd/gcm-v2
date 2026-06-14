@@ -332,8 +332,8 @@ const initRedisBroker = async () => {
         log('[SSE] Redis broker requested but redis package is unavailable. Falling back to local fanout.');
         return;
     }
-    if (!redisUrl) {
-        log('[SSE] Redis broker requested but REDIS_URL is missing. Falling back to local fanout.');
+    if (!redisUrl || redisUrl.includes('placeholder')) {
+        log('[SSE] Redis broker requested but REDIS_URL is missing or set to placeholder. Falling back to local fanout.');
         return;
     }
 

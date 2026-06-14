@@ -15,7 +15,8 @@ let clientPromise = null;
 let ready = false;
 
 const isRedisEnabled = () => {
-    return getEnvValue('REDIS_ENABLED') === 'true' && Boolean(getEnvValue('REDIS_URL'));
+    const url = getEnvValue('REDIS_URL');
+    return getEnvValue('REDIS_ENABLED') === 'true' && Boolean(url) && !url.includes('placeholder');
 };
 
 const getRedisClient = async () => {
