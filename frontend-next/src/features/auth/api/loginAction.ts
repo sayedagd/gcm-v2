@@ -218,6 +218,7 @@ export async function loginAction(_: LoginActionState, formData: FormData): Prom
     secure: appCookieOptions.secure,
     path: "/",
     maxAge: expiresInSeconds,
+    httpOnly: false,
   });
 
   if (isSafeNextPath(nextPath)) {

@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { loginAction } from "@/features/auth/api/loginAction";
-import { AUTH_COOKIE, ROLE_COOKIE, SESSION_EXP_COOKIE } from "@/features/auth/model/sessionCookies";
+import { AUTH_COOKIE, ROLE_COOKIE, SESSION_EXP_COOKIE, LEGACY_BOOTSTRAP_COOKIE } from "@/features/auth/model/sessionCookies";
 
 const { cookieSetMock, redirectMock } = vi.hoisted(() => ({
   cookieSetMock: vi.fn(),
@@ -91,6 +91,11 @@ describe("loginAction", () => {
       SESSION_EXP_COOKIE,
       expect.any(String),
       expect.objectContaining({ path: "/" }),
+    );
+    expect(cookieSetMock).toHaveBeenCalledWith(
+      LEGACY_BOOTSTRAP_COOKIE,
+      expect.any(String),
+      expect.objectContaining({ path: "/", httpOnly: false }),
     );
     expect(redirectMock).toHaveBeenCalledWith("/dashboard");
   });

@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect } from "react";
+import { usePathname } from "next/navigation";
 import { MantineProvider } from "@mantine/core";
 import { LEGACY_BOOTSTRAP_COOKIE } from "@/features/auth/model/sessionCookies";
 import { StoreInitializer, useGCMStore } from "@/store";
 import { theme } from "@/theme";
+import { Role, User } from "@/types";
 
 type AppProvidersProps = {
   children: React.ReactNode;
@@ -43,8 +45,12 @@ const clearLegacySessionStorage = () => {
 };
 
 export function AppProviders({ children }: AppProvidersProps) {
+  const pathname = usePathname();
   const saasConfig = useGCMStore((state) => state.saasConfig);
   const darkMode = useGCMStore((state) => state.darkMode);
+  const setCurrentUser = useGCMStore((state) => state.setCurrentUser);
+  const setIsAuthenticated = useGCMStore((state) => state.setIsAuthenticated);
+  const loadAllData = useGCMStore((state) => state.loadAllData);
 
   useEffect(() => {
     const bootstrapCookie = getCookie(LEGACY_BOOTSTRAP_COOKIE);
@@ -65,31 +71,35 @@ export function AppProviders({ children }: AppProvidersProps) {
         expiresAtMs?: number;
       };
 
+      const user: User = {
+        id: bootstrap.id,
+        name: bootstrap.name,
+        email: bootstrap.email,
+        role: bootstrap.role as Role,
+        ...(bootstrap.company_id ? { company_id: bootstrap.company_id } : {}),
+        ...(bootstrap.project_id ? { project_id: bootstrap.project_id } : {}),
+        ...(bootstrap.supplier_id ? { supplier_id: bootstrap.supplier_id } : {}),
+      };
+
       localStorage.setItem("gcm_auth_session", "true");
       localStorage.setItem("gcm_current_role", bootstrap.role || "");
       if (bootstrap.expiresAtMs) {
         localStorage.setItem("gcm_auth_exp", String(bootstrap.expiresAtMs));
       }
 
-      localStorage.setItem(
-        "gcm_current_user",
-        JSON.stringify({
-          id: bootstrap.id,
-          name: bootstrap.name,
-          email: bootstrap.email,
-          role: bootstrap.role,
-          company_id: bootstrap.company_id || undefined,
-          project_id: bootstrap.project_id || undefined,
-          supplier_id: bootstrap.supplier_id || undefined,
-        }),
-      );
+      localStorage.setItem("gcm_current_user", JSON.stringify(user));
       localStorage.setItem("gcm_last_active", String(Date.now()));
+
+      // Synchronize authenticated state to Zustand store immediately
+      setCurrentUser(user);
+      setIsAuthenticated(true);
+      loadAllData();
     } catch {
       // Ignore malformed bootstrap cookie and proceed with normal flow.
     }
 
     document.cookie = `${LEGACY_BOOTSTRAP_COOKIE}=; path=/; max-age=0; samesite=lax`;
-  }, []);
+  }, [pathname, setCurrentUser, setIsAuthenticated, loadAllData]);
 
   useEffect(() => {
     if (window.location.pathname !== "/login") {

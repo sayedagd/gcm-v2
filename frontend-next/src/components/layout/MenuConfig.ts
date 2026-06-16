@@ -86,8 +86,7 @@ export const getMenuGroups = (t: any, isAr: boolean, role: Role) => {
             { name: t.settings, href: '/settings', icon: Box, roles: [Role.ADMIN] },
             { name: t.monitor, href: '/system-monitor', icon: Activity, roles: [Role.ADMIN] },
             { name: t.landing, href: '/landing-settings', icon: LayoutIcon, roles: [Role.ADMIN] },
-            { name: isAr ? 'إدارة المتجر' : 'Store Management', href: '/equipment-admin', icon: Package, roles: [Role.ADMIN] },
-            { name: isAr ? 'جلسات الذكاء' : 'AI Sessions', href: '/ai-sessions', icon: Zap, roles: [Role.ADMIN] }
+            { name: isAr ? 'إدارة المتجر' : 'Store Management', href: '/equipment-admin', icon: Package, roles: [Role.ADMIN] }
         ]
     }
 ];

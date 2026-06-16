@@ -3,11 +3,11 @@
 
 import React, { useEffect, useState } from 'react';
 import { AppShell, Burger, Group, ScrollArea, ActionIcon, Text, Menu, UnstyledButton, Indicator } from '@mantine/core';
-import { useDisclosure } from '@mantine/hooks';
+import { useDisclosure, useMediaQuery } from '@mantine/hooks';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
-import { LogOut, Sun, Moon, Globe, Bell, ExternalLink, ChevronRight, Sparkles, Headphones, Search, Phone, MessageCircle, X, User } from 'lucide-react';
+import { LogOut, Sun, Moon, Globe, Bell, ExternalLink, ChevronRight, Sparkles, Search, User } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useStore } from '@/context';
 import { getMenuGroups } from './MenuConfig';
@@ -40,13 +40,13 @@ type MenuGroup = {
 };
 
 export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
-    const [opened, { toggle, close }] = useDisclosure();
+    const [opened, { toggle, close }] = useDisclosure(true);
+    const isMobile = useMediaQuery('(max-width: 48em)');
     const { currentUser, logout, saasConfig, updateSaaS, notifications, updatePresence, darkMode, setDarkMode } = useStore();
     const router = useRouter();
     const pathname = usePathname();
     const [hoveredItem, setHoveredItem] = useState<string | null>(null);
     const [expandedGroup, setExpandedGroup] = useState<number | null>(null);
-    const [showContactPopup, setShowContactPopup] = useState(false);
 
     const lang = (saasConfig.language === 'en' || saasConfig.language === 'ar') ? saasConfig.language : 'ar';
     const t = translations[lang] || translations['ar'];
@@ -263,7 +263,10 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                                 <Menu.Item
                                     leftSection={<LogOut size={14} />}
                                     color="red"
-                                    onClick={logout}
+                                    onClick={() => {
+                                        logout();
+                                        router.push('/logout');
+                                    }}
                                 >
                                     {t.logout}
                                 </Menu.Item>
@@ -364,7 +367,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                                                             >
                                                                 <Link
                                                                     href={item.href}
-                                                                    onClick={() => { if (opened) close(); }}
+                                                                    onClick={() => { if (isMobile) close(); }}
                                                                     className={`
                                                                         group relative flex items-center gap-3 px-3 py-2 rounded-xl
                                                                         transition-all duration-200 no-underline
@@ -429,88 +432,6 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                     </div>
                 </ScrollArea>
 
-                {/* Divider */}
-                <div className={`mx-4 h-px bg-gradient-to-r from-transparent ${sb.divider} to-transparent`} />
-
-                {/* Bottom CTA Card */}
-                <div className="p-4">
-                    <div className={`relative overflow-hidden rounded-2xl bg-gradient-to-br ${sb.ctaBg} p-4 shadow-lg ${sb.ctaShadow}`}>
-                        {/* Decorative circles */}
-                        <div className="absolute -top-4 -right-4 w-16 h-16 rounded-full bg-white/10 blur-sm" />
-                        <div className="absolute -bottom-3 -left-3 w-12 h-12 rounded-full bg-white/[0.07]" />
-
-                        <div className="relative z-10">
-                            <div className="flex items-center gap-2 mb-2">
-                                <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center">
-                                    <Headphones size={16} className={sb.ctaText} />
-                                </div>
-                                <div>
-                                    <p className={`text-xs font-bold ${sb.ctaText} leading-tight`}>
-                                        {isAr ? 'الدعم الفني' : 'Tech Support'}
-                                    </p>
-                                    <p className={`text-[10px] ${sb.ctaSubText} font-medium`}>
-                                        {isAr ? 'متاح 24/7' : 'Available 24/7'}
-                                    </p>
-                                </div>
-                            </div>
-
-                            <AnimatePresence>
-                                {showContactPopup ? (
-                                    <motion.div
-                                        key="contact-popup"
-                                        initial={{ opacity: 0, y: 8, scale: 0.95 }}
-                                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                                        exit={{ opacity: 0, y: 8, scale: 0.95 }}
-                                        className="space-y-2"
-                                    >
-                                        {saasConfig.support_phone && (
-                                            <a
-                                                href={`tel:${saasConfig.support_phone}`}
-                                                className={`w-full py-2 px-3 rounded-xl ${sb.ctaBtn} ${sb.ctaText} text-xs font-bold transition-all duration-200 border active:scale-[0.97] flex items-center justify-center gap-2 no-underline`}
-                                            >
-                                                <Phone size={13} />
-                                                {saasConfig.support_phone}
-                                            </a>
-                                        )}
-                                        {saasConfig.support_whatsapp && (
-                                            <a
-                                                href={`https://wa.me/${saasConfig.support_whatsapp.replace(/\D/g, '')}`}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className={`w-full py-2 px-3 rounded-xl bg-green-500/30 hover:bg-green-500/50 border border-green-400/30 hover:border-green-400/50 text-white text-xs font-bold transition-all duration-200 active:scale-[0.97] flex items-center justify-center gap-2 no-underline`}
-                                            >
-                                                <MessageCircle size={13} />
-                                                WhatsApp
-                                            </a>
-                                        )}
-                                        <button
-                                            onClick={() => setShowContactPopup(false)}
-                                            className={`w-full py-1.5 px-3 rounded-xl ${sb.ctaBtn} ${sb.ctaText} text-[10px] font-bold transition-all border flex items-center justify-center gap-1.5 opacity-70 hover:opacity-100`}
-                                        >
-                                            <X size={11} />
-                                            {isAr ? 'إغلاق' : 'Close'}
-                                        </button>
-                                    </motion.div>
-                                ) : (
-                                    <motion.div key="contact-btn" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                                        <p className={`text-[11px] ${sb.ctaBodyText} mb-3 leading-relaxed`}>
-                                            {isAr
-                                                ? 'تواصل مع فريق الدعم لأي استفسار أو مساعدة'
-                                                : 'Reach out to our team for any assistance'}
-                                        </p>
-                                        <button
-                                            onClick={() => setShowContactPopup(true)}
-                                            className={`w-full py-2 px-3 rounded-xl ${sb.ctaBtn} ${sb.ctaText} text-xs font-bold transition-all duration-200 border active:scale-[0.97] flex items-center justify-center gap-2`}
-                                        >
-                                            <Headphones size={13} />
-                                            {isAr ? 'تواصل معنا' : 'Contact Us'}
-                                        </button>
-                                    </motion.div>
-                                )}
-                            </AnimatePresence>
-                        </div>
-                    </div>
-                </div>
             </AppShell.Navbar>
 
             {/* ═══════════════ MAIN CONTENT ═══════════════ */}
