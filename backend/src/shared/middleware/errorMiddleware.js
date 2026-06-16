@@ -19,6 +19,9 @@ const errorHandler = (err, req, res, next) => {
         stack: process.env.NODE_ENV === 'development' ? err.stack : undefined,
     });
 
+    // Always output stack to stderr/Vercel console for debugging
+    console.error('[errorHandler] Caught error:', err.stack || err);
+
     // --- ترجمة أخطاء PostgreSQL ---
     if (err.code && (err.code.startsWith('23') || err.code.startsWith('22'))) {
         const table = req.baseUrl.split('/').pop() || 'unknown';

@@ -1,6 +1,18 @@
 const { Pool } = require('pg');
 const crypto = require('crypto');
 require('dotenv').config();
+
+// Sanitize process.env values by trimming and removing trailing carriage returns (\r) or surrounding quotes
+for (const key of Object.keys(process.env)) {
+    let val = process.env[key];
+    if (typeof val === 'string') {
+        val = val.trim().replace(/\r+$/, '');
+        if (val.startsWith('"') && val.endsWith('"')) {
+            val = val.slice(1, -1);
+        }
+        process.env[key] = val;
+    }
+}
 const metricsService = require('./src/shared/services/metricsService');
 const observeDbQuery = metricsService.observeDbQuery || (() => {});
 const { logEvent } = require('./src/shared/utils/logger');

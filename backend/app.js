@@ -28,7 +28,66 @@ const findEnv = () => {
 };
 dotenv.config({ path: findEnv() });
 
+// Sanitize process.env values by trimming and removing trailing carriage returns (\r) or surrounding quotes
+for (const key of Object.keys(process.env)) {
+    let val = process.env[key];
+    if (typeof val === 'string') {
+        val = val.trim().replace(/\r+$/, '');
+        if (val.startsWith('"') && val.endsWith('"')) {
+            val = val.slice(1, -1);
+        }
+        process.env[key] = val;
+    }
+}
+
 validateRuntimeConfig();
+
+// [Vercel NFT Dependency Tracer Guard]
+// Force Vercel's static analyzer to trace and bundle all dynamically loaded modules and routes.
+if (false) {
+    require('./database');
+    require('./fileService');
+    require('./src/shared/utils/logger');
+    require('./src/shared/services/migrationService');
+    require('./src/shared/services/backupService');
+    require('./src/shared/middleware/errorMiddleware');
+    require('./src/shared/middleware/requestContextMiddleware');
+    require('./src/shared/controllers/systemController');
+    require('./src/shared/middleware/authMiddleware');
+    require('./src/shared/middleware/requestValidationMiddleware');
+    require('./src/shared/services/uploadStorageService');
+    require('./src/shared/middleware/rateLimitPolicies');
+    require('./src/shared/services/whatsappService');
+
+    // Route Modules
+    require('./src/modules/auth/login/login.routes');
+    require('./src/modules/auth/profile/profile.routes');
+    require('./src/modules/auth/users/users.routes');
+    require('./src/modules/core/companies/companies.routes');
+    require('./src/modules/core/projects/projects.routes');
+    require('./src/modules/core/services/services.routes');
+    require('./src/modules/core/facilities/facilities.routes');
+    require('./src/modules/operations/trips/trips.routes');
+    require('./src/modules/operations/requests/requests.routes');
+    require('./src/modules/operations/notifications/notifications.routes');
+    require('./src/modules/operations/asset_requests/asset_requests.routes');
+    require('./src/modules/logistics/vehicles/vehicles.routes');
+    require('./src/modules/logistics/drivers/drivers.routes');
+    require('./src/modules/logistics/inventory/inventory.routes');
+    require('./src/modules/reporting/dashboard/dashboard.routes');
+    require('./src/modules/reporting/exports/exports.routes');
+    require('./src/modules/public/landing/landing.routes');
+    require('./src/modules/public/contact/contact.routes');
+    require('./src/modules/public/store/store.routes');
+    require('./src/modules/public/carbon/carbon.routes');
+    require('./src/modules/infrastructure/health/health.routes');
+    require('./src/modules/infrastructure/backup/backup.routes');
+    require('./src/modules/infrastructure/settings/settings.routes');
+    require('./src/modules/logistics/suppliers/suppliers.routes');
+    require('./src/modules/core/project_services/project_services.routes');
+    require('./src/modules/core/supplier_rates/supplier_rates.routes');
+    require('./src/modules/logistics/asset_service_links/assetServiceLinks.routes');
+}
 
 const app = express();
 app.set('trust proxy', 1); // Trust first proxy (Vercel, Cloudflare, Passenger, etc.)
