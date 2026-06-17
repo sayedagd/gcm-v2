@@ -52,8 +52,12 @@ const CarbonImpactSection: React.FC<CarbonImpactSectionProps> = ({ isAr, config 
                 if (result && !result.error) {
                     setData(result);
                 }
-            } catch (error) {
-                console.error("Failed to fetch carbon data:", error);
+            } catch (error: unknown) {
+                // Silently ignore missing API key — carbon widget is optional
+                const msg = error instanceof Error ? error.message : String(error);
+                if (!msg.includes('not configured') && !msg.includes('404')) {
+                    console.error("Failed to fetch carbon data:", error);
+                }
             } finally {
                 setLoading(false);
             }

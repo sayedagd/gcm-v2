@@ -16,6 +16,7 @@ import { DownloadCloud, Upload, FileDown } from 'lucide-react';
 import { toast } from '@/utils/toast';
 import { useConfirmDialog } from '@/components/common/ConfirmDialog';
 import { useDebounce } from '@/hooks/useDebounce';
+import { getApprovalRolesForRequest } from '@/features/users/model/roleAccess';
 
 const UserManagement: React.FC = () => {
   const { users, trips, upsertUser, deleteUser, currentUser, saasConfig, permissionRequests, updateRequestStatus, deletePermissionRequest, companies, projects, suppliers, presenceMap, addLog, addNotification, exportEnabled } = useStore();
@@ -44,6 +45,10 @@ const UserManagement: React.FC = () => {
   const isCompanyAdmin = currentUser.role === Role.COMPANY_USER;
   const { confirm, ConfirmDialogRenderer } = useConfirmDialog();
   const debouncedSearch = useDebounce(searchTerm, 250);
+  const approvalRoleOptions = useMemo(
+    () => getApprovalRolesForRequest(approvalTarget?.role, currentUser.role),
+    [approvalTarget?.role, currentUser.role]
+  );
 
   const t = useMemo(() => ({
     title: isAr ? 'فريق العمل والوصول' : 'Workforce & Security Hub',
@@ -114,6 +119,12 @@ const UserManagement: React.FC = () => {
   useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm, activeTab]);
+
+  useEffect(() => {
+    if (!approvalTarget) return;
+
+    setApproveRole(approvalRoleOptions[0] || Role.PROJECT_USER);
+  }, [approvalTarget, approvalRoleOptions]);
 
   const handleApproveFinal = async () => {
     if (!approvalTarget) return;
@@ -260,7 +271,7 @@ const UserManagement: React.FC = () => {
   };
 
   return (
-    <div className="space-y-10 max-w-7xl mx-auto pb-40 px-4">
+    <div className="w-full min-w-0 space-y-10 pb-40 px-4">
       {/* Page Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
@@ -524,7 +535,7 @@ const UserManagement: React.FC = () => {
           <div className="space-y-6">
             <label className="text-[10px] font-bold uppercase text-text-subtle tracking-[0.2em] block ml-1">{isAr ? '1. تعيين الدور الوظيفي' : 'PHASE_1: ROLE_ASSIGNMENT'}</label>
             <div className="grid grid-cols-2 gap-4">
-              {getAvailableRoles().map(r => (
+              {approvalRoleOptions.map(r => (
                 <button
                   key={r}
                   onClick={() => setApproveRole(r)}
@@ -567,8 +578,8 @@ const UserManagement: React.FC = () => {
               icon={Key}
               value={tempPassword}
               onChange={setTempPassword}
-              className="bg-transparent font-mono font-bold text-lg text-amber border-none !p-0 shadow-none focus:ring-0"
-              containerClassName="!space-y-0"
+              className="bg-transparent font-mono font-bold text-lg text-amber border-none p-0! shadow-none focus:ring-0"
+              containerClassName="space-y-0!"
               placeholder="AUTH_KEY"
             />
           </Card>
@@ -594,6 +605,7 @@ const UserManagement: React.FC = () => {
         isAr={isAr}
         isCompanyAdmin={isCompanyAdmin}
         currentUser={currentUser}
+        actorRole={currentUser.role}
         companies={companies}
         projects={projects}
         suppliers={suppliers}
@@ -625,7 +637,7 @@ const UserManagement: React.FC = () => {
       {/* Pagination Footer */}
       {(activeTab === 'users' && totalPages > 1) && (
         <div className="fixed bottom-0 left-0 right-0 bg-surface/80 backdrop-blur-md border-t border-border p-4 z-50">
-          <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
+          <div className="w-full min-w-0 flex items-center justify-between gap-4">
             <span className="text-sm font-bold text-text-subtle whitespace-nowrap">
               {isAr ? `صفحة ${currentPage} من ${totalPages}` : `Page ${currentPage} of ${totalPages}`}
             </span>
@@ -639,7 +651,7 @@ const UserManagement: React.FC = () => {
               >
                 {isAr ? 'السابق' : 'Previous'}
               </Button>
-              <div className="hidden sm:flex gap-1 justify-center min-w-[120px]">
+              <div className="hidden sm:flex gap-1 justify-center min-w-30">
                 {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                   let p = i + 1;
                   if (totalPages > 5 && currentPage > 3) {

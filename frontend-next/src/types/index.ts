@@ -387,39 +387,24 @@ export interface SaaSConfig {
   appSloganAr: string;
   appSloganEn: string;
   primaryColor: string;
-  logoUrl?: string;
-  logoDarkUrl?: string;
+  logoUrl: string;
+  logoDarkUrl: string;
   language: 'ar' | 'en';
-  cloudUrl?: string;
+  cloudUrl: string;
   apiConfig: {
     baseUrl: string;
     version: string;
     apiKey?: string;
     timeout: number;
   };
-  landingPage: any;
-  storePage?: any;
-  bootConfig?: {
-    backgroundColor?: string;
-    textColor?: string;
-    accentColor?: string;
-    logoDuration?: number;
-    showSlogan?: boolean;
-    loadingTextAr?: string;
-    loadingTextEn?: string;
-  };
-  aiAssistant?: {
-    enabled: boolean;
-    name?: string;
-    nameAr?: string;
-    position?: 'bottom-right' | 'bottom-left';
-    iconStyle?: 'sparkles' | 'bot' | 'message' | 'zap';
-    color?: string;
-  };
-  managementControlsEnabled?: boolean;
-  templateConfig?: TemplateConfig;
-  support_phone?: string;
-  support_whatsapp?: string;
+  landingPage: LandingPageConfig;
+  storePage: StorePageConfig;
+  bootConfig: BootConfig;
+  aiAssistant: AiAssistantConfig;
+  managementControlsEnabled: boolean;
+  templateConfig: TemplateConfig;
+  support_phone: string;
+  support_whatsapp: string;
 }
 
 export interface ManifestTemplateConfig {
@@ -457,6 +442,202 @@ export interface TemplateConfig {
   manifest?: ManifestTemplateConfig;
   deliveryNote?: DeliveryNoteTemplateConfig;
   global?: GlobalTemplateConfig;
+}
+
+export interface LandingHeroStat {
+  valueAr: string;
+  valueEn: string;
+  labelAr: string;
+  labelEn: string;
+  icon?: string;
+  iconUrl?: string;
+}
+
+export interface LandingTrustBadge {
+  labelAr: string;
+  labelEn: string;
+}
+
+export interface LandingServiceCard {
+  id: string;
+  iconType?: string;
+  titleAr: string;
+  titleEn: string;
+  descAr: string;
+  descEn: string;
+  image?: string;
+}
+
+export interface LandingCertification {
+  id: string;
+  nameAr: string;
+  nameEn: string;
+  descAr: string;
+  descEn: string;
+  icon: string;
+}
+
+export interface LandingWhyChooseItem {
+  titleAr: string;
+  titleEn: string;
+  descAr: string;
+  descEn: string;
+}
+
+export interface LandingFleetItem {
+  id: string;
+  nameAr: string;
+  nameEn: string;
+  specsAr: string;
+  specsEn: string;
+  image?: string;
+}
+
+export interface LandingPartnerItem {
+  id: string;
+  name: string;
+  logo: string;
+}
+
+export interface SocialLinkItem {
+  id: string;
+  platform: string;
+  url: string;
+  label?: string;
+  icon?: string;
+  href?: string;
+}
+
+export interface LandingSystemShowcaseStat {
+  value?: string;
+  valueAr?: string;
+  valueEn?: string;
+  labelAr?: string;
+  labelEn?: string;
+  icon?: string;
+  iconUrl?: string;
+}
+
+export interface LandingSystemShowcase {
+  titleAr?: string;
+  titleEn?: string;
+  descAr?: string;
+  descEn?: string;
+  stats: LandingSystemShowcaseStat[];
+  imageBottomUrl?: string;
+}
+
+export interface LandingSeoConfig {
+  metaTitleAr: string;
+  metaTitleEn: string;
+  metaDescAr: string;
+  metaDescEn: string;
+  googleAnalyticsId: string;
+  keywordsAr: string;
+  keywordsEn: string;
+  headerScripts: string;
+  bodyScripts: string;
+  footerScripts: string;
+}
+
+export interface LandingCarbonConfig {
+  badgeAr: string;
+  badgeEn: string;
+  titleAr: string;
+  titleEn: string;
+  descAr: string;
+  descEn: string;
+  footerTitleAr: string;
+  footerTitleEn: string;
+  footerDescAr: string;
+  footerDescEn: string;
+}
+
+export interface LandingPageConfig {
+  heroTitleAr: string;
+  heroTitleEn: string;
+  heroDescAr: string;
+  heroDescEn: string;
+  heroBgUrl: string;
+  heroStats: LandingHeroStat[];
+  trustBadges: LandingTrustBadge[];
+  aboutTitleAr: string;
+  aboutTitleEn: string;
+  aboutDescAr: string;
+  aboutDescEn: string;
+  aboutTextAr: string;
+  aboutTextEn: string;
+  aboutImageUrl: string;
+  experienceYears: number;
+  projectsCount: string;
+  clientsCount: string;
+  vehiclesCount: string;
+  complianceTextAr: string;
+  complianceTextEn: string;
+  servicesSectionTitleAr: string;
+  servicesSectionTitleEn: string;
+  servicesSectionDescAr: string;
+  servicesSectionDescEn: string;
+  services: LandingServiceCard[];
+  certifications: LandingCertification[];
+  whyChooseUs: LandingWhyChooseItem[];
+  fleetSectionTitleAr: string;
+  fleetSectionTitleEn: string;
+  fleetSectionDescAr: string;
+  fleetSectionDescEn: string;
+  fleet: LandingFleetItem[];
+  partnersSectionTitleAr: string;
+  partnersSectionTitleEn: string;
+  partners: LandingPartnerItem[];
+  contactTitleAr: string;
+  contactTitleEn: string;
+  contactDescAr: string;
+  contactDescEn: string;
+  contactRecipientEmail: string;
+  contactPhone: string;
+  contactLocationAr: string;
+  contactLocationEn: string;
+  storeUrl: string;
+  showCompanyField: boolean;
+  showSubjectField: boolean;
+  showPhoneField: boolean;
+  portalBtnTextAr: string;
+  portalBtnTextEn: string;
+  portalIconType: string;
+  footerAboutAr: string;
+  footerAboutEn: string;
+  copyrightTextAr: string;
+  copyrightTextEn: string;
+  socialLinks: SocialLinkItem[];
+  seo: LandingSeoConfig;
+  carbon: LandingCarbonConfig;
+  systemShowcase: LandingSystemShowcase;
+}
+
+export interface StorePageConfig {
+  heroTitleAr: string;
+  heroTitleEn: string;
+  heroDescAr: string;
+  heroDescEn: string;
+}
+
+export interface BootConfig {
+  backgroundColor: string;
+  textColor: string;
+  accentColor: string;
+  logoDuration: number;
+  showSlogan: boolean;
+  loadingTextAr: string;
+  loadingTextEn: string;
+}
+
+export interface AiAssistantConfig {
+  enabled: boolean;
+  name: string;
+  nameAr: string;
+  position: 'bottom-right' | 'bottom-left';
+  iconStyle: 'sparkles' | 'bot' | 'message' | 'zap';
+  color: string;
 }
 
 export interface PermissionRequest {

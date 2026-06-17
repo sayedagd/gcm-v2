@@ -34,13 +34,13 @@ interface UserCardProps {
 
 const getRoleIcon = (role: Role) => {
     switch (role) {
-        case Role.ADMIN: return <Shield className="text-purple-500" />;
-        case Role.COMPANY_USER: return <Building2 className="text-emerald-500" />;
-        case Role.PROJECT_USER: return <Briefcase className="text-blue-500" />;
-        case Role.LOGISTICS: return <Truck className="text-amber-500" />;
-        case Role.DATA_ENTRY: return <HardHat className="text-orange-500" />;
-        case Role.ACCOUNTANT: return <Wallet className="text-indigo-500" />;
-        case Role.SUBCONTRACTOR: return <Truck className="text-pink-500" />;
+        case Role.ADMIN: return <Shield className="tone-info" />;
+        case Role.COMPANY_USER: return <Building2 className="tone-success" />;
+        case Role.PROJECT_USER: return <Briefcase className="text-primary" />;
+        case Role.LOGISTICS: return <Truck className="tone-warning" />;
+        case Role.DATA_ENTRY: return <HardHat className="tone-warning" />;
+        case Role.ACCOUNTANT: return <Wallet className="tone-info" />;
+        case Role.SUBCONTRACTOR: return <Truck className="tone-danger" />;
         default: return <UserIcon className="text-text-subtle" />;
     }
 };
@@ -66,7 +66,7 @@ const UserCard: React.FC<UserCardProps> = ({
     return (<>
         <Card className="p-5 sm:p-8 flex flex-col group relative overflow-hidden transition-all duration-300 hover:shadow-lg border-border bg-surface-subtle">
             {isOnline && (
-                <div className={`absolute top-6 ${isAr ? 'left-6' : 'right-6'} flex items-center gap-2 px-3 py-1 bg-emerald-600 text-white rounded-full text-[8px] font-bold uppercase tracking-widest shadow-lg shadow-emerald-600/20`}>
+                <div className={`accent-chip-strong absolute top-6 ${isAr ? 'left-6' : 'right-6'} flex items-center gap-2 px-3 py-1 rounded-full text-[8px] font-bold uppercase tracking-widest`}>
                     <span className="w-2 h-2 bg-white rounded-full animate-pulse" />
                     {t.card.online}
                 </div>
@@ -98,13 +98,13 @@ const UserCard: React.FC<UserCardProps> = ({
                     <span className="text-[9px] font-bold uppercase tracking-widest text-text-subtle">{formatRole(user.role, isAr)}</span>
                 </div>
                 {user.company_id && (
-                    <div className="flex items-center gap-2 px-4 py-1.5 bg-emerald-600 text-white rounded-full shadow-lg shadow-emerald-500/20">
+                    <div className="accent-chip-strong flex items-center gap-2 px-4 py-1.5 rounded-full">
                         <Building2 size={12} />
                         <span className="text-[9px] font-bold uppercase truncate max-w-[100px]">{companyMap[user.company_id]?.company_name}</span>
                     </div>
                 )}
                 {user.project_id && (
-                    <div className="flex items-center gap-2 px-4 py-1.5 bg-blue-600 text-white rounded-full shadow-lg shadow-blue-500/20">
+                    <div className="accent-chip flex items-center gap-2 px-4 py-1.5 rounded-full">
                         <Briefcase size={12} />
                         <span className="text-[9px] font-bold uppercase truncate max-w-[100px]">{projectMap[user.project_id]?.project_name}</span>
                     </div>
@@ -126,7 +126,7 @@ const UserCard: React.FC<UserCardProps> = ({
                 <div className="flex flex-col">
                     <span className="text-[8px] font-bold text-text-subtle uppercase tracking-[0.2em] mb-1">{t.card.latestActivity}</span>
                     <div className="flex items-center gap-2 text-[10px] font-bold text-text-subtle">
-                        <Activity size={12} className="text-purple-500" />
+                        <Activity size={12} className="tone-info" />
                         {presence?.currentPage?.replace('/', ' ') || t.card.offline}
                     </div>
                 </div>
@@ -135,7 +135,7 @@ const UserCard: React.FC<UserCardProps> = ({
                     <div className="flex items-center gap-2">
                         <button
                             onClick={() => onEdit(user)}
-                            className="text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-2xl h-11 w-11 p-0 flex items-center justify-center transition-all"
+                            className="tone-info hover:bg-surface-subtle rounded-2xl h-11 w-11 p-0 flex items-center justify-center transition-all border border-transparent hover:border-border"
                         >
                             <UserCog size={18} />
                         </button>
@@ -150,7 +150,7 @@ const UserCard: React.FC<UserCardProps> = ({
                                     });
                                     if (ok) onDelete(user.id);
                                 }}
-                                className="text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-2xl h-11 w-11 p-0 flex items-center justify-center transition-all"
+                                className="tone-danger hover:bg-surface-subtle rounded-2xl h-11 w-11 p-0 flex items-center justify-center transition-all border border-transparent hover:border-border"
                             >
                                 <UserMinus size={18} />
                             </button>

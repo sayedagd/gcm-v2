@@ -1,19 +1,9 @@
 import type { Metadata } from "next";
-import { Cairo, Geist, Geist_Mono } from "next/font/google";
+import { Cairo } from "next/font/google";
 import { AppProviders } from "@/providers/AppProviders";
 import ErrorBoundary from "@/components/common/ErrorBoundary";
 import { APP_DEFAULT_DESCRIPTION, APP_NAME, APP_TITLE_TEMPLATE } from "@/lib/metadata";
 import "./globals.css";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
 
 const cairo = Cairo({
   variable: "--font-cairo",
@@ -37,9 +27,10 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} ${cairo.variable} h-full antialiased`}
+      data-scroll-behavior="smooth"
+      className={`${cairo.variable} h-full w-full antialiased font-sans`}
     >
-      <body className="min-h-full flex flex-col">
+      <body className="min-h-full flex w-full flex-col overflow-x-clip" suppressHydrationWarning>
         <ErrorBoundary moduleName="RootLayout">
           <AppProviders>{children}</AppProviders>
         </ErrorBoundary>

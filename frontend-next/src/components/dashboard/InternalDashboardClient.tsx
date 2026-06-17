@@ -1,17 +1,18 @@
 "use client";
 
-import { ActivityFeed } from "@/components/dashboard/ActivityFeed";
-import { AssetAllocationWidget } from "@/components/dashboard/AssetAllocationWidget";
+import { motion } from "framer-motion";
+import { LayoutDashboard } from "lucide-react";
+import { DashboardHeroBanner } from "@/components/dashboard/DashboardHeroBanner";
 import { CommunicationsDeck } from "@/components/dashboard/CommunicationsDeck";
 import { FleetAnalytics } from "@/components/dashboard/FleetAnalytics";
-import { InventoryAnalytics } from "@/components/dashboard/InventoryAnalytics";
+import { RevenueChart } from "@/components/dashboard/RevenueChart";
 import { OperationsHub } from "@/components/dashboard/OperationsHub";
-import { ServiceAnalytics } from "@/components/dashboard/ServiceAnalytics";
 import { ServiceDistribution } from "@/components/dashboard/ServiceDistribution";
 import { StatsGrid } from "@/components/dashboard/StatsGrid";
+import { LiveOpsCenter } from "@/components/dashboard/LiveOpsCenter";
+import { PendingDocumentationSection } from "@/components/dashboard/PendingDocumentationSection";
 import { useStore } from "@/context";
 import { useTranslation } from "@/hooks/useTranslation";
-import { Sparkles } from "lucide-react";
 
 type InternalDashboardClientProps = {
   initialHeroImage?: string;
@@ -20,6 +21,21 @@ type InternalDashboardClientProps = {
 export function InternalDashboardClient({ initialHeroImage }: InternalDashboardClientProps) {
   const { isAr } = useTranslation();
   const { saasConfig } = useStore();
+  const systemShowcase = saasConfig?.landingPage?.systemShowcase;
+
+  const dashboardTopTitle = isAr ? "الصفحة الرئيسية" : "Home";
+  const dashboardTopSummary = isAr
+    ? (systemShowcase?.descAr || "التحكم الكامل في العمليات، الأسطول، والموارد البشرية.")
+    : (systemShowcase?.descEn || "Total control over operations, fleet, and human resources.");
+
+  const heroBadge = isAr ? "مركز القيادة" : "Command Center";
+  const heroTitle = isAr
+    ? (systemShowcase?.titleAr || "لوحة العمليات الداخلية")
+    : (systemShowcase?.titleEn || "Internal Operations Dashboard");
+  const heroDescription = isAr
+    ? (systemShowcase?.descAr || "مؤشرات فورية لحركة الرحلات، جاهزية الأسطول، وتوزيع الخدمات مع روابط تشغيل مباشرة.")
+    : (systemShowcase?.descEn || "Live operational metrics for trips, fleet readiness, service allocation, and direct action surfaces.");
+  const realtimeLabel = isAr ? "بيانات لحظية" : "Realtime";
 
   const heroImage =
     saasConfig?.landingPage?.heroBgUrl ||
@@ -27,57 +43,56 @@ export function InternalDashboardClient({ initialHeroImage }: InternalDashboardC
     "https://images.unsplash.com/photo-1497436072909-60f360e1d4b1?auto=format&fit=crop&w=1600&q=80";
 
   return (
-    <div className="space-y-8">
-      <section
-        className="relative overflow-hidden rounded-3xl border border-border p-6 md:p-8"
-        style={{
-          backgroundImage: `linear-gradient(rgba(2, 6, 23, 0.72), rgba(2, 6, 23, 0.72)), url('${heroImage}')`,
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-        }}
-      >
-        <div className="relative z-10 flex items-start justify-between gap-4">
-          <div>
-            <p className="text-[10px] uppercase tracking-[0.2em] text-emerald-300 font-bold">
-              {isAr ? "مركز القيادة" : "Command Center"}
-            </p>
-            <h1 className="mt-2 text-2xl md:text-3xl font-black text-white">
-              {isAr ? "لوحة العمليات الداخلية" : "Internal Operations Dashboard"}
-            </h1>
-            <p className="mt-2 text-sm text-slate-200 max-w-2xl">
-              {isAr
-                ? "مؤشرات فورية لحركة الرحلات، جاهزية الأسطول، وتوزيع الخدمات مع روابط تشغيل مباشرة."
-                : "Live operational metrics for trips, fleet readiness, service allocation, and direct action surfaces."}
-            </p>
+    <div className="w-full min-w-0 space-y-6 pb-12 md:space-y-8 md:pb-16">
+      <div className={`px-4 md:px-0 ${isAr ? "text-right" : "text-left"}`}>
+        <div className={`flex items-center gap-3 mb-1.5 ${isAr ? "flex-row-reverse justify-end" : ""}`}>
+          <div className="p-2.5 bg-surface-subtle border border-border rounded-xl shadow-sm flex items-center justify-center shrink-0">
+            <motion.div animate={{ rotate: 360 }} transition={{ duration: 20, repeat: Infinity, ease: "linear" }}>
+              <LayoutDashboard className="text-primary" size={22} />
+            </motion.div>
           </div>
-          <span className="inline-flex items-center gap-2 rounded-xl bg-white/10 px-3 py-2 text-xs font-bold text-emerald-200 backdrop-blur-sm">
-            <Sparkles size={14} />
-            {isAr ? "بيانات لحظية" : "Realtime"}
-          </span>
+          <h1 className="text-2xl md:text-3xl font-bold text-text-main tracking-tight">
+            {dashboardTopTitle}
+          </h1>
         </div>
-      </section>
+        <p className="text-text-subtle font-medium text-sm max-w-xl">
+          {dashboardTopSummary}
+        </p>
+      </div>
+
+      <DashboardHeroBanner
+        isAr={isAr}
+        heroImage={heroImage}
+        badgeText={heroBadge}
+        titleText={heroTitle}
+        descriptionText={heroDescription}
+        realtimeText={realtimeLabel}
+      />
 
       <StatsGrid isAr={isAr} />
 
-      <OperationsHub isAr={isAr} />
+      <LiveOpsCenter isAr={isAr} />
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        <FleetAnalytics isAr={isAr} />
-        <InventoryAnalytics isAr={isAr} />
-      </div>
+      <PendingDocumentationSection />
 
-      <ServiceAnalytics isAr={isAr} />
-
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        <div className="xl:col-span-2">
-          <AssetAllocationWidget isAr={isAr} />
+      <div className="space-y-4 pt-1">
+        <div className="flex items-center gap-3 px-2 sm:px-4 md:px-0">
+          <div className="h-1 w-10 bg-primary rounded-full" />
+          <h2 className="text-base font-bold text-text-subtle">{isAr ? "الرؤى والتحليلات" : "Insights & Analytics"}</h2>
         </div>
-        <CommunicationsDeck isAr={isAr} />
-      </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        <ServiceDistribution isAr={isAr} />
-        <ActivityFeed isAr={isAr} />
+        <RevenueChart isAr={isAr} />
+
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 items-stretch">
+          <OperationsHub isAr={isAr} />
+          <ServiceDistribution isAr={isAr} />
+        </div>
+
+        <div className="min-h-128 md:min-h-144">
+          <FleetAnalytics isAr={isAr} />
+        </div>
+
+        <CommunicationsDeck isAr={isAr} />
       </div>
     </div>
   );

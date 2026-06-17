@@ -27,19 +27,19 @@ const Button: React.FC<ButtonProps> = ({
     isLoading = false,
     ...props
 }) => {
-    const baseClasses = 'font-semibold rounded-lg transition-all duration-200 flex items-center justify-center gap-2 active:scale-[0.97] disabled:active:scale-100 border cursor-pointer';
+    const baseClasses = 'inline-flex min-h-11 items-center justify-center gap-2 rounded-[var(--radius-md)] border font-semibold tracking-[-0.01em] transition-all duration-200 cursor-pointer active:scale-[0.98] disabled:active:scale-100 focus-visible:ring-4 focus-visible:ring-primary/15 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent';
 
     const variantClasses = {
         primary: 'btn-main',
-        secondary: 'bg-surface hover:bg-surface-subtle border-border text-text-main shadow-sm',
+        secondary: 'btn-secondary',
         danger: 'btn-danger',
-        success: 'bg-emerald-500 hover:bg-emerald-600 border-emerald-500 hover:border-emerald-600 text-white shadow-sm hover:shadow-md',
-        ghost: 'bg-transparent border-transparent text-text-subtle hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/10'
+        success: 'btn-success',
+        ghost: 'btn-ghost'
     };
 
     const sizeClasses = {
-        sm: 'px-3 py-1.5 text-xs',
-        md: 'px-4 py-2.5 text-sm',
+        sm: 'px-3.5 py-2 text-xs',
+        md: 'px-4.5 py-2.5 text-sm',
         lg: 'px-6 py-3 text-base'
     };
 

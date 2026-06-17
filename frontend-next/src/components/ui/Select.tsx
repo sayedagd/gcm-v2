@@ -62,15 +62,12 @@ const Select: React.FC<SelectProps> = ({
                     onChange={(e) => onChange(e.target.value)}
                     required={required}
                     disabled={disabled}
+                    data-invalid={error ? 'true' : undefined}
                     className={`
-                        w-full px-3.5 py-2.5 rounded-xl border transition-all duration-200 font-medium text-sm appearance-none ${className}
+                        field-base w-full appearance-none px-3.5 py-3 font-medium text-sm ${className}
                         ${icon ? 'ps-10' : ''}
                         pe-10
-                        ${error
-                            ? 'border-danger/60 bg-danger/5 dark:bg-danger/10 focus:border-danger focus:ring-2 focus:ring-danger/15'
-                            : 'border-border bg-surface focus:border-primary-500 focus:ring-2 focus:ring-primary-500/15'
-                        }
-                        ${disabled ? 'opacity-50 cursor-not-allowed bg-surface-subtle' : 'hover:border-border'}
+                        ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
                         text-text-main
                         focus:outline-none cursor-pointer
                     `}

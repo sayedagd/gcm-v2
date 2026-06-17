@@ -1,158 +1,195 @@
+import { createTheme, MantineThemeOverride, type MantineColorsTuple } from "@mantine/core";
 
-import { createTheme, MantineThemeOverride } from '@mantine/core';
+const brandScale: MantineColorsTuple = [
+    "#ecfdf5",
+    "#d1fae5",
+    "#a7f3d0",
+    "#6ee7b7",
+    "#34d399",
+    "#10b981",
+    "#059669",
+    "#047857",
+    "#065f46",
+    "#064e3b",
+];
+
+const dangerScale: MantineColorsTuple = [
+    "#fff1f2",
+    "#ffe4e6",
+    "#fecdd3",
+    "#fda4af",
+    "#fb7185",
+    "#f43f5e",
+    "#e11d48",
+    "#be123c",
+    "#9f1239",
+    "#881337",
+];
+
+const slateScale: MantineColorsTuple = [
+    "#f8fafc",
+    "#f1f5f9",
+    "#e2e8f0",
+    "#cbd5e1",
+    "#94a3b8",
+    "#64748b",
+    "#475569",
+    "#334155",
+    "#1e293b",
+    "#0f172a",
+];
 
 export const baseTheme: MantineThemeOverride = {
-    fontFamily: 'Cairo, Inter, system-ui, sans-serif',
-    fontFamilyMonospace: 'Monaco, Courier, monospace',
+    autoContrast: true,
+    primaryColor: "brand",
+    defaultRadius: "xl",
+    fontFamily: "var(--font-cairo), sans-serif",
+    fontFamilyMonospace:
+        'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
     headings: {
-        fontFamily: 'Cairo, Inter, system-ui, sans-serif',
-        fontWeight: '700',
+        fontFamily: "var(--font-cairo), sans-serif",
+        fontWeight: "700",
     },
-    primaryColor: 'emerald',
     colors: {
-        emerald: [
-            "#ecfdf5",
-            "#d1fae5",
-            "#a7f3d0",
-            "#6ee7b7",
-            "#34d399",
-            "#10b981",
-            "#059669",
-            "#047857",
-            "#065f46",
-            "#064e3b"
-        ],
-        blue: [
-            "#eff6ff",
-            "#dbeafe",
-            "#bfdbfe",
-            "#93c5fd",
-            "#60a5fa",
-            "#3b82f6",
-            "#2563eb",
-            "#1d4ed8",
-            "#1e40af",
-            "#1e3a8a"
-        ],
-        violet: [
-            "#f5f3ff",
-            "#ede9fe",
-            "#ddd6fe",
-            "#c4b5fd",
-            "#a78bfa",
-            "#8b5cf6",
-            "#7c3aed",
-            "#6d28d9",
-            "#5b21b6",
-            "#4c1d95"
-        ],
-        rose: [
-            "#fff1f2",
-            "#ffe4e6",
-            "#fecdd3",
-            "#fda4af",
-            "#fb7185",
-            "#f43f5e",
-            "#e11d48",
-            "#be123c",
-            "#9f1239",
-            "#881337"
-        ],
-        orange: [
-            "#fff7ed",
-            "#ffedd5",
-            "#fed7aa",
-            "#fdba74",
-            "#fb923c",
-            "#f59e0b",
-            "#d97706",
-            "#b45309",
-            "#92400e",
-            "#78350f"
-        ]
+        brand: brandScale,
+        danger: dangerScale,
+        slate: slateScale,
     },
-    defaultRadius: 'lg',
     components: {
         AppShell: {
             styles: {
                 main: {
-                    backgroundColor: 'var(--surface-subtle)',
+                    backgroundColor: "transparent",
                 },
                 header: {
-                    backgroundColor: 'var(--surface)',
+                    backgroundColor: "transparent",
+                    borderBottom: "none",
                 },
                 navbar: {
-                    backgroundColor: 'var(--surface)',
+                    backgroundColor: "transparent",
                 },
             },
         },
         Button: {
             defaultProps: {
-                size: 'md',
+                size: "md",
                 fw: 700,
+                radius: "xl",
             },
             styles: {
                 root: {
-                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                }
-            }
+                    borderRadius: "var(--radius-md)",
+                    transition:
+                        "transform var(--motion-fast) ease, box-shadow var(--motion-fast) ease, background-color var(--motion-fast) ease, border-color var(--motion-fast) ease",
+                    boxShadow: "var(--shadow-soft)",
+                },
+            },
+        },
+        ActionIcon: {
+            defaultProps: {
+                radius: "xl",
+                variant: "subtle",
+            },
+            styles: {
+                root: {
+                    color: "var(--text-subtle)",
+                    backgroundColor: "color-mix(in srgb, var(--surface) 86%, transparent)",
+                    border: "1px solid color-mix(in srgb, var(--border-color) 84%, transparent)",
+                    transition:
+                        "background-color var(--motion-fast) ease, border-color var(--motion-fast) ease, color var(--motion-fast) ease, transform var(--motion-fast) ease",
+                },
+            },
         },
         TextInput: {
-            defaultProps: {
-                size: 'md',
-                variant: 'filled',
-                radius: 'md',
+            defaultProps: { size: "md", radius: "xl" },
+            styles: {
+                input: {
+                    backgroundColor: "var(--surface)",
+                    borderColor: "var(--border-color)",
+                    color: "var(--text-main)",
+                    borderRadius: "var(--radius-md)",
+                },
             },
         },
         NumberInput: {
-            defaultProps: { size: 'md', variant: 'filled', radius: 'md' },
+            defaultProps: { size: "md", radius: "xl" },
         },
         PasswordInput: {
-            defaultProps: { size: 'md', variant: 'filled', radius: 'md' },
+            defaultProps: { size: "md", radius: "xl" },
         },
         Select: {
-            defaultProps: {
-                size: 'md',
-                variant: 'filled',
-                radius: 'md',
-            },
+            defaultProps: { size: "md", radius: "xl" },
         },
         Textarea: {
-            defaultProps: { size: 'md', variant: 'filled', radius: 'md' },
+            defaultProps: { size: "md", radius: "xl" },
         },
         Paper: {
-            defaultProps: {
-                radius: 'xl',
-            },
+            defaultProps: { radius: "xl" },
             styles: {
-                root: { transition: 'transform 0.3s ease, box-shadow 0.3s ease' }
-            }
+                root: {
+                    backgroundColor: "color-mix(in srgb, var(--surface) 94%, transparent)",
+                    border: "1px solid color-mix(in srgb, var(--border-color) 88%, transparent)",
+                    boxShadow: "var(--shadow-panel)",
+                },
+            },
         },
         Card: {
-            defaultProps: {
-                radius: 'xl',
-            },
+            defaultProps: { radius: "xl" },
             styles: {
-                root: { transition: 'transform 0.3s ease, box-shadow 0.3s ease' }
-            }
+                root: {
+                    backgroundColor: "color-mix(in srgb, var(--surface) 94%, transparent)",
+                    border: "1px solid color-mix(in srgb, var(--border-color) 88%, transparent)",
+                    boxShadow: "var(--shadow-panel)",
+                    transition:
+                        "transform var(--motion-fast) ease, box-shadow var(--motion-fast) ease, border-color var(--motion-fast) ease",
+                },
+            },
         },
         Modal: {
             defaultProps: {
-                radius: 'xl',
-                transitionProps: { transition: 'pop', duration: 300, timingFunction: 'ease-out' },
+                radius: "xl",
+                transitionProps: {
+                    transition: "pop",
+                    duration: 220,
+                    timingFunction: "cubic-bezier(0.16, 1, 0.3, 1)",
+                },
             },
             styles: {
-                header: { backgroundColor: 'transparent' },
-                content: { overflow: 'hidden' }
-            }
+                content: {
+                    overflow: "hidden",
+                    backgroundColor: "color-mix(in srgb, var(--surface) 96%, transparent)",
+                    border: "1px solid color-mix(in srgb, var(--border-color) 88%, transparent)",
+                    boxShadow: "var(--shadow-panel-strong)",
+                },
+                header: {
+                    backgroundColor: "transparent",
+                },
+            },
+        },
+        Menu: {
+            defaultProps: {
+                radius: "xl",
+                shadow: "md",
+            },
+            styles: {
+                dropdown: {
+                    backgroundColor: "color-mix(in srgb, var(--surface) 98%, transparent)",
+                    border: "1px solid color-mix(in srgb, var(--border-color) 88%, transparent)",
+                    boxShadow: "var(--shadow-panel)",
+                },
+                item: {
+                    borderRadius: "calc(var(--radius-sm) - 2px)",
+                    color: "var(--text-main)",
+                },
+            },
         },
         NavLink: {
             styles: {
                 root: {
-                    borderRadius: '8px',
+                    borderRadius: "var(--radius-sm)",
                     fontWeight: 600,
-                    transition: 'all 0.2s',
+                    transition:
+                        "background-color var(--motion-fast) ease, color var(--motion-fast) ease, transform var(--motion-fast) ease",
                 },
             },
         },

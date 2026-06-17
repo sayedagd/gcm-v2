@@ -1,37 +1,31 @@
 import React, { useMemo } from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { format, subDays, parseISO } from 'date-fns';
 import Card from '@/components/ui/Card';
-import { useStore } from '@/context';
 import { formatNumber } from '@/utils/helpers';
 import { TrendingUp, Calendar } from 'lucide-react';
+import { useDashboardAnalytics } from '@/hooks/useDashboardAnalytics';
+import { SkeletonFullPage } from '@/components/common/PageSkeleton';
 
 interface RevenueChartProps {
     isAr: boolean;
 }
 
 export const RevenueChart: React.FC<RevenueChartProps> = ({ isAr }) => {
-    const { trips, saasConfig } = useStore();
+    const { data: analytics, loading, error } = useDashboardAnalytics();
+    const series = analytics?.revenueTrend.series || [];
 
-    const data = useMemo(() => {
-        const last30Days = Array.from({ length: 30 }, (_, i) => {
-            const d = subDays(new Date(), 29 - i);
-            return format(d, 'yyyy-MM-dd');
-        });
+    const chartData = useMemo(() => {
+        return series.map((point) => ({
+            date: point.date,
+            value: point.value,
+        }));
+    }, [series]);
 
-        return last30Days.map(dateStr => {
-            const dayTrips = trips.filter(t => t.date === dateStr);
-            // Mocking cost calculation per trip since we don't have exact invoice data linked here yet
-            // Assuming average trip value if not strictly defined
-            const dailyVolume = dayTrips.reduce((acc, t) => acc + (Number(t.quantity) || 0), 0);
-            return {
-                date: format(parseISO(dateStr), 'MMM dd'),
-                value: dailyVolume // Visualizing Volume as a proxy for "Activity/Revenue" for now
-            };
-        });
-    }, [trips]);
+    const totalRevenue = analytics?.revenueTrend.totalRevenue || 0;
 
-    const totalVolume = data.reduce((acc, d) => acc + d.value, 0);
+    if (loading) {
+        return <SkeletonFullPage variant="cards" />;
+    }
 
     return (
         <Card className="p-8 rounded-2xl shadow-xl bg-surface h-[450px] flex flex-col">
@@ -39,10 +33,10 @@ export const RevenueChart: React.FC<RevenueChartProps> = ({ isAr }) => {
                 <div>
                     <h3 className="text-xl font-bold text-text-main flex items-center gap-2">
                         <TrendingUp className="text-emerald-500" />
-                        {isAr ? 'مؤشر الأداء التشغيلي (30 يوم)' : 'Operational Performance Trend (30d)'}
+                        {isAr ? 'إيرادات تقديرية (30 يوم)' : 'Estimated Revenue Trend (30d)'}
                     </h3>
                     <p className="text-sm text-text-subtle font-bold mt-1">
-                        {isAr ? 'إجمالي الحجم المعالج' : 'Total Processed Volume'}: <span className="text-emerald-500">{formatNumber(totalVolume)}</span>
+                        {isAr ? 'إجمالي الإيرادات التقديرية' : 'Total estimated revenue'}: <span className="text-emerald-500">{formatNumber(totalRevenue)}</span>
                     </p>
                 </div>
                 <div className="p-3 bg-surface-subtle rounded-2xl">
@@ -50,9 +44,15 @@ export const RevenueChart: React.FC<RevenueChartProps> = ({ isAr }) => {
                 </div>
             </div>
 
+            {error ? (
+                <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
+                    {error}
+                </div>
+            ) : null}
+
             <div className="flex-1 w-full min-h-0">
                 <ResponsiveContainer width="99%" height={300}>
-                    <AreaChart data={data}>
+                    <AreaChart data={chartData}>
                         <defs>
                             <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
                                 <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />

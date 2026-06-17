@@ -9,6 +9,8 @@
     "check:features": "node scripts/check-feature-structure.mjs",
     "check:bundle-budget": "node scripts/check-bundle-budget.mjs",
     "check:critical-deps": "node scripts/check-critical-deps.mjs",
+    "test:smoke": "playwright test -c playwright.config.ts",
+    "test:smoke:headed": "playwright test -c playwright.config.ts --headed",
     "check:api-boundary": "node scripts/check-api-boundary.mjs",
     "check:v1-endpoints": "node scripts/check-v1-endpoints.mjs",
     "generate:api-types": "openapi-typescript ../backend/openapi/openapi.v1.json -o src/api/generated/openapi.types.ts",
@@ -54,7 +56,9 @@
     "zustand": "^5.0.14"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.0",
     "@tailwindcss/postcss": "^4",
+    "@playwright/test": "^1.58.2",
     "@types/jsdom": "^28.0.3",
     "@types/node": "^20",
     "@types/react": "^19",

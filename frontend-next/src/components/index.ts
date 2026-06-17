@@ -28,6 +28,7 @@ export { default as SearchableSelect } from './ui/SearchableSelect';
 export { default as ColorPicker } from './ui/ColorPicker';
 export { default as Badge } from './ui/Badge';
 export { default as MultiSelect } from './ui/MultiSelect';
+export { default as PageSection } from './ui/PageSection';
 
 // Common Components
 export { default as LoadingSpinner } from './common/LoadingSpinner';

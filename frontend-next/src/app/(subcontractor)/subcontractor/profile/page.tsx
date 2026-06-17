@@ -58,7 +58,7 @@ const SubcontractorProfile: React.FC = () => {
     }
 
     return (
-        <div className="p-4 md:p-8 space-y-8 max-w-7xl mx-auto">
+        <div className="w-full min-w-0 p-4 md:p-8 space-y-8">
             {/* Breadcrumb / Navigation */}
             <div className="flex items-center gap-4 mb-2">
                 <button 

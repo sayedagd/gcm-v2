@@ -9,7 +9,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { ChevronRight, ChevronLeft, Home } from 'lucide-react';
 import { useStore } from '@/context';
-import { getMenuGroups } from './MenuConfig';
+import { NAV_COMMON, ROUTE_GROUP_LABELS, ROUTE_LABELS, pickLocalized } from './navigationMeta';
 
 interface BreadcrumbItem {
   label: string;
@@ -18,64 +18,13 @@ interface BreadcrumbItem {
 
 /** Maps route paths to breadcrumb labels */
 const getRouteLabel = (path: string, isAr: boolean): string | null => {
-  const map: Record<string, [string, string]> = {
-    '/dashboard': ['الرئيسية', 'Dashboard'],
-    '/companies': ['الشركات', 'Companies'],
-    '/projects': ['المشاريع', 'Projects'],
-    '/trips': ['الرحلات', 'Trips'],
-    '/reports-dashboard': ['لوحة التقارير', 'Reports Hub'],
-    '/fleet': ['الأسطول', 'Fleet'],
-    '/inventory': ['المخزون', 'Inventory'],
-    '/drivers': ['الموظفين', 'Staff Hub'],
-    '/suppliers': ['الموردين', 'Suppliers Hub'],
-    '/facilities': ['المرافق', 'Facilities'],
-    '/logistics/trip-queue': ['قائمة الطلبات', 'Trip Queue'],
-    '/accountant-portal': ['المحاسبة', 'Finance'],
-    '/user-management': ['الفريق', 'Team'],
-    '/services': ['الخدمات', 'Services'],
-    '/activity-logs': ['سجل الأنشطة', 'Activity Logs'],
-    '/settings': ['الإعدادات', 'Settings'],
-    '/system-monitor': ['المراقبة', 'System Monitor'],
-    '/landing-settings': ['إعدادات الموقع', 'Landing Settings'],
-    '/equipment-admin': ['إدارة المتجر', 'Store Management'],
-    '/profile': ['الملف الشخصي', 'Profile'],
-    '/client/dashboard': ['لوحة العميل', 'Client Dashboard'],
-    '/client/reports': ['تقارير العميل', 'Client Reports'],
-    '/client/account': ['الحساب', 'Account'],
-    '/subcontractor/dashboard': ['لوحة المورد', 'Partner Dashboard'],
-    '/subcontractor/profile': ['ملف المورد', 'Partner Profile'],
-    '/subcontractor/assets': ['الأصول', 'Assets'],
-    '/driver': ['لوحة السائق', 'Driver Dashboard'],
-    '/driver/map': ['الخريطة', 'Map View'],
-  };
-  const entry = map[path];
-  return entry ? (isAr ? entry[0] : entry[1]) : null;
+  const entry = ROUTE_LABELS[path];
+  return entry ? pickLocalized(entry, isAr) : null;
 };
 
 const getGroupForPath = (path: string, isAr: boolean): string | null => {
-  const groupMap: Record<string, [string, string]> = {
-    '/dashboard': ['العمليات', 'Operations'],
-    '/companies': ['العمليات', 'Operations'],
-    '/projects': ['العمليات', 'Operations'],
-    '/trips': ['العمليات', 'Operations'],
-    '/reports-dashboard': ['العمليات', 'Operations'],
-    '/fleet': ['اللوجستيات', 'Logistics'],
-    '/inventory': ['اللوجستيات', 'Logistics'],
-    '/drivers': ['اللوجستيات', 'Logistics'],
-    '/suppliers': ['اللوجستيات', 'Logistics'],
-    '/facilities': ['اللوجستيات', 'Logistics'],
-    '/logistics/trip-queue': ['اللوجستيات', 'Logistics'],
-    '/accountant-portal': ['الإدارة', 'Admin'],
-    '/user-management': ['الإدارة', 'Admin'],
-    '/services': ['الإدارة', 'Admin'],
-    '/activity-logs': ['الإدارة', 'Admin'],
-    '/settings': ['الإدارة', 'Admin'],
-    '/system-monitor': ['الإدارة', 'Admin'],
-    '/landing-settings': ['الإدارة', 'Admin'],
-    '/equipment-admin': ['الإدارة', 'Admin'],
-  };
-  const entry = groupMap[path];
-  return entry ? (isAr ? entry[0] : entry[1]) : null;
+  const entry = ROUTE_GROUP_LABELS[path];
+  return entry ? pickLocalized(entry, isAr) : null;
 };
 
 export const Breadcrumbs: React.FC = () => {
@@ -87,9 +36,11 @@ export const Breadcrumbs: React.FC = () => {
   const crumbs = useMemo((): BreadcrumbItem[] => {
     const path = pathname;
     const items: BreadcrumbItem[] = [];
+    const homeCrumbLabel = pickLocalized(NAV_COMMON.homeCrumb, isAr);
+    const dashboardLabel = pickLocalized(NAV_COMMON.dashboardLabel, isAr);
 
     // Always start with Home
-    items.push({ label: isAr ? 'الرئيسية' : 'Home', href: '/dashboard' });
+    items.push({ label: homeCrumbLabel, href: '/dashboard' });
 
     // Add group if applicable
     const group = getGroupForPath(path, isAr);
@@ -99,7 +50,7 @@ export const Breadcrumbs: React.FC = () => {
 
     // Add current page (no href — it's the active page)
     const label = getRouteLabel(path, isAr);
-    if (label && label !== (isAr ? 'الرئيسية' : 'Dashboard')) {
+    if (label && label !== dashboardLabel) {
       items.push({ label });
     }
 

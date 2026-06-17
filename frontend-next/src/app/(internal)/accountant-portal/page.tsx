@@ -119,7 +119,7 @@ const AccountantPortal: React.FC = () => {
   };
 
   return (
-    <div className="space-y-8 max-w-[1600px] mx-auto pb-40 px-4 md:px-8">
+    <div className="w-full min-w-0 space-y-8 pb-40 px-4 md:px-8">
       {/* HEADER */}
       <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6 pt-4">
         <div>

@@ -10,6 +10,7 @@ import {
 } from '@/constants';
 import { createApiClient } from '@/api/client';
 import { buildEntityLink, getBilingualError } from '@/store/helpers';
+import { AUTH_COOKIE, LEGACY_BOOTSTRAP_COOKIE, ROLE_COOKIE, SESSION_EXP_COOKIE, SESSION_MAX_AGE_SECONDS } from '@/features/auth/model/sessionCookies';
 import { toast } from '@/utils/toast';
 import {
   validateCompany, validateProject, validateTrip, validateVehicle,
@@ -17,129 +18,24 @@ import {
   validateDriverForTrip, validateVehicleForTrip,
   validateProjectHasCompany, validateFacilityAcceptsService
 } from '@/utils/validationSchemas';
+import { createEmptySaaSConfig, mapSystemConfigToSaaSConfig } from '@/store/saasConfig';
 
-const DEFAULT_SAAS_CONFIG: SaaSConfig = {
-  appNameAr: 'GCM - GLOBAL CLEAR MISSION',
-  appNameEn: 'GCM - GLOBAL CLEAR MISSION',
-  appSloganAr: 'حلول بيئية متكاملة',
-  appSloganEn: 'Integrated Eco Solutions',
-  primaryColor: '#10b981',
-  logoUrl: '/logo-light.png',
-  logoDarkUrl: '/logo-dark.png',
-  language: 'ar',
-  apiConfig: { baseUrl: '', version: 'v1.0.0', timeout: 30000 },
-  landingPage: {
-    heroTitleAr: 'حلول بيئية مستدامة للمستقبل',
-    heroTitleEn: 'Sustainable Environmental Solutions for the Future',
-    heroDescAr: 'شركة الرسالة الواضحة العالمية — شريككم المعتمد في إدارة النفايات والخدمات البيئية المتكاملة بالمملكة العربية السعودية',
-    heroDescEn: 'Global Clear Mission — Your certified partner in waste management and integrated environmental services across Saudi Arabia',
-    heroBgUrl: 'https://images.unsplash.com/photo-1532601224476-15c79f2f7a51?auto=format&fit=crop&q=80',
-    heroStats: [
-      { valueAr: '+15', valueEn: '15+', labelAr: 'سنة خبرة', labelEn: 'Years Experience' },
-      { valueAr: '+500', valueEn: '500+', labelAr: 'مشروع منجز', labelEn: 'Projects Completed' },
-      { valueAr: '+50', valueEn: '50+', labelAr: 'عميل نشط', labelEn: 'Active Clients' },
-      { valueAr: '24/7', valueEn: '24/7', labelAr: 'دعم فني', labelEn: 'Technical Support' }
-    ],
-    trustBadges: [
-      { labelAr: 'معتمدة من موان', labelEn: 'Mowan Certified' },
-      { labelAr: 'متوافقة مع NCEC', labelEn: 'NCEC Compliant' },
-      { labelAr: 'رؤية 2030', labelEn: 'Vision 2030' }
-    ],
-    aboutTitleAr: 'من نحن',
-    aboutTitleEn: 'About Us',
-    aboutDescAr: 'شركة الرسالة الواضحة العالمية (GCM)',
-    aboutDescEn: 'Global Clear Mission (GCM)',
-    aboutTextAr: 'تأسست شركة الرسالة الواضحة العالمية في المملكة العربية السعودية كشركة رائدة متخصصة في تقديم الحلول البيئية المتكاملة والخدمات اللوجستية. نعمل وفق أعلى المعايير الدولية والمحلية، ونمتلك اعتماد الهيئة العامة للنقل (موان) والمركز الوطني للرقابة على الالتزام البيئي (NCEC). نلتزم بتحقيق أهداف رؤية المملكة 2030 في الاستدامة البيئية من خلال إدارة النفايات الصناعية والإنشائية والطبية، وتوريد أحدث الأجهزة والمعدات البيئية لضمان سلامة البيئة وصحة المجتمع.',
-    aboutTextEn: 'Global Clear Mission (GCM) was established in Saudi Arabia as a leading company specializing in integrated environmental solutions and logistical services. We operate according to the highest international and local standards, holding certifications from the General Authority of Transport (Mowan) and the National Center for Environmental Compliance (NCEC). We are committed to achieving Saudi Vision 2030 sustainability goals through industrial, construction, and medical waste management, and supplying cutting-edge environmental equipment to ensure environmental safety and community health.',
-    aboutImageUrl: 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&q=80',
-    experienceYears: 15,
-    projectsCount: '500+',
-    clientsCount: '50+',
-    vehiclesCount: '120+',
-    complianceTextAr: 'نظام متوافق بالكامل مع معايير المركز الوطني للرقابة على الالتزام البيئي (NCEC)',
-    complianceTextEn: 'Fully compliant with the National Center for Environmental Compliance (NCEC) standards',
-    servicesSectionTitleAr: 'خدماتنا البيئية المتخصصة',
-    servicesSectionTitleEn: 'Our Specialized Environmental Services',
-    servicesSectionDescAr: 'حلول بيئية شاملة مصممة لتلبية احتياجات المشاريع الكبرى ومواقع البنية التحتية في المملكة',
-    servicesSectionDescEn: 'Comprehensive environmental solutions designed for major projects and infrastructure sites across the Kingdom',
-    defaultServices: [
-      { id: 'svc-1', iconType: 'recycle', titleAr: 'إدارة النفايات الصناعية', titleEn: 'Industrial Waste Management', descAr: 'نقل ومعالجة وتدوير النفايات الصناعية والخطرة وفق اشتراطات NCEC، مع إصدار شهادات التخلص الآمن وبيانات الوزن المعتمدة لكل شحنة.', descEn: 'Transport, treatment, and recycling of industrial and hazardous waste in compliance with NCEC regulations, with certified disposal certificates and weight manifests for each shipment.' },
-      { id: 'svc-2', iconType: 'truck', titleAr: 'نقل النفايات الإنشائية', titleEn: 'Construction Waste Hauling', descAr: 'أسطول متخصص لنقل مخلفات البناء والهدم (C&D Waste) من مواقع المشاريع إلى محطات الفرز والتدوير المعتمدة، مع تتبع GPS لحظي.', descEn: 'Specialized fleet for transporting construction and demolition waste from project sites to certified sorting and recycling stations, with real-time GPS tracking.' },
-      { id: 'svc-3', iconType: 'droplet', titleAr: 'إدارة النفايات السائلة', titleEn: 'Liquid Waste Management', descAr: 'شفط ونقل ومعالجة المياه العادمة والنفايات السائلة من المنشآت الصناعية والمشاريع، مع الالتزام الكامل بمعايير السلامة البيئية.', descEn: 'Suction, transport, and treatment of wastewater and liquid waste from industrial facilities and projects, with full compliance to environmental safety standards.' },
-      { id: 'svc-4', iconType: 'shield', titleAr: 'الاستشارات البيئية', titleEn: 'Environmental Consulting', descAr: 'تقديم استشارات بيئية متخصصة تشمل دراسات تقييم الأثر البيئي (EIA)، وخطط إدارة النفايات، والامتثال للأنظمة البيئية السعودية.', descEn: 'Specialized environmental consulting including Environmental Impact Assessment (EIA) studies, waste management plans, and compliance with Saudi environmental regulations.' },
-      { id: 'svc-5', iconType: 'factory', titleAr: 'توريد الحاويات والمعدات', titleEn: 'Container & Equipment Supply', descAr: 'توريد وتأجير حاويات بمختلف الأحجام (2-40 ياردة) ومعدات الضغط والفرز لمواقع المشاريع والمنشآت، مع خدمات الصيانة الدورية.', descEn: 'Supply and rental of containers in various sizes (2-40 yards) and compaction/sorting equipment for project sites and facilities, with periodic maintenance services.' },
-      { id: 'svc-6', iconType: 'settings', titleAr: 'أنظمة المراقبة البيئية', titleEn: 'Environmental Monitoring Systems', descAr: 'تركيب وتشغيل أنظمة رصد الانبعاثات وجودة الهواء والمياه باستخدام أحدث أجهزة القياس المعتمدة دولياً، مع تقارير تحليلية دورية.', descEn: 'Installation and operation of emissions and air/water quality monitoring systems using the latest internationally certified measuring devices, with periodic analytical reports.' }
-    ],
-    services: [],
-    certifications: [
-      { id: 'cert-1', nameAr: 'الهيئة العامة للنقل (موان)', nameEn: 'General Authority of Transport (Mowan)', descAr: 'ترخيص نقل النفايات والمواد الخطرة', descEn: 'Licensed for waste and hazardous materials transport', icon: 'truck' },
-      { id: 'cert-2', nameAr: 'المركز الوطني للرقابة البيئية (NCEC)', nameEn: 'National Center for Environmental Compliance (NCEC)', descAr: 'اعتماد الالتزام البيئي الشامل', descEn: 'Full environmental compliance certification', icon: 'shield' },
-      { id: 'cert-3', nameAr: 'رؤية المملكة 2030', nameEn: 'Saudi Vision 2030', descAr: 'مساهمة فعالة في أهداف الاستدامة الوطنية', descEn: 'Active contribution to national sustainability goals', icon: 'globe' }
-    ],
-    whyChooseUs: [
-      { titleAr: 'الالتزام البيئي الكامل', titleEn: 'Full Environmental Compliance', descAr: 'جميع عملياتنا مرخصة ومتوافقة مع نظام البيئة السعودي ومعتمدة من NCEC وموان.', descEn: 'All operations are licensed and compliant with Saudi environmental law, certified by NCEC and Mowan.' },
-      { titleAr: 'نظام تتبع ذكي GCM-ERP', titleEn: 'GCM-ERP Smart Tracking System', descAr: 'لوحة تحكم ذكية تتيح للعملاء متابعة لحظية لكل رحلة نقل وكمية نفايات وبيانات الوزن مع تقارير تلقائية.', descEn: 'Smart dashboard enabling clients to track every transport trip, waste quantity, and weight data with automated reports in real-time.' },
-      { titleAr: 'دعم فني متخصص 24/7', titleEn: '24/7 Specialized Technical Support', descAr: 'فريق من المهندسين والفنيين المؤهلين جاهزون للتدخل الميداني وحل المشكلات التشغيلية على مدار الساعة.', descEn: 'A team of qualified engineers and technicians ready for field intervention and solving operational issues around the clock.' },
-      { titleAr: 'صديق للبيئة بالكامل', titleEn: 'Fully Eco-Friendly', descAr: 'نظامنا الرقمي يقلل البصمة الكربونية عبر أتمتة العمليات الورقية وتحسين مسارات النقل لتقليل الانبعاثات.', descEn: 'Our digital system reduces carbon footprint by automating paper processes and optimizing transport routes to minimize emissions.' }
-    ],
-    fleetSectionTitleAr: 'أسطول العمليات والمعدات',
-    fleetSectionTitleEn: 'Operations Fleet & Equipment',
-    fleetSectionDescAr: 'معدات حديثة بكفاءة عالية قادرة على التعامل مع كافة الظروف الميدانية الصعبة',
-    fleetSectionDescEn: 'Modern, high-efficiency equipment capable of handling all challenging field conditions',
-    fleet: [],
-    partnersSectionTitleAr: 'شركاء نعتز بثقتهم',
-    partnersSectionTitleEn: 'Trusted By Industry Leaders',
-    partners: [],
-    contactTitleAr: 'هل لديك مشروع؟ تواصل معنا',
-    contactTitleEn: 'Have a Project? Get in Touch',
-    contactDescAr: 'فريقنا من المتخصصين البيئيين جاهز لتقديم استشارة فنية مجانية لموقعكم ومشروعكم. نقدم حلولاً مخصصة تناسب طبيعة نشاطكم.',
-    contactDescEn: 'Our team of environmental specialists is ready to provide a free technical consultation for your site and project. We offer customized solutions that fit your business needs.',
-    contactRecipientEmail: '',
-    contactPhone: '',
-    contactLocationAr: '',
-    contactLocationEn: '',
-    storeUrl: '',
-    showCompanyField: true,
-    showSubjectField: true,
-    showPhoneField: true,
-    portalBtnTextAr: 'بوابة الموظفين',
-    portalBtnTextEn: 'Employee Portal',
-    portalIconType: 'shield',
-    footerAboutAr: 'شركة الرسالة الواضحة العالمية — شريككم في الاستدامة البيئية. معتمدون من موان و NCEC.',
-    footerAboutEn: 'Global Clear Mission Co. — Your partner in environmental sustainability. Certified by Mowan & NCEC.',
-    copyrightTextAr: '© 2025 جميع الحقوق محفوظة لشركة الرسالة الواضحة العالمية (GCM)',
-    copyrightTextEn: '© 2025 All Rights Reserved — Global Clear Mission Co. (GCM)',
-    socialLinks: [],
-    seo: {
-      metaTitleAr: 'GCM | شركة الرسالة الواضحة العالمية — حلول بيئية متكاملة',
-      metaTitleEn: 'GCM | Global Clear Mission — Integrated Environmental Solutions',
-      metaDescAr: 'شركة رائدة في إدارة النفايات والخدمات البيئية بالسعودية. معتمدة من موان و NCEC. حلول مستدامة وفق رؤية 2030.',
-      metaDescEn: 'Leading waste management and environmental services company in Saudi Arabia. Mowan & NCEC certified. Sustainable solutions aligned with Vision 2030.',
-      googleAnalyticsId: ''
-    }
-  },
-  storePage: {
-    heroTitleAr: 'متجر الأجهزة البيئية',
-    heroTitleEn: 'Environmental Equipment Store',
-    heroDescAr: 'نقدم أحدث الحلول والتقنيات العالمية لرصد وحماية البيئة. حلول متكاملة تناسب احتياجات منشآتكم.',
-    heroDescEn: 'Providing the latest global solutions and technologies for environmental monitoring and protection.'
-  },
-  bootConfig: {
-    backgroundColor: 'bg-slate-950',
-    textColor: 'text-white',
-    accentColor: 'emerald-500',
-    showSlogan: true,
-    logoDuration: 2000
-  },
-  managementControlsEnabled: true,
-  aiAssistant: {
-    enabled: true,
-    name: 'Shady',
-    nameAr: 'شادي',
-    position: 'bottom-right',
-    iconStyle: 'sparkles',
-    color: '#8b5cf6'
+const writeBrowserCookie = (name: string, value: string, maxAgeSeconds: number) => {
+  if (typeof document === 'undefined') {
+    return;
   }
+
+  const isSecure = window.location.protocol === 'https:';
+  const expires = new Date(Date.now() + maxAgeSeconds * 1000).toUTCString();
+  document.cookie = `${name}=${encodeURIComponent(value)}; Path=/; Max-Age=${maxAgeSeconds}; Expires=${expires}; SameSite=Lax${isSecure ? '; Secure' : ''}`;
+};
+
+const clearBrowserCookie = (name: string) => {
+  if (typeof document === 'undefined') {
+    return;
+  }
+
+  document.cookie = `${name}=; Path=/; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax`;
 };
 
 const getApiBaseUrl = () => {
@@ -305,7 +201,7 @@ export const useGCMStore = create<GCMStore>((set, get) => ({
   booting: true,
   currentUser: INITIAL_USER,
   isAuthenticated: false,
-  saasConfig: DEFAULT_SAAS_CONFIG,
+  saasConfig: createEmptySaaSConfig(),
   exportEnabled: false,
   resourceErrors: {},
 
@@ -442,6 +338,22 @@ export const useGCMStore = create<GCMStore>((set, get) => ({
     const { loadAllData, dispatchSystemEvent } = get();
     set({ currentUser: user, isAuthenticated: true });
 
+    const expiresInSeconds = SESSION_MAX_AGE_SECONDS;
+    const expiresAtMs = Date.now() + expiresInSeconds * 1000;
+    writeBrowserCookie(AUTH_COOKIE, 'true', expiresInSeconds);
+    writeBrowserCookie(ROLE_COOKIE, user.role, expiresInSeconds);
+    writeBrowserCookie(SESSION_EXP_COOKIE, String(expiresAtMs), expiresInSeconds);
+    writeBrowserCookie(LEGACY_BOOTSTRAP_COOKIE, JSON.stringify({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      company_id: user.company_id || null,
+      project_id: user.project_id || null,
+      supplier_id: user.supplier_id || null,
+      expiresAtMs,
+    }), expiresInSeconds);
+
     if (remember) {
       localStorage.setItem('gcm_auth_session', 'true');
       localStorage.setItem('gcm_current_user', JSON.stringify(user));
@@ -457,6 +369,10 @@ export const useGCMStore = create<GCMStore>((set, get) => ({
     // or the backend throws 400 Bad Request due to missing/invalidated token.
     localStorage.removeItem('gcm_auth_session');
     localStorage.removeItem('gcm_current_user');
+    clearBrowserCookie(AUTH_COOKIE);
+    clearBrowserCookie(ROLE_COOKIE);
+    clearBrowserCookie(SESSION_EXP_COOKIE);
+    clearBrowserCookie(LEGACY_BOOTSTRAP_COOKIE);
     get().resetData();
     set({ isAuthenticated: false, currentUser: INITIAL_USER });
   },
@@ -555,7 +471,10 @@ export const useGCMStore = create<GCMStore>((set, get) => ({
       await api.addLog(newLog);
       set(state => ({ logs: [newLog, ...state.logs].slice(0, 1000) }));
     } catch (err) {
-      console.error("Failed to add log:", err);
+      const message = err instanceof Error ? err.message : String(err);
+      if (!message.includes('API endpoint not found') && !message.includes('Invalid CSRF token')) {
+        console.error("Failed to add log:", err);
+      }
     }
   },
 
@@ -579,7 +498,10 @@ export const useGCMStore = create<GCMStore>((set, get) => ({
         set(state => ({ notifications: [newNotif, ...state.notifications].slice(0, 100) }));
       }
     } catch (err) {
-      console.error("Failed to add notification:", err);
+      const message = err instanceof Error ? err.message : String(err);
+      if (!message.includes('API endpoint not found') && !message.includes('Invalid CSRF token')) {
+        console.error("Failed to add notification:", err);
+      }
     }
   },
 
@@ -1650,29 +1572,7 @@ export const StoreInitializer: React.FC = () => {
           console.log("✅ [GCM] System Config Loaded");
           // [AR] تحويل الأسماء من snake_case (API) إلى camelCase (Store)
           // [EN] Map snake_case from API to camelCase for the Store state
-          const mappedConfig: Partial<SaaSConfig> = {
-            appNameAr: config.app_name_ar,
-            appNameEn: config.app_name_en,
-            appSloganAr: config.app_slogan_ar,
-            appSloganEn: config.app_slogan_en,
-            primaryColor: config.primary_color,
-            logoUrl: config.logo_url,
-            logoDarkUrl: config.logo_dark_url,
-            language: config.language,
-            landingPage: typeof config.landing_page === 'string' ? JSON.parse(config.landing_page) : config.landing_page,
-            storePage: typeof config.store_page === 'string' ? JSON.parse(config.store_page) : config.store_page,
-            bootConfig: config.boot_config,
-            templateConfig: config.template_config,
-            aiAssistant: config.ai_assistant,
-            managementControlsEnabled: config.management_controls_enabled,
-            support_phone: config.support_phone,
-            support_whatsapp: config.support_whatsapp
-          };
-
-          // Remove undefined keys to avoid overwriting defaults with nothing
-          Object.keys(mappedConfig).forEach(key => (mappedConfig as any)[key] === undefined && delete (mappedConfig as any)[key]);
-
-          store.setSaasConfig({ ...DEFAULT_SAAS_CONFIG, ...mappedConfig });
+          store.setSaasConfig(mapSystemConfigToSaaSConfig(config));
         }
 
         const session = localStorage.getItem('gcm_auth_session') === 'true';

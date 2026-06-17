@@ -6,6 +6,7 @@ import { Vehicle, Supplier, PermitEntry, VehicleDocument, DocumentStatus, Servic
 import { motion } from 'framer-motion';
 import { toast } from '@/utils/toast';
 import VehicleProgress from './VehicleProgress';
+import { getVehicleTypeOptions, getVehicleStatusOptions } from '@/features/lookups/wizardOptions';
 
 interface VehicleWizardProps {
     currentVehicle: Partial<Vehicle> | null;
@@ -263,13 +264,7 @@ const VehicleWizard: React.FC<VehicleWizardProps> = ({
                         label={isAr ? 'نوع المعدة الميدانية' : 'Field Unit Type'}
                         value={localVehicle?.vehicle_type || ''}
                         onChange={val => setLocalVehicle(prev => ({ ...prev, vehicle_type: val }))}
-                        options={[
-                            { label: 'HOOK LIFT SYSTEM', value: 'Hook Lift' },
-                            { label: 'COMPACTOR UNIT', value: 'Compactor' },
-                            { label: 'WATER TANKER', value: 'Water Tanker' },
-                            { label: 'SMALL PICKUP', value: 'Small Pickup' },
-                            { label: 'FLATBED TRUCK', value: 'Flatbed' }
-                        ]}
+                        options={getVehicleTypeOptions()}
                         className="!text-xs uppercase"
                         placeholder={isAr ? 'اختر النوع' : 'SELECT TYPE'}
                     />
@@ -277,11 +272,7 @@ const VehicleWizard: React.FC<VehicleWizardProps> = ({
                         label={isAr ? 'الحالة التشغيلية' : 'Operational Status'}
                         value={localVehicle?.status || ''}
                         onChange={val => setLocalVehicle(prev => ({ ...prev, status: val as Vehicle['status'] }))}
-                        options={[
-                            { label: 'READY / ACTIVE', value: 'ACTIVE' },
-                            { label: 'IN MAINTENANCE', value: 'MAINTENANCE' },
-                            { label: 'DECOMMISSIONED', value: 'INACTIVE' }
-                        ]}
+                        options={getVehicleStatusOptions()}
                         className="!text-xs uppercase"
                     />
                 </div>

@@ -234,7 +234,7 @@ const ServiceRequest: React.FC = () => {
     }
 
     return (
-        <div className="max-w-2xl mx-auto space-y-8">
+        <div className="w-full min-w-0 space-y-8">
             <div className="text-center md:text-start">
                 <h1 className="text-3xl font-bold text-text-main">
                     {t('serviceRequest.title')}

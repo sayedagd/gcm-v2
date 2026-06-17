@@ -5,6 +5,13 @@ export type LoginRequest = paths['/api/v1/auth/login']['post']['requestBody']['c
 export type LoginResponse = paths['/api/v1/auth/login']['post']['responses'][200]['content']['application/json'];
 export type CompaniesResponse = paths['/api/v1/companies']['get']['responses'][200]['content']['application/json'];
 export type ConfigResponse = paths['/api/v1/config']['get']['responses'][200]['content']['application/json'];
+export type DashboardStatsResponse = {
+  status: string;
+  generatedAt: string;
+  revenueTrend: { totalRevenue: number; totalTrips: number; series: Array<{ date: string; value: number }> };
+  operationsTrend: { totalVolume: number; totalTrips: number; series: Array<{ date: string; value: number; trips: number }> };
+  topProjects: Array<{ projectId: string; projectName: string; volume: number; revenue: number; tripCount: number }>;
+};
 
 export const createTypedApiSdk = (baseUrl = '') => {
   const client = createApiClient(baseUrl);
@@ -13,5 +20,6 @@ export const createTypedApiSdk = (baseUrl = '') => {
     login: (payload: LoginRequest): Promise<LoginResponse> => client.login(payload) as Promise<LoginResponse>,
     getCompanies: (): Promise<CompaniesResponse> => client.getCompanies() as Promise<CompaniesResponse>,
     getConfig: (): Promise<ConfigResponse> => client.getConfig() as Promise<ConfigResponse>,
+    getDashboardStats: (): Promise<DashboardStatsResponse> => client.getDashboardStats() as Promise<DashboardStatsResponse>,
   };
 };

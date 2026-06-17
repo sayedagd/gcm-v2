@@ -267,7 +267,7 @@ const ReportsDashboard: React.FC = () => {
     }, [filteredTrips]);
 
     return (
-        <div className="space-y-6 md:space-y-8 max-w-[1600px] mx-auto pb-40 px-4 md:px-8">
+        <div className="w-full min-w-0 space-y-6 md:space-y-8 pb-40 px-4 md:px-8">
             {/* HEADER */}
             <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 md:gap-6 pt-4">
                 <div className="flex flex-col gap-1 w-full xl:w-auto">
@@ -295,9 +295,9 @@ const ReportsDashboard: React.FC = () => {
                         {timeRange === 'CUSTOM' && (
                             <div className="flex items-center gap-2 bg-surface-subtle p-2 rounded-xl border border-border">
                                 <Calendar size={14} className="text-text-subtle shrink-0" />
-                                <input type="date" value={customStart} onChange={e => setCustomStart(e.target.value)} className="bg-transparent text-[10px] font-bold outline-none w-[100px]" />
+                                <input type="date" value={customStart} onChange={e => setCustomStart(e.target.value)} className="bg-transparent text-[10px] font-bold outline-none w-25" />
                                 <span className="text-border">/</span>
-                                <input type="date" value={customEnd} onChange={e => setCustomEnd(e.target.value)} className="bg-transparent text-[10px] font-bold outline-none w-[100px]" />
+                                <input type="date" value={customEnd} onChange={e => setCustomEnd(e.target.value)} className="bg-transparent text-[10px] font-bold outline-none w-25" />
                             </div>
                         )}
                     </div>
@@ -426,10 +426,10 @@ const ReportsDashboard: React.FC = () => {
 
             {/* Simple Analytics Grid */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 xl:gap-6">
-                <Card className="p-6 h-[260px] flex flex-col bg-surface/50 border border-border">
+                <Card className="p-6 h-65 flex flex-col bg-surface/50 border border-border">
                     <h3 className="font-bold text-sm uppercase tracking-widest text-text-subtle mb-4">{isAr ? 'مقارنة الرحلات حسب الخدمة' : 'Trips by Service'}</h3>
-                    <div className="flex-1 min-h-0">
-                        <ResponsiveContainer width="100%" height="100%">
+                    <div className="flex-1 min-h-0 min-w-0">
+                        <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                             <BarChart data={serviceMixData} layout="vertical" margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
                                 <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} strokeOpacity={0.05} />
                                 <XAxis type="number" hide />
@@ -441,10 +441,10 @@ const ReportsDashboard: React.FC = () => {
                     </div>
                 </Card>
 
-                <Card className="p-6 h-[260px] flex flex-col bg-surface/50 border border-border">
+                <Card className="p-6 h-65 flex flex-col bg-surface/50 border border-border">
                     <h3 className="font-bold text-sm uppercase tracking-widest text-text-subtle mb-4">{isAr ? 'النمو الشهري للأعداد' : 'Monthly Trip Volume'}</h3>
-                    <div className="flex-1 min-h-0">
-                        <ResponsiveContainer width="100%" height="100%">
+                    <div className="flex-1 min-h-0 min-w-0">
+                        <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                             <BarChart data={monthlyTrendData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.05} />
                                 <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#888', fontWeight: 'bold' }} />
@@ -456,10 +456,10 @@ const ReportsDashboard: React.FC = () => {
                     </div>
                 </Card>
 
-                <Card className="p-6 h-[260px] flex flex-col bg-surface/50 border border-border">
+                <Card className="p-6 h-65 flex flex-col bg-surface/50 border border-border">
                     <h3 className="font-bold text-sm uppercase tracking-widest text-text-subtle mb-4">{isAr ? 'النشاط خلال 7 أيام' : '7-Day Activity Trend'}</h3>
-                    <div className="flex-1 min-h-0">
-                        <ResponsiveContainer width="100%" height="100%">
+                    <div className="flex-1 min-h-0 min-w-0">
+                        <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                             <AreaChart data={weeklyTrendData} margin={{ top: 0, right: 0, left: -30, bottom: 0 }}>
                                 <defs>
                                     <linearGradient id="colorTrips" x1="0" y1="0" x2="0" y2="1">

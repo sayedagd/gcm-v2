@@ -250,7 +250,7 @@ const Inventory: React.FC = () => {
    };
 
    return (
-      <div className="space-y-10 max-w-7xl mx-auto pb-40 px-4">
+      <div className="w-full min-w-0 space-y-10 pb-40 px-4">
          {/* Header Section */}
          <PageHeader
             title={isAr ? 'إدارة الأصول والمخزون' : 'Asset & Supply Hub'}

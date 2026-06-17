@@ -21,4 +21,6 @@ router.get('/sizes', inventoryController.listSizes);
 router.post('/sizes', inventoryController.upsertSize);
 router.delete('/sizes/:id', inventoryController.remove('inventory_sizes'));
 
+router.get('/analytics', inventoryController.getAnalytics);
+
 module.exports = router;

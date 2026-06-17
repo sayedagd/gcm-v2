@@ -3,6 +3,7 @@ import { useStore } from '../../context';
 import { ArrowLeft, Send, CheckCircle2, MapPin, Building2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { resolveLocalizedError } from '@/lib/errorMessages';
+import { pageTransition } from '@/theme/motion';
 
 interface RegisterModeProps {
     onBackToLogin: () => void;
@@ -111,9 +112,11 @@ const RegisterMode: React.FC<RegisterModeProps> = ({ onBackToLogin, initialRole 
     if (isSuccess) {
         return (
             <div className="text-center py-10">
-                <CheckCircle2 size={48} className="mx-auto text-emerald-500 mb-4" />
-                <h3 className="font-bold text-xl text-slate-900 dark:text-white">{isAr ? 'تم إرسال الطلب بنجاح' : 'Request Sent Successfully'}</h3>
-                <p className="text-slate-400 text-sm mt-2">{isAr ? 'سيقوم الإدمن بمراجعة طلبك وتفعيل حسابك' : 'Admins will review your request shortly.'}</p>
+                <div className="tone-success tone-success-bg tone-success-border mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-[var(--radius-lg)] border">
+                    <CheckCircle2 size={32} />
+                </div>
+                <h3 className="font-bold text-xl text-text-main">{isAr ? 'تم إرسال الطلب بنجاح' : 'Request Sent Successfully'}</h3>
+                <p className="text-text-subtle text-sm mt-2">{isAr ? 'سيقوم الإدمن بمراجعة طلبك وتفعيل حسابك' : 'Admins will review your request shortly.'}</p>
             </div>
         );
     }
@@ -124,14 +127,15 @@ const RegisterMode: React.FC<RegisterModeProps> = ({ onBackToLogin, initialRole 
             initial={{ opacity: 0, x: isAr ? -20 : 20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: isAr ? 20 : -20 }}
+            transition={pageTransition}
             onSubmit={handleRequest}
-            className="space-y-4"
+            className="space-y-4 sm:space-y-5"
         >
             {/* Request Role Selector */}
-            <div className="flex bg-surface-subtle p-1 rounded-xl mb-4 relative isolate border border-border">
+            <div className="segmented-surface mb-4">
                 {/* Animated Background Pill */}
                 <motion.div
-                    className="absolute top-1 bottom-1 bg-surface shadow-sm rounded-lg -z-10"
+                    className="surface-panel absolute top-1 bottom-1 rounded-[calc(var(--radius-sm)-2px)] -z-10 border"
                     initial={false}
                     animate={{
                         left: isAr
@@ -153,7 +157,7 @@ const RegisterMode: React.FC<RegisterModeProps> = ({ onBackToLogin, initialRole 
                         type="button"
                         disabled={isFormLocked}
                         onClick={() => changeReqTab(type)}
-                        className={`flex-1 py-2 rounded-lg text-xs font-medium transition-colors relative z-10 ${reqRole === type ? 'text-text-main' : 'text-text-subtle hover:text-text-main'}`}
+                        className={`relative z-10 flex-1 rounded-[calc(var(--radius-sm)-2px)] px-1 py-2 text-[11px] sm:text-xs font-medium transition-colors ${reqRole === type ? 'text-text-main' : 'text-text-subtle hover:text-text-main'}`}
                     >
                         {type === 'STAFF' ? (isAr ? 'موظف' : 'Staff') : type === 'CLIENT' ? (isAr ? 'عميل' : 'Client') : (isAr ? 'مورد' : 'Supplier')}
                     </button>
@@ -171,18 +175,18 @@ const RegisterMode: React.FC<RegisterModeProps> = ({ onBackToLogin, initialRole 
                     transition={{ x: { type: "spring", stiffness: 300, damping: 30 }, opacity: { duration: 0.2 } }}
                     className="space-y-4"
                 >
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className={`p-4 bg-surface-subtle rounded-[1.5rem] border transition-all ${error && !email ? 'border-danger' : 'border-transparent focus-within:border-primary'}`}>
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <div data-invalid={error && !email ? 'true' : undefined} className="auth-field p-4">
                             <label className="text-[9px] font-bold uppercase text-text-subtle tracking-widest block mb-1.5">{isAr ? 'البريد الإلكتروني' : 'Email'}</label>
                             <input required disabled={isFormLocked} type="email" className="bg-transparent border-none outline-none font-bold text-xs w-full text-text-main" value={email} onChange={e => setEmail(e.target.value)} />
                         </div>
-                        <div className="p-4 bg-surface-subtle rounded-[1.5rem] border border-transparent focus-within:border-primary">
+                        <div className="auth-field p-4">
                             <label className="text-[9px] font-bold uppercase text-text-subtle tracking-widest block mb-1.5">{isAr ? 'رقم الجوال' : 'Mobile'}</label>
                             <input disabled={isFormLocked} className="bg-transparent border-none outline-none font-bold text-xs w-full text-text-main" placeholder="05..." value={mobile} onChange={e => setMobile(e.target.value)} />
                         </div>
                     </div>
 
-                    <div className={`p-4 bg-surface-subtle rounded-[1.5rem] border transition-all ${error && !reqCompany ? 'border-danger' : 'border-transparent focus-within:border-primary'}`}>
+                    <div data-invalid={error && !reqCompany ? 'true' : undefined} className="auth-field p-4">
                         <label className="text-[9px] font-bold uppercase text-text-subtle tracking-widest block mb-1.5">{isAr ? 'اسم الشركة / الجهة التابعة' : 'Company / Organization'}</label>
                         <div className="flex items-center gap-2">
                             <Building2 size={14} className="text-text-subtle" />
@@ -190,7 +194,7 @@ const RegisterMode: React.FC<RegisterModeProps> = ({ onBackToLogin, initialRole 
                         </div>
                     </div>
 
-                    <div className={`p-4 bg-surface-subtle rounded-[1.5rem] border transition-all ${error && !location ? 'border-danger' : 'border-transparent focus-within:border-primary'}`}>
+                    <div data-invalid={error && !location ? 'true' : undefined} className="auth-field p-4">
                         <label className="text-[9px] font-bold uppercase text-text-subtle tracking-widest block mb-1.5">{isAr ? 'الموقع / المدينة' : 'Location / City'}</label>
                         <div className="flex items-center gap-2">
                             <MapPin size={14} className="text-text-subtle" />
@@ -198,7 +202,7 @@ const RegisterMode: React.FC<RegisterModeProps> = ({ onBackToLogin, initialRole 
                         </div>
                     </div>
 
-                    <div className="p-4 bg-surface-subtle rounded-[1.5rem] border border-transparent focus-within:border-primary">
+                    <div className="auth-field p-4">
                         <label className="text-[9px] font-bold uppercase text-text-subtle tracking-widest block mb-1.5">{isAr ? 'وصف الطلب / نبذة تعريفية' : 'Request Description'}</label>
                         <textarea
                             disabled={isFormLocked}
@@ -213,11 +217,11 @@ const RegisterMode: React.FC<RegisterModeProps> = ({ onBackToLogin, initialRole 
 
             {error && <p className="text-danger text-[10px] font-bold text-center bg-danger-muted p-3 rounded-lg border border-danger/20">{error}</p>}
 
-            <button type="submit" disabled={isFormLocked} className={`w-full py-3.5 bg-primary text-white rounded-xl font-semibold text-xs flex items-center gap-2 justify-center shadow-lg active:scale-[0.97] transition-all ${isSubmitting ? 'opacity-70 cursor-wait' : ''}`}>
+            <button type="submit" disabled={isFormLocked} className={`btn-main w-full py-3.5 rounded-[var(--radius-md)] text-xs ${isSubmitting ? 'opacity-70 cursor-wait' : ''}`}>
                 {isSubmitting ? (isAr ? 'جاري الإرسال...' : 'Sending...') : (isAr ? 'إرسال طلب الانضمام' : 'Submit Access Request')}
                 {!isSubmitting && <Send size={16} />}
             </button>
-            <button type="button" disabled={isFormLocked} onClick={onBackToLogin} className="w-full py-2 text-text-subtle font-medium text-xs hover:text-primary transition-colors flex items-center justify-center gap-2">
+            <button type="button" disabled={isFormLocked} onClick={onBackToLogin} className="btn-ghost w-full py-2 font-medium text-xs flex items-center justify-center gap-2">
                 <ArrowLeft size={14} className={isAr ? 'rotate-180' : ''} />
                 {isAr ? 'العودة لتسجيل الدخول' : 'Back to Login'}
             </button>

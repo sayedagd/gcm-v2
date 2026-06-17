@@ -225,7 +225,7 @@ const Projects: React.FC = () => {
   };
 
   return (
-    <div className="space-y-10 max-w-[1700px] mx-auto pb-40 px-4 md:px-10">
+    <div className="w-full min-w-0 space-y-10 pb-40 px-4 md:px-10">
       <PageHeader
         title={isAr ? 'إدارة المشاريع والمواقع' : 'Project Command Center'}
         subtitle={isAr ? 'التحكم المركزي في مشاريع العملاء والعمليات الميدانية' : 'Centralized control for client deployments and field operations.'}

@@ -5,29 +5,165 @@
 @import "./legacy.css";
 
 :root {
-  --background: #f5f7fb;
+  --background: #f8fafc;
   --foreground: #0f172a;
   --surface: #ffffff;
   --muted: #64748b;
   --primary-color: #10b981;
+  --page-max-width: 96rem;
+  --page-narrow-width: 72rem;
+  --page-gutter: clamp(1rem, 2.4vw, 2rem);
+  --header-height: 3.5rem;
+  --radius-sm: 0.875rem;
+  --radius-md: 1.125rem;
+  --radius-lg: 1.5rem;
+  --radius-xl: 2rem;
+  --shadow-soft: 0 10px 30px -18px rgba(15, 23, 42, 0.16);
+  --shadow-panel: 0 16px 40px -24px rgba(15, 23, 42, 0.18);
+  --shadow-panel-strong: 0 24px 60px -28px rgba(15, 23, 42, 0.24);
+  --motion-fast: 160ms;
+  --motion-base: 260ms;
+  --motion-slow: 420ms;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-surface: var(--surface);
+  --color-surface-subtle: var(--surface-subtle);
+  --color-surface-elevated: var(--surface-elevated);
+  --color-border: var(--border-color);
   --color-muted: var(--muted);
   --color-primary: var(--primary-color);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-text-main: var(--text-main);
+  --color-text-subtle: var(--text-subtle);
+  --color-success: var(--success-color);
+  --color-success-muted: var(--success-muted);
+  --color-danger: var(--danger-color);
+  --color-danger-muted: var(--danger-muted);
+  --color-amber: var(--amber-color);
+  --color-amber-muted: var(--amber-muted);
+  --font-sans: var(--font-cairo);
+  --font-display: var(--font-cairo);
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
+html {
+  min-height: 100%;
+  background: var(--surface-subtle);
+  color: var(--text-main);
+  scroll-behavior: smooth;
+  scrollbar-gutter: stable;
+}
+
+html.dark {
+  color-scheme: dark;
 }
 
 body {
-  background: var(--background);
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top, color-mix(in srgb, var(--primary-color) 12%, transparent) 0%, transparent 30%),
+    linear-gradient(180deg, color-mix(in srgb, var(--surface-subtle) 95%, transparent) 0%, var(--surface-subtle) 100%);
+  background-attachment: fixed;
   color: var(--foreground);
-  font-family: var(--font-cairo), var(--font-geist-sans), sans-serif;
+  font-family: var(--font-cairo), sans-serif;
+  text-rendering: optimizeLegibility;
 }
 
 a {
   color: var(--primary-color);
+}
+
+* {
+  border-color: var(--border-color);
+}
+
+::selection {
+  background: color-mix(in srgb, var(--primary-color) 22%, white 12%);
+  color: var(--text-main);
+}
+
+:focus-visible {
+  outline: none;
+}
+
+@layer components {
+  .app-shell-bg {
+    min-height: calc(100vh - var(--header-height));
+    background:
+      radial-gradient(circle at top right, color-mix(in srgb, var(--primary-color) 10%, transparent) 0%, transparent 28%),
+      radial-gradient(circle at bottom left, color-mix(in srgb, var(--surface-elevated) 70%, transparent) 0%, transparent 30%),
+      linear-gradient(180deg, color-mix(in srgb, var(--surface-subtle) 96%, transparent) 0%, var(--surface-subtle) 100%);
+  }
+
+  .page-shell {
+    width: 100%;
+    max-width: none;
+    margin-inline: 0;
+    padding-inline: var(--page-gutter);
+    padding-block: clamp(1rem, 2vw, 1.75rem) clamp(2.5rem, 4vw, 3.5rem);
+  }
+
+  .page-stack {
+    display: flex;
+    flex-direction: column;
+    gap: clamp(1rem, 2vw, 1.5rem);
+  }
+
+  .page-section {
+    border-radius: var(--radius-xl);
+    border: 1px solid color-mix(in srgb, var(--border-color) 82%, transparent);
+    background: color-mix(in srgb, var(--surface) 92%, transparent);
+    box-shadow: var(--shadow-panel);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    padding: clamp(1rem, 2vw, 1.5rem);
+  }
+
+  .page-section--subtle {
+    background: color-mix(in srgb, var(--surface-subtle) 86%, transparent);
+  }
+
+  .page-section--accent {
+    border-color: color-mix(in srgb, var(--primary-color) 24%, var(--border-color));
+    box-shadow: 0 18px 45px -28px color-mix(in srgb, var(--primary-color) 36%, transparent);
+  }
+
+  .page-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+  }
+
+  .surface-panel {
+    background: color-mix(in srgb, var(--surface) 90%, transparent);
+    border: 1px solid color-mix(in srgb, var(--border-color) 84%, transparent);
+    box-shadow: var(--shadow-panel);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+  }
+
+  .surface-panel-strong {
+    background: color-mix(in srgb, var(--surface) 96%, transparent);
+    border: 1px solid color-mix(in srgb, var(--border-color) 90%, transparent);
+    box-shadow: var(--shadow-panel-strong);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
 }

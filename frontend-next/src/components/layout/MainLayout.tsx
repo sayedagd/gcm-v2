@@ -15,7 +15,10 @@ import NotificationsPopover from './NotificationsPopover';
 import { Breadcrumbs } from './Breadcrumbs';
 import { GlobalSearch } from './GlobalSearch';
 import { formatRole } from '@/utils/helpers';
+import { pageTransition } from '@/theme/motion';
 import { Role } from '@/types';
+import { PageFrame } from './PageFrame';
+import { SkeletonFullPage } from '@/components/common/PageSkeleton';
 
 const translations = {
     ar: { ops: 'العمليات', logistics: 'اللوجستيات', admin: 'الإدارة', dashboard: 'الرئيسية', companies: 'الشركات', projects: 'المشاريع', trips: 'الرحلات', reports: 'التحليلات', fleet: 'الأسطول', inventory: 'المخزون', drivers: 'الموظفين', suppliers: 'الموردين', facilities: 'المرافق', accounting: 'المحاسبة', users: 'الفريق', services: 'الخدمات', settings: 'الإعدادات', landing: 'الموقع', monitor: 'المراقبة', profile: 'الملف الشخصي', logout: 'خروج', logs: 'سجل الأنشطة', notifs: 'الإشعارات' },
@@ -42,7 +45,7 @@ type MenuGroup = {
 export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
     const [opened, { toggle, close }] = useDisclosure(true);
     const isMobile = useMediaQuery('(max-width: 48em)');
-    const { currentUser, logout, saasConfig, updateSaaS, notifications, updatePresence, darkMode, setDarkMode } = useStore();
+    const { currentUser, logout, saasConfig, updateSaaS, notifications, updatePresence, darkMode, setDarkMode, booting } = useStore();
     const router = useRouter();
     const pathname = usePathname();
     const [hoveredItem, setHoveredItem] = useState<string | null>(null);
@@ -68,6 +71,10 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
 
     const CLIENT_ROLES = [Role.COMPANY_USER, Role.PROJECT_USER, Role.CLIENT];
     const scopedNotifications = React.useMemo(() => {
+        if (!currentUser) {
+            return [];
+        }
+
         if (CLIENT_ROLES.includes(effectiveRole)) {
             return notifications.filter(n =>
                 n.userId === currentUser.id ||
@@ -95,24 +102,27 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         updatePresence({ currentPage: pathname });
     }, [pathname, updatePresence]);
 
-    const menuGroups = getMenuGroups(t, isAr, effectiveRole) as MenuGroup[];
-    const filteredGroups = menuGroups
-        .filter((g) => g.roles.includes(effectiveRole))
-        .map((group) => ({
-            ...group,
-            items: group.items.filter((item) => item.roles.includes(effectiveRole))
-        }));
+    const visibleGroups = React.useMemo(() => {
+        const menuGroups = getMenuGroups(t, isAr, effectiveRole) as MenuGroup[];
+        const filteredGroups = menuGroups
+            .filter((g) => g.roles.includes(effectiveRole))
+            .map((group) => ({
+                ...group,
+                items: group.items.filter((item) => item.roles.includes(effectiveRole))
+            }));
 
-    const visibleGroups = (filteredGroups.length > 0 ? filteredGroups : menuGroups)
-        .map((group) => ({
-            ...group,
-            items: (group.items || []).filter((item) => (item.roles || []).includes(effectiveRole))
-        }))
-        .filter((group) => group.items.length > 0);
+        return (filteredGroups.length > 0 ? filteredGroups : menuGroups)
+            .map((group) => ({
+                ...group,
+                items: (group.items || []).filter((item) => (item.roles || []).includes(effectiveRole))
+            }))
+            .filter((group) => group.items.length > 0);
+    }, [effectiveRole, t, isAr]);
 
-    const userInitials = (currentUser.name || '').split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase();
+    const userInitials = (currentUser?.name || '').split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase();
 
-    // Auto-expand the group containing the active page
+    // Auto-expand the group containing the active page only when the path or role changes,
+    // NOT on every render — otherwise clicking to open other groups immediately collapses them.
     useEffect(() => {
         let timerId: number | undefined;
         const activeGroupIdx = visibleGroups.findIndex((g) =>
@@ -124,7 +134,16 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         return () => {
             if (timerId !== undefined) window.clearTimeout(timerId);
         };
-    }, [pathname, visibleGroups]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [pathname, effectiveRole]);
+
+    if (booting) {
+        return (
+            <div className="min-h-screen bg-background px-6 py-8">
+                <SkeletonFullPage variant="cards" />
+            </div>
+        );
+    }
 
     // Theme-aware sidebar tokens
     const sb = isDark ? {
@@ -189,18 +208,26 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                 breakpoint: 'sm',
                 collapsed: { mobile: !opened, desktop: !opened },
             }}
-            padding="md"
+            padding={0}
             transitionDuration={300}
             transitionTimingFunction="ease"
         >
             {/* ═══════════════ HEADER ═══════════════ */}
-            <AppShell.Header className="border-b border-border bg-surface transition-none">
-                <Group h="100%" px="md" justify="space-between">
+            <AppShell.Header className="border-b border-border/80 bg-transparent transition-none backdrop-blur-xl">
+                <Group h="100%" px="md" justify="space-between" className="surface-panel border-0 border-b rounded-none">
                     <Group gap="sm">
                         <Burger opened={opened} onClick={toggle} size="sm" />
                         <Group gap="xs" style={{ cursor: 'pointer' }} onClick={() => router.push('/')}>
                             {saasConfig.logoUrl ? (
-                                <Image src={saasConfig.logoUrl} alt="Logo" className="h-8 w-auto object-contain" width={128} height={32} unoptimized />
+                                <Image
+                                    src={saasConfig.logoUrl}
+                                    alt="Logo"
+                                    className="object-contain"
+                                    width={128}
+                                    height={32}
+                                    style={{ height: '2rem', width: 'auto' }}
+                                    unoptimized
+                                />
                             ) : (
                                 <div className="w-8 h-8 bg-surface rounded-lg flex items-center justify-center overflow-hidden border border-border/50 shadow-sm">
                                     <Image src="/logo-light.png" alt="GCM" className="w-full h-full object-contain" width={32} height={32} />
@@ -217,11 +244,11 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                         {currentUser?.role === Role.ADMIN && (
                             <UnstyledButton
                                 onClick={() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true }))}
-                                className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-surface-subtle border border-border text-text-subtle text-xs font-medium hover:border-primary/50 hover:text-primary transition-colors"
+                                className="surface-panel hidden md:flex items-center gap-2 px-3 py-1.5 rounded-sm text-text-subtle text-xs font-medium hover:border-primary/50 hover:text-primary transition-colors"
                             >
                                 <Search size={14} />
                                 <span>{isAr ? 'بحث...' : 'Search...'}</span>
-                                <kbd className="px-1.5 py-0.5 text-[9px] font-bold bg-surface border border-border rounded ml-2">Ctrl+K</kbd>
+                                <kbd className="px-1.5 py-0.5 text-[9px] font-bold bg-surface border border-border rounded-[0.625rem] ml-2">Ctrl+K</kbd>
                             </UnstyledButton>
                         )}
 
@@ -242,13 +269,13 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
 
                         <Menu shadow="md" width={200} radius="lg">
                             <Menu.Target>
-                                <UnstyledButton className="flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-surface-subtle transition-colors">
-                                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-primary-700 flex items-center justify-center text-white text-xs font-bold shadow-md">
+                                <UnstyledButton className="flex items-center gap-2 px-2 py-1 rounded-sm hover:bg-surface-subtle transition-colors">
+                                    <div className="w-8 h-8 rounded-lg bg-linear-to-br from-primary to-primary-700 flex items-center justify-center text-white text-xs font-bold shadow-md">
                                         {userInitials}
                                     </div>
                                     <div className="hidden sm:block">
-                                        <Text size="xs" fw={600} className="leading-tight">{currentUser.name}</Text>
-                                        <Text c="dimmed" size="10px">{formatRole(currentUser.role, isAr)}</Text>
+                                        <Text size="xs" fw={600} className="leading-tight">{currentUser?.name || (isAr ? 'مستخدم' : 'User')}</Text>
+                                        <Text c="dimmed" size="10px">{formatRole(currentUser?.role || Role.ADMIN, isAr)}</Text>
                                     </div>
                                 </UnstyledButton>
                             </Menu.Target>
@@ -305,7 +332,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                 </div>
 
                 {/* Divider */}
-                <div className={`mx-4 h-px bg-gradient-to-r from-transparent ${sb.divider} to-transparent`} />
+                <div className={`mx-4 h-px bg-linear-to-r from-transparent ${sb.divider} to-transparent`} />
 
                 {/* Navigation Groups — Accordion Style */}
                 <ScrollArea className="flex-1 custom-scrollbar" type="scroll" style={{ padding: '8px 0' }}>
@@ -323,7 +350,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                                             w-full flex items-center justify-between px-3 py-2.5 rounded-xl
                                             transition-all duration-200 mb-0.5
                                             ${isGroupOpen || hasActiveChild
-                                                ? `${sb.activeText} ${isDark ? 'bg-white/[0.04]' : 'bg-slate-100/80'}`
+                                                ? `${sb.activeText} ${isDark ? 'bg-white/4' : 'bg-slate-100/80'}`
                                                 : `${sb.itemText} ${sb.itemHoverBg}`
                                             }
                                         `}
@@ -435,19 +462,24 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             </AppShell.Navbar>
 
             {/* ═══════════════ MAIN CONTENT ═══════════════ */}
-            <AppShell.Main style={{ backgroundColor: 'var(--surface-subtle)' }}>
-                <Breadcrumbs />
-                <AnimatePresence mode="wait">
-                    <motion.div
-                        key={pathname}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -10 }}
-                        transition={{ duration: 0.3, ease: 'easeOut' }}
-                    >
-                        {children}
-                    </motion.div>
-                </AnimatePresence>
+            <AppShell.Main className="app-shell-bg w-full min-w-0 overflow-x-clip">
+                <PageFrame className="pt-4 md:pt-6 pb-6 md:pb-8">
+                    <div className="page-stack">
+                        <Breadcrumbs />
+                        <AnimatePresence mode="wait">
+                            <motion.div
+                                key={pathname}
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -10 }}
+                                transition={pageTransition}
+                                className="page-stack"
+                            >
+                                {children}
+                            </motion.div>
+                        </AnimatePresence>
+                    </div>
+                </PageFrame>
                 {currentUser?.role === Role.ADMIN && <GlobalSearch />}
             </AppShell.Main>
         </AppShell>

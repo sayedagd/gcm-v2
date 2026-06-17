@@ -10,6 +10,7 @@
 - [ ] `backend`: `npm run check:openapi-sync`
 - [ ] `frontend-next`: `npm run smoke:split` with target env vars
 - [ ] `frontend-next`: `npm run smoke:rate-limit` with target env vars
+- [ ] `frontend-next`: run the live smoke workflow against the deployed URL using `frontend-smoke.yml`
 - [ ] Infrastructure drift review completed for target environment:
   - [ ] Run `terraform plan` from `backend/infra/terraform` with target env vars/tfvars.
   - [ ] Attach plan summary to release evidence (`create/update/delete/no-op` counts).

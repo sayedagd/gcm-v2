@@ -136,7 +136,7 @@ const ActivityLogs: React.FC = () => {
   };
 
   return (
-    <div className="space-y-8 max-w-[1600px] mx-auto pb-40">
+    <div className="w-full min-w-0 space-y-8 pb-40 px-4 md:px-8">
       <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6">
         <div className="space-y-2">
           <h1 className="text-4xl font-bold tracking-tight flex items-center gap-4 text-text-main">

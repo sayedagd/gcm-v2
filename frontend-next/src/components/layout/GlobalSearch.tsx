@@ -14,6 +14,7 @@ import { Search, X, Building2, Briefcase, Truck, HardHat, ClipboardList, ArrowRi
 import { useStore } from '@/context';
 import { useDebounce } from '@/hooks/useDebounce';
 import { motion, AnimatePresence } from 'framer-motion';
+import { NAV_COMMON, SEARCH_PAGE_META, pickLocalized } from './navigationMeta';
 
 interface SearchResult {
   id: string;
@@ -24,20 +25,31 @@ interface SearchResult {
   category: string;
 }
 
+const SEARCH_PAGE_ICONS = {
+  dashboard: LayoutDashboard,
+  companies: Building2,
+  projects: Briefcase,
+  trips: ClipboardList,
+  fleet: Truck,
+  inventory: Package,
+  drivers: HardHat,
+  reports: BarChart3,
+  services: Box,
+  users: Users,
+  logs: ScrollText,
+  settings: Settings,
+} as const;
+
 /** Page navigation results */
 const getPageResults = (isAr: boolean): SearchResult[] => [
-  { id: 'p-db', label: isAr ? 'الرئيسية' : 'Dashboard', sublabel: isAr ? 'مركز القيادة' : 'Command Center', icon: LayoutDashboard, href: '/dashboard', category: isAr ? 'صفحات' : 'Pages' },
-  { id: 'p-c', label: isAr ? 'الشركات' : 'Companies', sublabel: isAr ? 'إدارة العملاء' : 'Client Management', icon: Building2, href: '/companies', category: isAr ? 'صفحات' : 'Pages' },
-  { id: 'p-p', label: isAr ? 'المشاريع' : 'Projects', sublabel: isAr ? 'مواقع العمل' : 'Job Sites', icon: Briefcase, href: '/projects', category: isAr ? 'صفحات' : 'Pages' },
-  { id: 'p-t', label: isAr ? 'الرحلات' : 'Trips', sublabel: isAr ? 'العمليات الميدانية' : 'Field Operations', icon: ClipboardList, href: '/trips', category: isAr ? 'صفحات' : 'Pages' },
-  { id: 'p-f', label: isAr ? 'الأسطول' : 'Fleet', sublabel: isAr ? 'المركبات والمعدات' : 'Vehicles & Equipment', icon: Truck, href: '/fleet', category: isAr ? 'صفحات' : 'Pages' },
-  { id: 'p-iv', label: isAr ? 'المخزون' : 'Inventory', sublabel: isAr ? 'الحاويات والخزانات' : 'Containers & Tanks', icon: Package, href: '/inventory', category: isAr ? 'صفحات' : 'Pages' },
-  { id: 'p-dr', label: isAr ? 'الموظفين' : 'Staff Hub', sublabel: isAr ? 'السائقين والمشرفين' : 'Drivers & Supervisors', icon: HardHat, href: '/drivers', category: isAr ? 'صفحات' : 'Pages' },
-  { id: 'p-rd', label: isAr ? 'التقارير' : 'Reports', sublabel: isAr ? 'التحليلات المتقدمة' : 'Advanced Analytics', icon: BarChart3, href: '/reports-dashboard', category: isAr ? 'صفحات' : 'Pages' },
-  { id: 'p-s', label: isAr ? 'الخدمات' : 'Services', sublabel: isAr ? 'كتالوج الخدمات' : 'Service Catalog', icon: Box, href: '/services', category: isAr ? 'صفحات' : 'Pages' },
-  { id: 'p-u', label: isAr ? 'الفريق' : 'Team', sublabel: isAr ? 'إدارة المستخدمين' : 'User Management', icon: Users, href: '/user-management', category: isAr ? 'صفحات' : 'Pages' },
-  { id: 'p-l', label: isAr ? 'سجل الأنشطة' : 'Activity Logs', sublabel: isAr ? 'تتبع العمليات' : 'Audit Trail', icon: ScrollText, href: '/activity-logs', category: isAr ? 'صفحات' : 'Pages' },
-  { id: 'p-st', label: isAr ? 'الإعدادات' : 'Settings', sublabel: isAr ? 'إعدادات النظام' : 'System Configuration', icon: Settings, href: '/settings', category: isAr ? 'صفحات' : 'Pages' },
+  ...SEARCH_PAGE_META.map((page) => ({
+    id: page.id,
+    label: pickLocalized(page.label, isAr),
+    sublabel: pickLocalized(page.sublabel, isAr),
+    icon: SEARCH_PAGE_ICONS[page.iconKey],
+    href: page.href,
+    category: pickLocalized(NAV_COMMON.pagesCategory, isAr),
+  })),
 ];
 
 export const GlobalSearch: React.FC = () => {

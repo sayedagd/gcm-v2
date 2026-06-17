@@ -5,10 +5,12 @@ import { Mail, Lock, UserPlus, ArrowLeft, ArrowRight, Eye, EyeOff, ShieldCheck }
 import { Role } from '../../types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { resolveLocalizedError } from '@/lib/errorMessages';
+import { pageTransition } from '@/theme/motion';
 
 interface LoginModeProps {
     onSuccess?: () => void;
     onSwitchToRequest: () => void;
+    nextPath?: string;
     // We can pass the current portalType to the parent if needed, 
     // but for now we manage it locally or receive initial?
     // Actually, the parent `LoginForm` probably doesn't need to know the portalType 
@@ -21,7 +23,7 @@ interface LoginModeProps {
     setPortalType: (type: 'STAFF' | 'CLIENT' | 'SUBCONTRACTOR') => void;
 }
 
-const LoginMode: React.FC<LoginModeProps> = ({ onSuccess, onSwitchToRequest, currentPortalType, setPortalType }) => {
+const LoginMode: React.FC<LoginModeProps> = ({ onSuccess, onSwitchToRequest, nextPath = "", currentPortalType, setPortalType }) => {
     const { login, confirmLogin, saasConfig } = useStore();
     const router = useRouter();
     const isAr = saasConfig.language === 'ar';
@@ -64,6 +66,12 @@ const LoginMode: React.FC<LoginModeProps> = ({ onSuccess, onSwitchToRequest, cur
     const [error, setError] = useState('');
     const [isLoggingIn, setIsLoggingIn] = useState(false);
     const isFormLocked = isLoggingIn;
+    const resolveRedirectPath = (fallback: string) => {
+        if (nextPath && nextPath.startsWith('/') && !nextPath.startsWith('//')) {
+            return nextPath;
+        }
+        return fallback;
+    };
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -98,11 +106,11 @@ const LoginMode: React.FC<LoginModeProps> = ({ onSuccess, onSwitchToRequest, cur
                 // [AR] توجيه السائق إلى صفحة الداشبورد الخاصة به في المسار الموحد /db
                 // [EN] Redirect driver to their dashboard under the unified /db path
                 if (role === Role.DRIVER) {
-                    router.push('/dashboard');
+                    router.push(resolveRedirectPath('/dashboard'));
                 } else if (role === Role.REPORTS_MANAGER) {
-                    router.push('/reports-dashboard');
+                    router.push(resolveRedirectPath('/reports-dashboard'));
                 } else {
-                    router.push('/dashboard'); // Standard /db for admin/ops
+                    router.push(resolveRedirectPath('/dashboard')); // Standard /db for admin/ops
                 }
             }
             else if (currentPortalType === 'CLIENT') {
@@ -112,7 +120,7 @@ const LoginMode: React.FC<LoginModeProps> = ({ onSuccess, onSwitchToRequest, cur
                 }
                 await confirmLogin(user, rememberMe);
                 if (onSuccess) onSuccess();
-                router.push('/client/dashboard');
+                router.push(resolveRedirectPath('/client/dashboard'));
             }
             else if (currentPortalType === 'SUBCONTRACTOR') {
                 // If a driver somehow logs in here, we still allow it but Staff portal is now preferred.
@@ -123,7 +131,7 @@ const LoginMode: React.FC<LoginModeProps> = ({ onSuccess, onSwitchToRequest, cur
                 }
                 await confirmLogin(user, rememberMe);
                 if (onSuccess) onSuccess();
-                router.push(role === Role.DRIVER ? '/dashboard' : '/subcontractor/dashboard');
+                router.push(resolveRedirectPath(role === Role.DRIVER ? '/dashboard' : '/subcontractor/dashboard'));
             }
         } catch (error: unknown) {
             setError(resolveLocalizedError(error, isAr, 'حدث خطأ أثناء تسجيل الدخول', 'An error occurred while signing in'));
@@ -138,14 +146,15 @@ const LoginMode: React.FC<LoginModeProps> = ({ onSuccess, onSwitchToRequest, cur
             initial={{ opacity: 0, x: isAr ? -20 : 20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: isAr ? 20 : -20 }}
+            transition={pageTransition}
             onSubmit={handleLogin}
-            className="space-y-6"
+            className="space-y-5 md:space-y-6"
         >
             {/* Portal Type Switcher (3-Way) - Animated */}
-            <div className="flex bg-surface-subtle p-1 rounded-xl mb-6 relative isolate border border-border">
+            <div className="segmented-surface mb-6">
                 {/* Animated Background Pill */}
                 <motion.div
-                    className="absolute top-1 bottom-1 bg-surface shadow-sm rounded-lg -z-10"
+                    className="surface-panel absolute top-1 bottom-1 rounded-[calc(var(--radius-sm)-2px)] -z-10 border"
                     initial={false}
                     animate={{
                         left: isAr
@@ -167,7 +176,7 @@ const LoginMode: React.FC<LoginModeProps> = ({ onSuccess, onSwitchToRequest, cur
                         type="button"
                         disabled={isFormLocked}
                         onClick={() => changeTab(type)}
-                        className={`flex-1 py-2.5 rounded-lg text-xs font-medium transition-colors relative z-10 ${currentPortalType === type ? 'text-text-main' : 'text-text-subtle hover:text-text-main'}`}
+                        className={`relative z-10 flex-1 rounded-[calc(var(--radius-sm)-2px)] px-1 py-2.5 text-[11px] sm:text-xs font-medium transition-colors ${currentPortalType === type ? 'text-text-main' : 'text-text-subtle hover:text-text-main'}`}
                     >
                         {type === 'STAFF' ? (isAr ? 'موظف' : 'Staff') : type === 'CLIENT' ? (isAr ? 'عميل' : 'Client') : (isAr ? 'مورد' : 'Supplier')}
                     </button>
@@ -183,9 +192,9 @@ const LoginMode: React.FC<LoginModeProps> = ({ onSuccess, onSwitchToRequest, cur
                     animate="center"
                     exit="exit"
                     transition={{ x: { type: "spring", stiffness: 300, damping: 30 }, opacity: { duration: 0.2 } }}
-                    className="space-y-4"
+                    className="space-y-3.5 sm:space-y-4"
                 >
-                    <div className={`p-4 bg-surface-subtle rounded-xl border transition-all ${error ? 'border-danger' : 'border-transparent focus-within:border-primary-500'}`}>
+                    <div data-invalid={error ? 'true' : undefined} className="auth-field p-4">
                         <label className="text-xs font-medium text-text-subtle block mb-1.5">{isAr ? 'البريد الإلكتروني للعمل' : 'Work Email'}</label>
                         <div className="flex items-center gap-3">
                             <Mail size={18} className="text-text-subtle" />
@@ -193,12 +202,12 @@ const LoginMode: React.FC<LoginModeProps> = ({ onSuccess, onSwitchToRequest, cur
                         </div>
                     </div>
 
-                    <div className={`p-4 bg-surface-subtle rounded-xl border transition-all ${error ? 'border-danger' : 'border-transparent focus-within:border-primary-500'}`}>
+                    <div data-invalid={error ? 'true' : undefined} className="auth-field p-4">
                         <label className="text-xs font-medium text-text-subtle block mb-1.5">{isAr ? 'كلمة المرور' : 'Password'}</label>
                         <div className="flex items-center gap-3">
                             <Lock size={18} className="text-text-subtle" />
                             <input type={showPassword ? 'text' : 'password'} disabled={isFormLocked} className="bg-transparent border-none outline-none font-medium text-sm w-full text-text-main" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••••••" />
-                            <button type="button" disabled={isFormLocked} onClick={() => setShowPassword(!showPassword)} className="text-text-subtle hover:text-primary-500 transition-colors">
+                            <button type="button" disabled={isFormLocked} onClick={() => setShowPassword(!showPassword)} className="text-text-subtle hover:text-primary transition-colors">
                                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                             </button>
                         </div>
@@ -206,7 +215,7 @@ const LoginMode: React.FC<LoginModeProps> = ({ onSuccess, onSwitchToRequest, cur
 
                     <div className="px-2 flex items-center justify-between">
                         <button type="button" disabled={isFormLocked} onClick={() => setRememberMe(!rememberMe)} className="flex items-center gap-2 group">
-                            <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-all ${rememberMe ? 'bg-primary border-primary' : 'border-border'}`}>
+                            <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-all ${rememberMe ? 'bg-primary border-primary' : 'border-border bg-surface'}`}>
                                 {rememberMe && <ShieldCheck size={12} className="text-white" />}
                             </div>
                             <span className="text-xs font-medium text-text-subtle group-hover:text-text-main transition-colors">
@@ -222,8 +231,7 @@ const LoginMode: React.FC<LoginModeProps> = ({ onSuccess, onSwitchToRequest, cur
             <button
                 type="submit"
                 disabled={isFormLocked}
-                className={`w-full py-4 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 shadow-lg active:scale-[0.97] transition-all text-white ${isLoggingIn ? 'opacity-70 cursor-wait' : ''}`}
-                style={{ backgroundColor: 'var(--primary-color)', boxShadow: '0 10px 15px -3px var(--primary-color-30)' }}
+                className={`btn-main w-full py-4 rounded-[var(--radius-md)] text-sm ${isLoggingIn ? 'opacity-70 cursor-wait' : ''}`}
             >
                 {isAr ? (isLoggingIn ? 'جاري التحقق...' : 'دخول للنظام') : (isLoggingIn ? 'Verifying...' : 'Sign In')}
                 {!isLoggingIn && (isAr ? <ArrowLeft size={18} /> : <ArrowRight size={18} />)}
@@ -234,7 +242,7 @@ const LoginMode: React.FC<LoginModeProps> = ({ onSuccess, onSwitchToRequest, cur
                 <div className="relative flex justify-center text-xs font-bold uppercase tracking-wider"><span className="bg-surface px-3 text-text-subtle">{isAr ? 'أو' : 'OR'}</span></div>
             </div>
 
-            <button type="button" disabled={isFormLocked} onClick={onSwitchToRequest} className="w-full py-4 border-2 border-border rounded-xl text-text-subtle font-bold text-sm hover:border-primary-600 hover:text-primary-600 hover:bg-surface-subtle transition-all flex items-center justify-center gap-2">
+            <button type="button" disabled={isFormLocked} onClick={onSwitchToRequest} className="btn-secondary w-full py-4 rounded-[var(--radius-md)] font-bold text-sm transition-all flex items-center justify-center gap-2">
                 <UserPlus size={18} />
                 {isAr ? 'طلب صلاحية وصول جديدة' : 'Request System Access'}
             </button>

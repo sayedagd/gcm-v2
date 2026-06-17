@@ -46,7 +46,7 @@ const Profile: React.FC = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8">
+    <div className="w-full min-w-0 space-y-8">
       <div className="bg-surface rounded-3xl border border-border shadow-sm overflow-hidden transition-colors">
         <div className="h-32 bg-gradient-to-r from-emerald-500 to-teal-600" />
         <div className="px-8 pb-8">

@@ -13,4 +13,7 @@ export const API_ENDPOINTS = {
     backupDownload: `${API_V1_PREFIX}/system/backup/download`,
     backupRestore: `${API_V1_PREFIX}/system/backup/restore`,
   },
+  reporting: {
+    dashboardStats: `${API_V1_PREFIX}/dashboard/stats`,
+  },
 } as const;

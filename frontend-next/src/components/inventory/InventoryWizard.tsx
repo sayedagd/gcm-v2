@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { CheckCircle2, Plus, Trash2, Calendar, Wrench } from 'lucide-react';
 import { Card, Input, Button } from '@/components';
 import { InventorySize, Project, Supplier, Service } from '@/types';
+import { getInventoryAssetTypeOptions, getInventoryOwnershipOptions } from '@/features/lookups/wizardOptions';
 
 interface InventoryWizardProps {
     item: any;
@@ -53,13 +54,13 @@ const InventoryWizard: React.FC<InventoryWizardProps> = ({
                     <div className="space-y-4">
                         <label className="text-[10px] font-bold text-text-subtle uppercase tracking-widest block ml-1">{isAr ? 'تصنيف الأصل' : 'Asset Type'}</label>
                         <div className="grid grid-cols-2 gap-4">
-                            {['CONTAINER', 'TANK', 'SCALE'].map(t => (
+                            {getInventoryAssetTypeOptions().map(t => (
                                 <button
-                                    key={t}
-                                    onClick={() => onChange({ ...item, type: t })}
-                                    className={`py-5 rounded-2xl text-[10px] font-bold tracking-widest uppercase transition-all border-2 ${item.type === t ? 'bg-primary text-surface border-primary-600 shadow-xl shadow-primary/20' : 'bg-surface-subtle text-text-subtle border-transparent hover:bg-surface'}`}
+                                    key={t.value}
+                                    onClick={() => onChange({ ...item, type: t.value })}
+                                    className={`py-5 rounded-2xl text-[10px] font-bold tracking-widest uppercase transition-all border-2 ${item.type === t.value ? 'bg-primary text-surface border-primary-600 shadow-xl shadow-primary/20' : 'bg-surface-subtle text-text-subtle border-transparent hover:bg-surface'}`}
                                 >
-                                    {t}
+                                    {t.value}
                                 </button>
                             ))}
                         </div>
@@ -99,8 +100,9 @@ const InventoryWizard: React.FC<InventoryWizardProps> = ({
                                     value={item.ownership || 'OWN'}
                                     onChange={e => onChange({ ...item, ownership: e.target.value })}
                                 >
-                                    <option value="OWN">GCM_INTERNAL (OWN)</option>
-                                    <option value="SUPPLIER">EXTERNAL (SUPPLIER)</option>
+                                    {getInventoryOwnershipOptions().map(option => (
+                                        <option key={option.value} value={option.value}>{option.label}</option>
+                                    ))}
                                 </select>
                             </div>
                             {item.ownership === 'SUPPLIER' && (

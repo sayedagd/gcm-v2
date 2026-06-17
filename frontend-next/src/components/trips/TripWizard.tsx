@@ -17,6 +17,7 @@ import { useConfirmDialog } from '@/components/common/ConfirmDialog';
 import { useLookupMaps } from '@/hooks/useLookupMaps';
 import { validateDriverForTrip, validateVehicleForTrip, validateFacilityAcceptsService } from '@/utils/validationSchemas';
 import { toast } from '@/utils/toast';
+import { getTripQuantityPresets, getTripUnitOptions } from '@/features/lookups/wizardOptions';
 
 interface TripWizardProps {
     isOpen: boolean;
@@ -682,14 +683,14 @@ const TripWizard: React.FC<TripWizardProps> = ({ isOpen, onClose, tripToEdit, in
                                                 const isWater = s?.service_name?.toLowerCase().includes('water') || (parent && parent.service_name.toLowerCase().includes('water')) || false;
                                                 const availableUnits = (isSewage || isWater) ? ['CBM'] : (isHazardous ? ['KG'] : ['TON', 'CBM', 'KG']);
 
-                                                return availableUnits.map((u: 'TON' | 'KG' | 'CBM') => (
+                                                return getTripUnitOptions().filter(option => availableUnits.includes(option.value as 'TON' | 'KG' | 'CBM')).map((option) => (
                                                     <Button
-                                                        key={u}
-                                                        variant={currentTrip.unit === u ? 'primary' : 'ghost'}
-                                                        onClick={() => setCurrentTrip(p => ({ ...p, unit: u as 'TON' | 'KG' | 'CBM' }))}
+                                                        key={option.value}
+                                                        variant={currentTrip.unit === option.value ? 'primary' : 'ghost'}
+                                                        onClick={() => setCurrentTrip(p => ({ ...p, unit: option.value as 'TON' | 'KG' | 'CBM' }))}
                                                         className="px-4 py-2 text-sm"
                                                     >
-                                                        {u}
+                                                        {option.label}
                                                     </Button>
                                                 ));
                                             })()}
@@ -704,17 +705,18 @@ const TripWizard: React.FC<TripWizardProps> = ({ isOpen, onClose, tripToEdit, in
                                         const isHazardous = s?.category === 'HAZARDOUS' || checkHazard(s?.service_name || '') || (parent && checkHazard(parent.service_name)) || false;
                                         const isSewage = s?.service_name?.toLowerCase().includes('sewage') || (parent && parent.service_name.toLowerCase().includes('sewage')) || false;
                                         const isWater = s?.service_name?.toLowerCase().includes('water') || (parent && parent.service_name.toLowerCase().includes('water')) || false;
+                                        const isSewageOrWater = isSewage || isWater;
                                         
-                                        if (isSewage || isWater) {
+                                        if (isSewageOrWater) {
                                             return (
                                                 <div className="flex gap-2">
-                                                    {[16, 18, 32].map(num => (
+                                                    {getTripQuantityPresets('CBM', isAr).map(preset => (
                                                         <button
-                                                            key={num}
-                                                            onClick={() => setCurrentTrip(prev => ({ ...prev, quantity: num.toString(), unit: 'CBM' }))}
-                                                            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all border ${currentTrip.quantity === num.toString() && currentTrip.unit === 'CBM' ? 'bg-success text-white border-success' : 'bg-surface/50 text-text-subtle border-border hover:bg-surface'}`}
+                                                            key={preset.value}
+                                                            onClick={() => setCurrentTrip(prev => ({ ...prev, quantity: preset.value, unit: 'CBM' }))}
+                                                            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all border ${currentTrip.quantity === preset.value && currentTrip.unit === 'CBM' ? 'bg-success text-white border-success' : 'bg-surface/50 text-text-subtle border-border hover:bg-surface'}`}
                                                         >
-                                                            {num} CBM
+                                                            {preset.label}
                                                         </button>
                                                     ))}
                                                 </div>
@@ -722,13 +724,13 @@ const TripWizard: React.FC<TripWizardProps> = ({ isOpen, onClose, tripToEdit, in
                                         } else if (!isHazardous) {
                                             return (
                                                 <div className="flex gap-2">
-                                                    {[5, 16, 32].map(num => (
+                                                    {getTripQuantityPresets('TON', isAr).map(preset => (
                                                         <button
-                                                            key={num}
-                                                            onClick={() => setCurrentTrip(prev => ({ ...prev, quantity: num.toString(), unit: 'TON' }))}
-                                                            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all border ${currentTrip.quantity === num.toString() && currentTrip.unit === 'TON' ? 'bg-success text-white border-success' : 'bg-surface/50 text-text-subtle border-border hover:bg-surface'}`}
+                                                            key={preset.value}
+                                                            onClick={() => setCurrentTrip(prev => ({ ...prev, quantity: preset.value, unit: 'TON' }))}
+                                                            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all border ${currentTrip.quantity === preset.value && currentTrip.unit === 'TON' ? 'bg-success text-white border-success' : 'bg-surface/50 text-text-subtle border-border hover:bg-surface'}`}
                                                         >
-                                                            {num} {isAr ? 'طن' : 'TON'}
+                                                            {preset.label}
                                                         </button>
                                                     ))}
                                                 </div>

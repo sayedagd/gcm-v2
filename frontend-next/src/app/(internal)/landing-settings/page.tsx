@@ -153,7 +153,7 @@ const LandingSettings: React.FC = () => {
    if (currentUser.role !== 'ADMIN') return <div className="p-20 text-center font-bold">Access Denied</div>;
 
    return (
-      <div className="space-y-10 max-w-7xl mx-auto pb-40 px-4 md:px-0">
+      <div className="w-full min-w-0 space-y-10 pb-40 px-4 md:px-0">
          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8 pt-4">
             <div>
                <h1 className="text-3xl md:text-5xl font-bold flex items-center gap-4 tracking-tight text-text-main">
@@ -289,6 +289,13 @@ const LandingSettings: React.FC = () => {
                      </div>
 
                      <div className="grid grid-cols-1 gap-6">
+                        {lp.services.length === 0 && (
+                           <div className="p-8 border-2 border-dashed border-border rounded-2xl text-center text-text-subtle bg-surface-subtle">
+                              <Layout size={28} className="mx-auto mb-3 text-emerald-500" />
+                              <p className="font-bold text-sm text-text-main">{isAr ? 'لا توجد خدمات مضافة بعد' : 'No service cards yet'}</p>
+                              <p className="mt-1 text-[10px] font-medium uppercase tracking-widest">{isAr ? 'أضف أول بطاقة خدمة لعرضها في الصفحة العامة' : 'Add the first service card to publish it on the landing page'}</p>
+                           </div>
+                        )}
                         {lp.services.map((s: ServiceItem, idx: number) => (
                            <div key={s.id} className="p-8 bg-surface-subtle rounded-2xl border border-border flex flex-col md:flex-row items-center gap-8 relative group">
                               <button onClick={() => {
@@ -411,6 +418,13 @@ const LandingSettings: React.FC = () => {
                         </div>
                      </div>
                      <div className="grid grid-cols-1 gap-6">
+                        {lp.fleet.length === 0 && (
+                           <div className="p-8 border-2 border-dashed border-border rounded-2xl text-center text-text-subtle bg-surface-subtle">
+                              <Truck size={28} className="mx-auto mb-3 text-emerald-500" />
+                              <p className="font-bold text-sm text-text-main">{isAr ? 'لا توجد وحدات أسطول بعد' : 'No fleet units yet'}</p>
+                              <p className="mt-1 text-[10px] font-medium uppercase tracking-widest">{isAr ? 'أضف مركبة واحدة على الأقل لعرض قسم الأسطول' : 'Add at least one vehicle to publish the fleet section'}</p>
+                           </div>
+                        )}
                         {lp.fleet.map((f: FleetItem, idx: number) => (
                            <div key={f.id} className="p-8 bg-surface-subtle rounded-2xl border border-border grid grid-cols-1 md:grid-cols-4 gap-8 relative group">
                               <button onClick={() => {
@@ -485,6 +499,13 @@ const LandingSettings: React.FC = () => {
                         </div>
                      </div>
                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+                        {lp.partners.length === 0 && (
+                           <div className="col-span-full p-8 border-2 border-dashed border-border rounded-2xl text-center text-text-subtle bg-surface-subtle">
+                              <Sparkles size={28} className="mx-auto mb-3 text-emerald-500" />
+                              <p className="font-bold text-sm text-text-main">{isAr ? 'لا يوجد شركاء مضافون بعد' : 'No partners yet'}</p>
+                              <p className="mt-1 text-[10px] font-medium uppercase tracking-widest">{isAr ? 'أضف شعار شريك لعرضه في الصفحة العامة' : 'Add a partner logo to publish the section'}</p>
+                           </div>
+                        )}
                         {lp.partners.map((p: PartnerItem, idx: number) => (
                            <div key={p.id} className="p-6 bg-surface-subtle rounded-2xl border border-border group relative">
                               <button onClick={() => {

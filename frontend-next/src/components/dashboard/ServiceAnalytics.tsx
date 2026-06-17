@@ -8,10 +8,40 @@ interface ServiceAnalyticsProps {
     isAr: boolean;
 }
 
-const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16'];
+const COLORS = [
+    'var(--success-color)',
+    'var(--primary-color)',
+    'var(--amber-color)',
+    'var(--danger-color)',
+    'color-mix(in srgb, var(--primary-color) 72%, white 18%)',
+    'color-mix(in srgb, var(--danger-color) 78%, white 14%)',
+    'color-mix(in srgb, var(--success-color) 74%, white 18%)',
+    'color-mix(in srgb, var(--amber-color) 70%, white 18%)'
+];
 
 export const ServiceAnalytics: React.FC<ServiceAnalyticsProps> = ({ isAr }) => {
     const { services, trips } = useStore();
+
+    const getRankTone = (index: number) => {
+        if (index === 0) {
+            return {
+                badge: 'tone-warning tone-warning-bg tone-warning-border',
+                icon: 'tone-warning-bg text-white',
+            };
+        }
+
+        if (index === 1) {
+            return {
+                badge: 'accent-chip',
+                icon: 'accent-chip',
+            };
+        }
+
+        return {
+            badge: 'tone-danger tone-danger-bg tone-danger-border',
+            icon: 'tone-danger-bg text-white',
+        };
+    };
 
     // Calculate trips per service
     const tripsPerService = useMemo(() => {
@@ -86,22 +116,16 @@ export const ServiceAnalytics: React.FC<ServiceAnalyticsProps> = ({ isAr }) => {
     }, [tripsPerService]);
 
     return (
-        <div className="space-y-8">
+        <div className="space-y-6 md:space-y-8">
             {/* Top Services Quick Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 md:gap-6">
                 {topServices.map((service, index) => (
-                    <Card key={service.name} className="p-6 bg-surface border-2 border-border hover:border-primary-500/30 transition-all">
+                    <Card key={service.name} className="p-6 bg-surface border-2 border-border hover:border-primary/30 transition-all">
                         <div className="flex items-start justify-between mb-4">
-                            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${index === 0 ? 'bg-amber-500 text-white' :
-                                index === 1 ? 'bg-slate-400 text-white' :
-                                    'bg-orange-600 text-white'
-                                }`}>
+                            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center border ${getRankTone(index).icon}`}>
                                 <Award size={24} />
                             </div>
-                            <span className={`text-xs font-bold px-3 py-1.5 rounded-full ${index === 0 ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' :
-                                index === 1 ? 'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300' :
-                                    'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400'
-                                }`}>
+                            <span className={`text-xs font-bold px-3 py-1.5 rounded-full border ${getRankTone(index).badge}`}>
                                 #{index + 1}
                             </span>
                         </div>
@@ -109,10 +133,10 @@ export const ServiceAnalytics: React.FC<ServiceAnalyticsProps> = ({ isAr }) => {
                             {service.name}
                         </h4>
                         <div className="flex items-baseline gap-2">
-                            <span className="text-4xl font-bold text-emerald-600 dark:text-emerald-400">
+                            <span className="text-4xl font-bold tone-success">
                                 {service.count}
                             </span>
-                            <span className="text-sm font-bold text-slate-500">
+                            <span className="text-sm font-bold text-text-subtle">
                                 {isAr ? 'رحلة' : 'trips'}
                             </span>
                         </div>
@@ -123,14 +147,14 @@ export const ServiceAnalytics: React.FC<ServiceAnalyticsProps> = ({ isAr }) => {
             {/* Charts Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {/* Trips per Service Bar Chart */}
-                <Card className="p-8 bg-surface">
+                <Card className="p-5 md:p-8 bg-surface">
                     <h3 className="text-xl font-bold text-text-main flex items-center gap-3 mb-6">
-                        <div className="p-2.5 bg-emerald-100 dark:bg-emerald-900/30 rounded-xl">
-                            <Activity className="text-emerald-600 dark:text-emerald-400" size={20} />
+                        <div className="tone-success tone-success-bg tone-success-border p-2.5 rounded-xl border">
+                            <Activity size={20} />
                         </div>
                         {isAr ? 'عدد الرحلات لكل خدمة' : 'Trips per Service'}
                     </h3>
-                    <div className="h-80">
+                    <div className="h-72 md:h-80">
                         <ResponsiveContainer width="99%" height={300}>
                             <BarChart data={tripsPerService}>
                                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" opacity={0.3} />
@@ -152,21 +176,21 @@ export const ServiceAnalytics: React.FC<ServiceAnalyticsProps> = ({ isAr }) => {
                                         color: 'var(--text-main)'
                                     }}
                                 />
-                                <Bar dataKey="count" fill="#10b981" radius={[8, 8, 0, 0]} />
+                                <Bar dataKey="count" fill="var(--success-color)" radius={[8, 8, 0, 0]} />
                             </BarChart>
                         </ResponsiveContainer>
                     </div>
                 </Card>
 
                 {/* Hierarchy Distribution Pie Chart */}
-                <Card className="p-8 bg-surface">
+                <Card className="p-5 md:p-8 bg-surface">
                     <h3 className="text-xl font-bold text-text-main flex items-center gap-3 mb-6">
-                        <div className="p-2.5 bg-blue-100 dark:bg-blue-900/30 rounded-xl">
-                            <Layers className="text-blue-600 dark:text-blue-400" size={20} />
+                        <div className="accent-chip p-2.5 rounded-xl border">
+                            <Layers size={20} />
                         </div>
                         {isAr ? 'توزيع الخدمات الهرمي' : 'Service Hierarchy'}
                     </h3>
-                    <div className="h-80 relative">
+                    <div className="relative h-72 md:h-80">
                         <ResponsiveContainer width="99%" height={250}>
                             <PieChart>
                                 <Pie
@@ -179,23 +203,25 @@ export const ServiceAnalytics: React.FC<ServiceAnalyticsProps> = ({ isAr }) => {
                                     dataKey="value"
                                 >
                                     {hierarchyDistribution.map((entry, index) => (
-                                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length] || '#10b981'} strokeWidth={0} />
+                                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length] || 'var(--primary-color)'} strokeWidth={0} />
                                     ))}
                                 </Pie>
                                 <Tooltip
                                     contentStyle={{
-                                        backgroundColor: '#1e293b',
-                                        border: 'none',
+                                        backgroundColor: 'color-mix(in srgb, var(--surface) 96%, transparent)',
+                                        border: '1px solid color-mix(in srgb, var(--border-color) 88%, transparent)',
                                         borderRadius: '12px',
                                         fontSize: '12px',
-                                        fontWeight: 'bold'
+                                        fontWeight: 'bold',
+                                        color: 'var(--text-main)',
+                                        boxShadow: 'var(--shadow-panel)'
                                     }}
                                 />
                                 <Legend
                                     verticalAlign="bottom"
                                     height={36}
                                     iconType="circle"
-                                    wrapperStyle={{ fontSize: '11px', fontWeight: 'bold' }}
+                                    wrapperStyle={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--text-subtle)' }}
                                 />
                             </PieChart>
                         </ResponsiveContainer>
@@ -214,14 +240,14 @@ export const ServiceAnalytics: React.FC<ServiceAnalyticsProps> = ({ isAr }) => {
                 </Card>
 
                 {/* Usage Trend Line Chart */}
-                <Card className="p-8 bg-surface lg:col-span-2">
+                <Card className="p-5 md:p-8 bg-surface lg:col-span-2">
                     <h3 className="text-xl font-bold text-text-main flex items-center gap-3 mb-6">
-                        <div className="p-2.5 bg-purple-100 dark:bg-purple-900/30 rounded-xl">
-                            <TrendingUp className="text-purple-600 dark:text-purple-400" size={20} />
+                        <div className="tone-info tone-info-bg tone-info-border p-2.5 rounded-xl border">
+                            <TrendingUp size={20} />
                         </div>
                         {isAr ? 'اتجاه الاستخدام (آخر 6 أشهر)' : 'Usage Trend (Last 6 Months)'}
                     </h3>
-                    <div className="h-80">
+                    <div className="h-72 md:h-80">
                         <ResponsiveContainer width="99%" height={300}>
                             <LineChart data={usageTrend}>
                                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" opacity={0.3} />
@@ -235,19 +261,21 @@ export const ServiceAnalytics: React.FC<ServiceAnalyticsProps> = ({ isAr }) => {
                                 <YAxis tick={{ fill: 'var(--text-subtle)', fontSize: 12, fontWeight: 'bold' }} />
                                 <Tooltip
                                     contentStyle={{
-                                        backgroundColor: '#1e293b',
-                                        border: 'none',
+                                        backgroundColor: 'color-mix(in srgb, var(--surface) 96%, transparent)',
+                                        border: '1px solid color-mix(in srgb, var(--border-color) 88%, transparent)',
                                         borderRadius: '12px',
                                         fontSize: '12px',
-                                        fontWeight: 'bold'
+                                        fontWeight: 'bold',
+                                        color: 'var(--text-main)',
+                                        boxShadow: 'var(--shadow-panel)'
                                     }}
                                 />
                                 <Line
                                     type="monotone"
                                     dataKey="trips"
-                                    stroke="#8b5cf6"
+                                    stroke="var(--primary-color)"
                                     strokeWidth={3}
-                                    dot={{ fill: '#8b5cf6', r: 5 }}
+                                    dot={{ fill: 'var(--primary-color)', r: 5 }}
                                     activeDot={{ r: 7 }}
                                 />
                             </LineChart>

@@ -7,6 +7,7 @@ import { Modal, Button, Input, Select, MultiSelect, QuickUserModal } from '@/com
 import { Supplier, User, Role } from '@/types';
 import { useStore } from '@/context';
 import ContactRepeater from './ContactRepeater';
+import { getSupplierCategoryOptions } from '@/features/lookups/wizardOptions';
 
 interface SupplierWizardProps {
     isOpen: boolean;
@@ -115,12 +116,7 @@ const SupplierWizard: React.FC<SupplierWizardProps> = ({
                             label={isAr ? 'تصنيف الخدمة التشغيلية' : 'Operational Category'}
                             value={localSupplier?.category || 'GENERAL'}
                             onChange={val => setLocalSupplier(prev => ({ ...prev, category: val as any }))}
-                            options={[
-                                { label: 'Logistics (Fleet)', value: 'VEHICLES' },
-                                { label: 'Equipment (Bins)', value: 'CONTAINERS' },
-                                { label: 'Manpower (Staff)', value: 'STAFF' },
-                                { label: 'General Services', value: 'GENERAL' }
-                            ]}
+                            options={getSupplierCategoryOptions()}
                             className="!text-xs uppercase"
                         />
                     </div>

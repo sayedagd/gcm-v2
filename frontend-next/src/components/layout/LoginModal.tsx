@@ -21,8 +21,8 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
             {isOpen && (
                 <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="absolute inset-0 bg-background/60 backdrop-blur-sm" />
-                    <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 20 }} className="bg-surface w-full max-w-md rounded-2xl p-10 shadow-lg relative z-[201] border border-border transition-colors">
-                        <button onClick={onClose} className={`absolute top-6 ${isAr ? 'left-6' : 'right-6'} p-2 bg-surface-subtle rounded-xl hover:bg-rose-50 hover:text-rose-500 transition-all`}><X size={18} className="text-text-subtle" /></button>
+                    <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 20 }} className="bg-surface relative z-[201] w-full max-w-md rounded-2xl border border-border p-6 shadow-lg transition-colors sm:p-8 md:p-10">
+                        <button onClick={onClose} className={`absolute top-4 ${isAr ? 'left-4' : 'right-4'} p-2 bg-surface-subtle rounded-xl hover:bg-surface hover:text-danger transition-all sm:top-6 sm:${isAr ? 'left-6' : 'right-6'}`}><X size={18} className="text-text-subtle" /></button>
                         <div className="text-center mb-8">
                             {logoSrc ? (
                                 <Image src={logoSrc} className="w-16 h-16 rounded-2xl object-cover mx-auto mb-4 shadow-xl shadow-primary-500/20" alt="App Logo" width={64} height={64} unoptimized />

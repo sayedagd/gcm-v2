@@ -7,6 +7,7 @@ import {
 import { Modal, Button, Input } from '@/components';
 import { Role, Company, Project, Supplier, User } from '@/types';
 import { formatRole } from '@/utils/helpers';
+import { getAssignableRoles } from '@/features/users/model/roleAccess';
 
 type EditableUser = (Partial<User> & { password?: string; avatar?: string }) | null;
 
@@ -35,6 +36,7 @@ interface UserWizardProps {
     isAr: boolean;
     isCompanyAdmin: boolean;
     currentUser: CurrentUserContext;
+    actorRole: Role;
     companies: Company[];
     projects: Project[];
     suppliers: Supplier[];
@@ -56,6 +58,7 @@ const UserWizard: React.FC<UserWizardProps> = ({
     isAr,
     isCompanyAdmin,
     currentUser,
+    actorRole,
     companies,
     projects,
     suppliers
@@ -69,6 +72,16 @@ const UserWizard: React.FC<UserWizardProps> = ({
     const [supplierId, setSupplierId] = useState('');
     const [avatar, setAvatar] = useState('');
     const [error, setError] = useState('');
+    const assignableRoles = getAssignableRoles(actorRole, isCompanyAdmin);
+    const defaultRole = assignableRoles[0] || Role.DATA_ENTRY;
+
+    const coerceRole = (candidate: Role | undefined) => {
+        if (candidate && assignableRoles.includes(candidate)) {
+            return candidate;
+        }
+
+        return defaultRole;
+    };
 
     useEffect(() => {
         let timerId: number | undefined;
@@ -79,7 +92,7 @@ const UserWizard: React.FC<UserWizardProps> = ({
                     setName(editingUser.name || '');
                     setEmail(editingUser.email || '');
                     setPassword(editingUser.password || '');
-                    setRole(editingUser.role || (isCompanyAdmin ? Role.PROJECT_USER : Role.DATA_ENTRY));
+                    setRole(coerceRole(editingUser.role));
                     setCompanyId(editingUser.company_id || '');
                     setProjectId(editingUser.project_id || '');
                     setSupplierId(editingUser.supplier_id || '');
@@ -88,7 +101,7 @@ const UserWizard: React.FC<UserWizardProps> = ({
                     setName('');
                     setEmail('');
                     setPassword('');
-                    setRole(isCompanyAdmin ? Role.PROJECT_USER : Role.DATA_ENTRY);
+                    setRole(defaultRole);
                     setCompanyId(isCompanyAdmin ? (currentUser.company_id || '') : '');
                     setProjectId('');
                     setSupplierId('');
@@ -101,7 +114,7 @@ const UserWizard: React.FC<UserWizardProps> = ({
         return () => {
             if (timerId !== undefined) window.clearTimeout(timerId);
         };
-    }, [isOpen, editingUser, isCompanyAdmin, currentUser]);
+    }, [isOpen, editingUser, isCompanyAdmin, currentUser, defaultRole]);
 
     const validate = () => {
         if (!name.trim()) { setError(isAr ? 'الاسم مطلوب' : 'Name is required'); return false; }
@@ -145,14 +158,14 @@ const UserWizard: React.FC<UserWizardProps> = ({
                     </h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
-                            <label className="text-[10px] font-bold text-text-subtle uppercase tracking-widest block ml-1 flex items-center gap-2">
+                            <label className="text-[10px] font-bold text-text-subtle uppercase tracking-widest ml-1 flex items-center gap-2">
                                 <UserIcon size={12} /> {isAr ? 'اسم المستخدم الكامل' : 'Full Name'}
                             </label>
                             <Input className="py-4 font-bold" value={name} onChange={setName} placeholder="e.g. Ahmad Ali" />
                         </div>
 
                         <div className="space-y-2">
-                            <label className="text-[10px] font-bold text-text-subtle uppercase tracking-widest block ml-1 flex items-center gap-2">
+                            <label className="text-[10px] font-bold text-text-subtle uppercase tracking-widest ml-1 flex items-center gap-2">
                                 <Mail size={12} /> {isAr ? 'البريد الإلكتروني' : 'Email Address'}
                             </label>
                             <Input type="email" className="py-4 font-bold" value={email} onChange={setEmail} placeholder="colleague@gcm-waste.com" />
@@ -170,8 +183,8 @@ const UserWizard: React.FC<UserWizardProps> = ({
                             icon={Lock}
                             value={password}
                             onChange={setPassword}
-                            className="bg-transparent border-none outline-none font-bold text-lg text-success !p-0 shadow-none focus:ring-0"
-                            containerClassName="!space-y-0"
+                            className="bg-transparent border-none outline-none font-bold text-lg text-success p-0! shadow-none focus:ring-0"
+                            containerClassName="space-y-0!"
                             placeholder="SET PASSWORD"
                         />
                     </div>
@@ -220,13 +233,13 @@ const UserWizard: React.FC<UserWizardProps> = ({
                 </div>
 
                 {/* Role Assignment Section */}
-                {!isCompanyAdmin && (
+                {!isCompanyAdmin && assignableRoles.length > 0 && (
                     <div className="p-6 bg-surface-subtle rounded-xl border border-border space-y-6">
                         <h4 className="flex items-center gap-2 text-xs font-bold uppercase text-primary tracking-widest mb-4">
                             <Shield size={16} /> {isAr ? 'الدور الوظيفي' : 'Role Assignment'}
                         </h4>
                         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                            {[Role.ADMIN, Role.COMPANY_USER, Role.PROJECT_USER, Role.STAFF, Role.DATA_ENTRY, Role.LOGISTICS, Role.ACCOUNTANT, Role.SUBCONTRACTOR, Role.REPORTS_MANAGER, Role.DRIVER].map(r => (
+                            {assignableRoles.map(r => (
                                 <button
                                     key={r}
                                     onClick={() => { setRole(r); setCompanyId(''); setProjectId(''); setSupplierId(''); }}

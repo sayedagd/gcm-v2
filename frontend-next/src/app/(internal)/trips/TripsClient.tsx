@@ -10,7 +10,7 @@ import { Truck, FileText, UserCheck, Briefcase, FileCheck, Package,
 } from 'lucide-react';
 import { Trip, TripStatus, Role, NotificationType } from '@/types';
 import {
-   Card, Table, Button, PageHeader, Select, useConfirmDialog
+   Card, Table, Button, PageHeader, PageSection, Select, useConfirmDialog
 } from '@/components';
 import {
    formatDate, formatNumber
@@ -228,7 +228,7 @@ const Trips: React.FC = () => {
    };
 
    return (
-      <div className="space-y-12 max-w-[1700px] mx-auto pb-40 px-4 md:px-10">
+      <div className="space-y-8 pb-20">
          <PageHeader
             title={translations.title}
             subtitle={translations.subtitle}
@@ -241,7 +241,7 @@ const Trips: React.FC = () => {
          />
 
          {/* Advanced Filters & Actions Toolbar */}
-         <div className="bg-surface/60 backdrop-blur-xl p-2 rounded-3xl border-2 border-border/50 shadow-sm flex flex-col xl:flex-row gap-3 items-start xl:items-center justify-between relative z-10">
+            <PageSection tone="subtle" className="page-toolbar relative z-10 p-3 md:p-4">
                <div className="flex flex-col xl:flex-row gap-2 max-w-full overflow-hidden">
                   <div className="flex overflow-x-auto bg-surface p-1.5 rounded-2xl items-center shadow-sm border border-border gap-1 no-scrollbar shrink-0">
                      {STATUS_TABS.map((tab) => {
@@ -316,7 +316,7 @@ const Trips: React.FC = () => {
                   </div>
                </div>
 
-               <div className="flex flex-wrap items-center gap-2 shrink-0 xl:ml-auto w-full xl:w-auto px-1 pb-1 xl:p-0">
+               <div className="flex w-full flex-wrap items-center gap-2 px-1 pb-1 shrink-0 xl:ml-auto xl:w-auto xl:p-0">
                   <div className="bg-surface px-4 py-1.5 rounded-2xl border border-border shadow-sm flex items-center gap-3 transition-all hover:border-primary shrink-0">
                      <div className="p-1.5 bg-primary/10 rounded-xl text-primary"><Filter size={18} /></div>
                      <div className="flex flex-col text-right">
@@ -363,7 +363,7 @@ const Trips: React.FC = () => {
                      </div>
                   )}
                </div>
-            </div>
+         </PageSection>
 
          <Card className="rounded-2xl overflow-hidden border-2 border-border shadow-lg">
             <Table

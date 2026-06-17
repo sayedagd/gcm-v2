@@ -298,6 +298,7 @@ export const createApiClient = (baseUrl: BaseUrlResolver = '') => {
 
         // Inventory
         getContainers: () => request('/api/v1/inventory/containers'),
+        getInventoryAnalytics: () => request('/api/v1/inventory/analytics'),
         upsertContainer: (data: JsonObjectPayload) => request('/api/v1/inventory/containers', { method: 'POST', body: JSON.stringify(data) }),
         deleteContainer: (id: string) => request(`/api/v1/inventory/containers/${id}`, { method: 'DELETE' }),
         getTanks: () => request('/api/v1/inventory/tanks'),
@@ -377,6 +378,7 @@ export const createApiClient = (baseUrl: BaseUrlResolver = '') => {
         chatWithAI: (messages: any[], context: any) => request(ENDPOINTS.AI.CHAT, { method: 'POST', body: JSON.stringify({ messages, context }) }),
 
         // System
+        getDashboardStats: () => request('/api/v1/dashboard/stats'),
         getSystemMetrics: () => request('/api/v1/system/metrics'),
         getWhatsappStatus: () => request('/api/v1/system/whatsapp/qr'),
         getBackupStatus: () => request('/api/v1/system/backup/status'),

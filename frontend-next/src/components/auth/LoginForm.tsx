@@ -6,9 +6,10 @@ import RegisterMode from './RegisterMode';
 interface LoginFormProps {
     onSuccess?: () => void;
     isModal?: boolean;
+    nextPath?: string;
 }
 
-const LoginForm: React.FC<LoginFormProps> = ({ onSuccess, isModal = false }) => {
+const LoginForm: React.FC<LoginFormProps> = ({ onSuccess, isModal = false, nextPath = "" }) => {
     // Mode State (Orchestrator Level)
     const [mode, setMode] = useState<'login' | 'request'>('login');
 
@@ -22,6 +23,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess, isModal = false }) => 
                 <LoginMode
                     key="login-mode"
                     {...(onSuccess ? { onSuccess } : {})}
+                    nextPath={nextPath}
                     onSwitchToRequest={() => setMode('request')}
                     currentPortalType={portalType}
                     setPortalType={setPortalType}

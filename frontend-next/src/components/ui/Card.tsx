@@ -28,12 +28,12 @@ const Card: React.FC<CardProps> = ({
     variant = 'default',
     compact = false
 }) => {
-    const baseClasses = `relative rounded-2xl ${compact ? 'p-4' : 'p-6'} transition-all duration-200 min-w-0`;
+    const baseClasses = `premium-card relative min-w-0 rounded-[var(--radius-lg)] ${compact ? 'p-4' : 'p-6'} transition-all duration-200`;
 
     const variantClasses = {
-        default: 'bg-surface shadow-sm border border-border',
-        gradient: 'bg-gradient-to-br from-primary-50 to-primary-100 dark:from-primary-900/20 dark:to-primary-800/20 shadow-md',
-        bordered: 'bg-surface border-2 border-border',
+        default: 'surface-panel-strong border border-border/80',
+        gradient: 'border border-primary/15 bg-gradient-to-br from-primary/10 via-surface to-primary/5 shadow-[0_22px_48px_-32px_color-mix(in_srgb,var(--primary-color)_45%,transparent)]',
+        bordered: 'surface-panel border border-border/90',
         glass: 'glass border border-white/20 dark:border-white/10 shadow-sm'
     };
 

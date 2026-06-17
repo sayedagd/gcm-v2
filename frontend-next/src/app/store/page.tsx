@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { PublicNavbar } from "@/components/layout/PublicNavbar";
 import { PublicFooter } from "@/components/layout/PublicFooter";
 import { LoginModal } from "@/components/layout/LoginModal";
+import { PageFrame } from "@/components/layout/PageFrame";
 import { useStore } from "@/context";
 
 type EquipmentItem = {
@@ -94,8 +95,8 @@ export default function StorePage() {
     <div className={`min-h-screen bg-background transition-colors ${isAr ? "text-right" : "text-left"}`}>
       <PublicNavbar isScrolled={false} setIsLoginModalOpen={setIsLoginModalOpen} />
 
-      <main className="pt-36 pb-16 px-6 md:px-10">
-        <div className="max-w-7xl mx-auto">
+      <main className="pt-36 pb-16">
+        <PageFrame className="space-y-0">
           <h1 className="text-4xl md:text-6xl font-black text-text-main">
             {isAr ? saasConfig.storePage?.heroTitleAr : saasConfig.storePage?.heroTitleEn}
           </h1>
@@ -131,11 +132,11 @@ export default function StorePage() {
               </article>
             ))}
           </div>
-        </div>
+        </PageFrame>
       </main>
 
       {selected ? (
-        <div className="fixed inset-0 z-[140] bg-background/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-140 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="w-full max-w-lg rounded-3xl border border-border bg-surface p-6">
             <h3 className="text-2xl font-black text-text-main">
               {isAr ? "طلب عرض سعر" : "Request Quote"}
@@ -174,7 +175,7 @@ export default function StorePage() {
                 value={form.message}
                 onChange={(event) => setForm((prev) => ({ ...prev, message: event.target.value }))}
                 placeholder={isAr ? "الرسالة" : "Message"}
-                className="w-full rounded-xl border border-border bg-surface-subtle px-4 py-3 outline-none min-h-[110px]"
+                className="w-full rounded-xl border border-border bg-surface-subtle px-4 py-3 outline-none min-h-27.5"
               />
 
               <div className="pt-2 flex items-center gap-3">

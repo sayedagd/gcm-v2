@@ -128,10 +128,15 @@ export function AppProviders({ children }: AppProvidersProps) {
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", !!darkMode);
+    document.documentElement.dataset.theme = darkMode ? "dark" : "light";
   }, [darkMode]);
 
   return (
-    <MantineProvider theme={theme} defaultColorScheme="auto">
+    <MantineProvider
+      theme={theme}
+      defaultColorScheme="auto"
+      forceColorScheme={darkMode ? "dark" : "light"}
+    >
       <StoreInitializer />
       {children}
     </MantineProvider>

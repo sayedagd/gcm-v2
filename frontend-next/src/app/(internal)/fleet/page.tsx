@@ -187,7 +187,7 @@ const Fleet: React.FC = () => {
   };
 
   return (
-    <div className="space-y-10 max-w-7xl mx-auto pb-40 px-4">
+    <div className="w-full min-w-0 space-y-10 pb-40 px-4">
       {/* Header Section */}
       <PageHeader
         title={isAr ? 'الأسطول الميداني' : 'Operational Fleet'}
@@ -199,7 +199,7 @@ const Fleet: React.FC = () => {
         onActionClick={() => { setCurrentVehicle({ ownership_type: 'INTERNAL', is_small_vehicle: false, status: 'ACTIVE' }); setIsViewMode(false); setIsModalOpen(true); }}
       >
         <div className="flex bg-surface p-1.5 rounded-2xl border border-border shadow-sm">
-          <Button variant="ghost" onClick={() => router.push('/inventory')} icon={Package} className="!py-4 text-[10px] font-bold uppercase text-text-subtle hover:text-primary border-none">
+          <Button variant="ghost" onClick={() => router.push('/inventory')} icon={Package} className="py-4! text-[10px] font-bold uppercase text-text-subtle hover:text-primary border-none">
             {isAr ? 'المخزون الفني' : 'Technical Inventory'}
           </Button>
         </div>
@@ -222,7 +222,7 @@ const Fleet: React.FC = () => {
                   'Fleet'
                 )}
                 icon={Download}
-                className="!py-4"
+                className="py-4!"
               >
                 {isAr ? 'تصدير Excel' : 'Export Excel'}
               </Button>
@@ -234,11 +234,11 @@ const Fleet: React.FC = () => {
                   'Fleet'
                 )}
                 icon={FileDown}
-                className="!py-4"
+                className="py-4!"
               >
                 {isAr ? 'قالب' : 'Template'}
               </Button>
-              <Button variant="secondary" onClick={() => csvInputRef.current?.click()} icon={Upload} className="!py-4">
+              <Button variant="secondary" onClick={() => csvInputRef.current?.click()} icon={Upload} className="py-4!">
                 {isAr ? 'استيراد' : 'Import'}
               </Button>
               <input type="file" ref={csvInputRef} className="hidden" accept=".xlsx,.xls" onChange={handleImportExcel} />
@@ -276,7 +276,7 @@ const Fleet: React.FC = () => {
       </div>
 
       {viewType === 'map' ? (
-        <FleetMap vehicles={filteredVehicles} isAr={isAr} />
+        <FleetMap vehicles={filteredVehicles} trips={trips} isAr={isAr} />
       ) : (
         <Card className="p-8 space-y-8">
           {/* Units Display */}

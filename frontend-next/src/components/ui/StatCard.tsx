@@ -86,7 +86,7 @@ const StatCard: React.FC<StatCardProps> = ({
             whileHover={{ y: -3 }}
             transition={{ duration: 0.2 }}
             onClick={onClick}
-            className={`relative p-5 rounded-2xl border border-border bg-surface shadow-sm hover:shadow-md transition-shadow duration-200 group overflow-hidden ${className} ${onClick ? 'cursor-pointer' : ''}`}
+            className={`surface-panel-strong relative p-5 rounded-2xl hover:shadow-md transition-shadow duration-200 group overflow-hidden ${className} ${onClick ? 'cursor-pointer' : ''}`}
         >
             <div className="flex items-start justify-between mb-4 relative z-10">
                 <div className={`p-3 rounded-xl ${currentStyle.iconBg} flex items-center justify-center`}>
@@ -94,7 +94,7 @@ const StatCard: React.FC<StatCardProps> = ({
                 </div>
 
                 {trend !== undefined && (
-                    <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${trend >= 0 ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400' : 'bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400'}`}>
+                    <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold border ${trend >= 0 ? 'tone-success tone-success-bg tone-success-border' : 'tone-danger tone-danger-bg tone-danger-border'}`}>
                         {trend >= 0 ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
                         <span>{Math.abs(trend)}%</span>
                     </div>

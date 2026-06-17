@@ -3,9 +3,37 @@ import Card from '@/components/ui/Card';
 import { useStore } from '@/context';
 import { Truck, Package, Activity, Wrench, CheckCircle2 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { listItemMotion, staggerContainer } from '@/theme/motion';
 
 export const AssetAllocationWidget: React.FC<{ isAr: boolean }> = ({ isAr }) => {
     const { services, vehicles, containers, tanks, assetServiceLinks } = useStore();
+
+    const getHealthTone = (health: number) => {
+        if (health >= 80) {
+            return {
+                text: 'tone-success',
+                fill: 'progress-fill-success',
+                border: 'tone-success-border',
+                bg: 'tone-success-bg',
+            };
+        }
+
+        if (health >= 50) {
+            return {
+                text: 'tone-warning',
+                fill: 'progress-fill-warning',
+                border: 'tone-warning-border',
+                bg: 'tone-warning-bg',
+            };
+        }
+
+        return {
+            text: 'tone-danger',
+            fill: 'progress-fill-danger',
+            border: 'tone-danger-border',
+            bg: 'tone-danger-bg',
+        };
+    };
 
     // Calculate allocation grouped by Parent Services
     const allocationData = useMemo(() => {
@@ -79,15 +107,18 @@ export const AssetAllocationWidget: React.FC<{ isAr: boolean }> = ({ isAr }) => 
                 </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-4">
+            <motion.div variants={staggerContainer} initial="hidden" animate="visible" className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-4">
                 {allocationData.map((data, idx) => (
                     <motion.div 
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: idx * 0.1 }}
+                        variants={listItemMotion}
                         key={data.service.service_id} 
-                        className="p-4 rounded-xl border border-border bg-surface-subtle"
+                        className="surface-panel p-4 rounded-[var(--radius-md)]"
                     >
+                        {(() => {
+                            const tone = getHealthTone(data.health);
+
+                            return (
+                                <>
                         {/* Header & Health Bar */}
                         <div className="flex justify-between items-end mb-3">
                             <div>
@@ -97,7 +128,7 @@ export const AssetAllocationWidget: React.FC<{ isAr: boolean }> = ({ isAr }) => 
                                 </span>
                             </div>
                             <div className="text-right">
-                                <span className={`text-xl font-black ${data.health >= 80 ? 'text-emerald-500' : data.health >= 50 ? 'text-amber-500' : 'text-rose-500'}`}>
+                                <span className={`text-xl font-black ${tone.text}`}>
                                     {data.health}%
                                 </span>
                                 <span className="text-[9px] block text-text-subtle font-bold">{isAr ? 'معدل الجاهزية' : 'Readiness'}</span>
@@ -105,9 +136,9 @@ export const AssetAllocationWidget: React.FC<{ isAr: boolean }> = ({ isAr }) => 
                         </div>
 
                         {/* Health Progress Bar */}
-                        <div className="w-full h-1.5 bg-border/50 rounded-full mb-4 overflow-hidden">
+                        <div className="progress-track w-full h-1.5 rounded-full mb-4 overflow-hidden">
                             <div 
-                                className={`h-full rounded-full transition-all duration-1000 ${data.health >= 80 ? 'bg-emerald-500' : data.health >= 50 ? 'bg-amber-500' : 'bg-rose-500'}`} 
+                                className={`h-full rounded-full transition-all duration-1000 ${tone.fill}`} 
                                 style={{ width: `${data.health}%` }} 
                             />
                         </div>
@@ -122,10 +153,10 @@ export const AssetAllocationWidget: React.FC<{ isAr: boolean }> = ({ isAr }) => 
                                         <span className="text-[10px] font-bold">{data.breakdown.vehicles.total} {isAr ? 'مركبة' : 'Fleet'}</span>
                                     </div>
                                     <div className="flex justify-between text-[10px] font-bold">
-                                        <div className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
+                                        <div className="flex items-center gap-1 tone-success">
                                             <CheckCircle2 size={12} /> {data.breakdown.vehicles.active}
                                         </div>
-                                        <div className="flex items-center gap-1 text-rose-500">
+                                        <div className="flex items-center gap-1 tone-danger">
                                             <Wrench size={12} /> {data.breakdown.vehicles.maintenance}
                                         </div>
                                     </div>
@@ -136,20 +167,23 @@ export const AssetAllocationWidget: React.FC<{ isAr: boolean }> = ({ isAr }) => 
                             {data.breakdown.inventory.total > 0 && (
                                 <div className="p-3 bg-surface rounded-lg border border-border/50">
                                     <div className="flex items-center justify-between mb-2 opacity-70">
-                                        <Package size={14} className="text-emerald-500" />
+                                        <Package size={14} className="tone-success" />
                                         <span className="text-[10px] font-bold">{data.breakdown.inventory.total} {isAr ? 'حاوية/تانك' : 'Inventory'}</span>
                                     </div>
                                     <div className="flex justify-between text-[10px] font-bold">
-                                        <div className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400" title={isAr ? 'متاح وميداني' : 'Available & Deployed'}>
+                                        <div className="flex items-center gap-1 tone-success" title={isAr ? 'متاح وميداني' : 'Available & Deployed'}>
                                             <CheckCircle2 size={12} /> {data.breakdown.inventory.available + data.breakdown.inventory.deployed}
                                         </div>
-                                        <div className="flex items-center gap-1 text-rose-500" title={isAr ? 'صيانة/تالف' : 'Maintenance/Damaged'}>
+                                        <div className="flex items-center gap-1 tone-danger" title={isAr ? 'صيانة/تالف' : 'Maintenance/Damaged'}>
                                             <Wrench size={12} /> {data.breakdown.inventory.maintenance}
                                         </div>
                                     </div>
                                 </div>
                             )}
                         </div>
+                                </>
+                            );
+                        })()}
                     </motion.div>
                 ))}
                 {allocationData.length === 0 && (
@@ -157,7 +191,7 @@ export const AssetAllocationWidget: React.FC<{ isAr: boolean }> = ({ isAr }) => 
                         <p className="text-sm font-bold">{isAr ? 'لا توجد معدات مرتبطة بخدمات حتى الآن' : 'No assets linked to services yet'}</p>
                     </div>
                 )}
-            </div>
+            </motion.div>
         </Card>
     );
 };

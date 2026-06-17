@@ -217,7 +217,7 @@ const Services: React.FC = () => {
   if (booting) return <SkeletonFullPage variant="cards" />;
 
   return (
-    <div className="space-y-8 max-w-6xl mx-auto pb-20 pt-8 px-4">
+    <div className="w-full min-w-0 space-y-8 pb-20 pt-8 px-4">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
           <h1 className="text-4xl font-bold flex items-center gap-4 tracking-tight text-text-main">

@@ -63,14 +63,11 @@ const Textarea: React.FC<TextareaProps> = ({
                     disabled={disabled}
                     rows={rows}
                     maxLength={maxLength}
+                    data-invalid={error ? 'true' : undefined}
                     className={`
-                        w-full px-3.5 py-2.5 rounded-xl border transition-all duration-200 font-medium text-sm leading-relaxed ${className}
+                        field-base w-full px-3.5 py-3 font-medium text-sm leading-relaxed ${className}
                         ${icon ? 'ps-10' : ''}
-                        ${error
-                            ? 'border-rose-400/60 bg-rose-50/50 dark:bg-rose-900/10 focus:border-rose-500 focus:ring-2 focus:ring-rose-500/15'
-                            : 'border-border bg-surface focus:border-primary-500 focus:ring-2 focus:ring-primary-500/15'
-                        }
-                        ${disabled ? 'opacity-50 cursor-not-allowed bg-surface-subtle' : 'hover:border-border'}
+                        ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
                         text-text-main
                         placeholder:text-text-subtle placeholder:font-normal
                         focus:outline-none resize-none

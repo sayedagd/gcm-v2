@@ -175,7 +175,7 @@ const ClientAccount: React.FC = () => {
     const totalBudgetAll = projectBreakdowns.reduce((s, b) => s + b.totalBudget, 0);
 
     return (
-        <div className="space-y-8 max-w-6xl mx-auto">
+        <div className="w-full min-w-0 space-y-8">
             {/* Page Title */}
             <div>
                 <h1 className="text-3xl font-black text-text-main">

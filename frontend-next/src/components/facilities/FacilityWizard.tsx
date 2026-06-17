@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Facility, FacilityType, Service } from '@/types';
 import { Modal, Input, Button, MultiSelect, FileUploader } from '@/components';
 import { Building2, Shield, Calendar, MapPin, FileText, CheckCircle2 } from 'lucide-react';
+import { getFacilityStatusOptions, getFacilityTypeOptions } from '@/features/lookups/wizardOptions';
 
 interface FacilityWizardProps {
     isOpen: boolean;
@@ -123,8 +124,8 @@ const FacilityWizard: React.FC<FacilityWizardProps> = ({
                                         value={formData.type}
                                         onChange={(e) => setFormData({ ...formData, type: e.target.value as FacilityType })}
                                     >
-                                        {Object.values(FacilityType).map(t => (
-                                            <option key={t} value={t}>{t}</option>
+                                        {getFacilityTypeOptions().map(option => (
+                                            <option key={option.value} value={option.value}>{option.label}</option>
                                         ))}
                                     </select>
                                 </div>
@@ -136,8 +137,9 @@ const FacilityWizard: React.FC<FacilityWizardProps> = ({
                                         value={formData.status}
                                         onChange={(e) => setFormData({ ...formData, status: e.target.value as 'ACTIVE' | 'INACTIVE' })}
                                     >
-                                        <option value="ACTIVE">{isAr ? 'نشط' : 'Active'}</option>
-                                        <option value="INACTIVE">{isAr ? 'غير نشط' : 'Inactive'}</option>
+                                        {getFacilityStatusOptions(isAr).map(option => (
+                                            <option key={option.value} value={option.value}>{option.label}</option>
+                                        ))}
                                     </select>
                                 </div>
                             </div>

@@ -4,6 +4,7 @@ import { Button, Input, Select, SearchableSelect, QuickUserModal } from '@/compo
 import { Driver, Supplier, PermitEntry, Vehicle, User, Role } from '@/types';
 import { motion } from 'framer-motion';
 import { toast } from '@/utils/toast';
+import { getDriverCategoryOptions, getDriverOwnershipOptions, getDriverStatusOptions } from '@/features/lookups/wizardOptions';
 
 interface DriverWizardProps {
     currentStaff: Partial<Driver> | null;
@@ -199,10 +200,7 @@ const DriverWizard: React.FC<DriverWizardProps> = ({
                     label={isAr ? 'تصنيف الكادر' : 'Staff Category'}
                     value={localStaff?.category || 'OPERATIONS'}
                     onChange={val => update('category', val as Driver['category'])}
-                    options={[
-                        { label: isAr ? '🔧 الكادر الميداني' : '🔧 FIELD OPERATIONS', value: 'OPERATIONS' },
-                        { label: isAr ? '💼 الهيكل الإداري' : '💼 MANAGEMENT STRUCTURE', value: 'MANAGEMENT' }
-                    ]}
+                        options={getDriverCategoryOptions(isAr)}
                     className="!text-xs uppercase"
                 />
             </div>
@@ -217,10 +215,7 @@ const DriverWizard: React.FC<DriverWizardProps> = ({
                         label={isAr ? 'مصدر التوظيف' : 'Employment Source'}
                         value={localStaff?.ownership_type || 'INTERNAL'}
                         onChange={val => update('ownership_type', val as Driver['ownership_type'])}
-                        options={[
-                            { label: '🏢 GCM (CORE TEAM)', value: 'INTERNAL' },
-                            { label: '🤝 EXTERNAL PARTNER', value: 'SUPPLIER' }
-                        ]}
+                        options={getDriverOwnershipOptions()}
                         className="!text-xs"
                     />
                     {localStaff?.ownership_type === 'SUPPLIER' && (
@@ -252,11 +247,7 @@ const DriverWizard: React.FC<DriverWizardProps> = ({
                         label={isAr ? 'الحالة التشغيلية' : 'Operational Status'}
                         value={localStaff?.status || 'ACTIVE'}
                         onChange={val => update('status', val as Driver['status'])}
-                        options={[
-                            { label: '✅ READY / ACTIVE', value: 'ACTIVE' },
-                            { label: '⏸️ TEMPORARY LEAVE', value: 'ON_LEAVE' },
-                            { label: '❌ DECOMMISSIONED', value: 'INACTIVE' }
-                        ]}
+                        options={getDriverStatusOptions()}
                         className="!text-xs"
                     />
                 </div>
