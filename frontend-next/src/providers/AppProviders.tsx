@@ -119,6 +119,7 @@ export function AppProviders({ children }: AppProvidersProps) {
     document.documentElement.lang = language;
     document.documentElement.dir = direction;
     document.documentElement.dataset.lang = language;
+    document.documentElement.classList.toggle("arabic-ui", language === "ar");
   }, [saasConfig?.language]);
 
   useEffect(() => {

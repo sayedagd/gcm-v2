@@ -35,6 +35,7 @@
         "evidence:release-decision": "node scripts/ops/generate-release-decision-audit.mjs",
         "maintenance:create-test-accounts": "node scripts/maintenance/create_test_accounts.js",
         "maintenance:inject-services": "node scripts/maintenance/inject_services.js",
+        "maintenance:fix-arabic-mojibake": "node scripts/maintenance/fix_arabic_mojibake.js",
         "maintenance:reset-admin": "node scripts/maintenance/reset_admin.js",
         "maintenance:reset-testing": "node scripts/maintenance/reset_for_testing.js",
         "maintenance:wipe-data": "node scripts/maintenance/wipe_data.js"
@@ -52,6 +53,7 @@
         "express-async-errors": "^3.1.1",
         "express-rate-limit": "^8.3.1",
         "helmet": "^8.1.0",
+        "iconv-lite": "^0.6.3",
         "joi": "^17.13.3",
         "jsonwebtoken": "^9.0.3",
         "multer": "^2.1.1",

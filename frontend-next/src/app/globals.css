@@ -71,6 +71,21 @@ body {
   text-rendering: optimizeLegibility;
 }
 
+html.arabic-ui :is(h1, h2, h3, h4, h5, h6, p, span, label, button, a, th, td, li, div) {
+  text-transform: none !important;
+  letter-spacing: normal !important;
+  word-spacing: normal;
+}
+
+html.arabic-ui :is(.uppercase, .tracking-tight, .tracking-wider, .tracking-wide, .tracking-widest, [class*="tracking-"]) {
+  letter-spacing: normal !important;
+  text-transform: none !important;
+}
+
+html.arabic-ui {
+  text-rendering: optimizeLegibility;
+}
+
 a {
   color: var(--primary-color);
 }

@@ -291,19 +291,6 @@ const performSystemBackup = async (format = 'sql') => {
                     reject(err);
                 });
 
-                                resolve({
-                                    archivePath: tempZipPath,
-                                    artifactId: stored.artifactId,
-                                    fileName,
-                                    format
-                                });
-                            } catch (error) {
-                                reject(error);
-                            } finally {
-                                try { fs.unlinkSync(tempZipPath); } catch (_) {}
-                            }
-                        });
-
                         archive.on('error', reject);
                         archive.pipe(output);
 
