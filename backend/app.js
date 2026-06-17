@@ -375,6 +375,8 @@ const allowedOrigins = [
     process.env.CORS_ORIGIN || null,
     process.env.FRONTEND_URL || null,
     process.env.NEXT_PUBLIC_APP_URL || null,
+    process.env.NEXT_PUBLIC_CANONICAL_HOST ? `https://${String(process.env.NEXT_PUBLIC_CANONICAL_HOST).trim()}` : null,
+    'https://gcm.twision.agency',
     process.env.NODE_ENV !== 'production' ? 'http://localhost:3000' : null,
     process.env.NODE_ENV !== 'production' ? 'http://127.0.0.1:3000' : null,
     process.env.NODE_ENV !== 'production' ? 'http://localhost:5173' : null,
@@ -387,17 +389,42 @@ const extraAllowedOrigins = (process.env.CORS_ALLOWED_ORIGINS || '')
     .filter(Boolean);
 
 const allowedOriginSet = new Set([...allowedOrigins, ...extraAllowedOrigins]);
+const allowTwisionAgencyOrigins = process.env.CORS_ALLOW_TWISION_AGENCY !== 'false';
+
+const isTrustedOrigin = (origin) => {
+    if (allowedOriginSet.has(origin)) {
+        return true;
+    }
+
+    try {
+        const parsed = new URL(origin);
+        const host = parsed.hostname.toLowerCase();
+        if (process.env.NODE_ENV !== 'production' && (host === 'localhost' || host === '127.0.0.1')) {
+            return true;
+        }
+
+        if (allowTwisionAgencyOrigins && parsed.protocol === 'https:' && (host === 'twision.agency' || host.endsWith('.twision.agency'))) {
+            return true;
+        }
+    } catch {
+        return false;
+    }
+
+    return false;
+};
 
 app.use(cors({
     origin: (origin, callback) => {
         // Allow non-browser clients and same-origin server calls.
         if (!origin) return callback(null, true);
 
-        if (allowedOriginSet.has(origin)) {
+        if (isTrustedOrigin(origin)) {
             return callback(null, true);
         }
 
-        return callback(new Error(`CORS blocked for origin: ${origin}`));
+        // Deny CORS without throwing, so blocked origins don't surface as 500 errors.
+        console.warn(`[CORS] Blocked origin: ${origin}`);
+        return callback(null, false);
     },
     credentials: true
 }));

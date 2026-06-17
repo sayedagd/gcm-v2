@@ -22,6 +22,24 @@ const errorHandler = (err, req, res, next) => {
     // Always output stack to stderr/Vercel console for debugging
     console.error('[errorHandler] Caught error:', err.stack || err);
 
+    if (err && err.type === 'entity.parse.failed') {
+        return sendError(res, 400, {
+            code: 'INVALID_JSON_PAYLOAD',
+            error: 'Invalid JSON payload',
+            errorEn: 'Invalid JSON payload',
+            errorAr: 'بيانات JSON غير صالحة'
+        });
+    }
+
+    if (err && typeof err.message === 'string' && err.message.startsWith('CORS blocked for origin:')) {
+        return sendError(res, 403, {
+            code: 'CORS_FORBIDDEN_ORIGIN',
+            error: 'CORS origin not allowed',
+            errorEn: 'CORS origin not allowed',
+            errorAr: 'مصدر الطلب غير مسموح في إعدادات CORS'
+        });
+    }
+
     // --- ترجمة أخطاء PostgreSQL ---
     if (err.code && (err.code.startsWith('23') || err.code.startsWith('22'))) {
         const table = req.baseUrl.split('/').pop() || 'unknown';
